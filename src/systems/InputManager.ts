@@ -7,8 +7,10 @@ export class InputManager {
   private wasd: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private escKey: Phaser.Input.Keyboard.Key;
 
-  // Mouse/touch — hold to move toward pointer
-  private pointerDown = false;
+  // Virtual d-pad: touch origin becomes the centre, drag direction = movement
+  private touchActive = false;
+  private touchOriginX = 0;
+  private touchOriginY = 0;
 
   // Gamepad Start button edge detection
   private startWasDown = false;
@@ -25,8 +27,12 @@ export class InputManager {
     };
     this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    scene.input.on('pointerdown', () => { this.pointerDown = true; });
-    scene.input.on('pointerup', () => { this.pointerDown = false; });
+    scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.touchActive = true;
+      this.touchOriginX = pointer.x;
+      this.touchOriginY = pointer.y;
+    });
+    scene.input.on('pointerup', () => { this.touchActive = false; });
   }
 
   getMovement(): Vec2 {
@@ -55,25 +61,16 @@ export class InputManager {
       }
     }
 
-    // Mouse/touch — move toward pointer world position while held
-    if (this.pointerDown && dx === 0 && dy === 0) {
+    // Touch/mouse virtual d-pad — direction is drag offset from touch origin
+    if (this.touchActive && dx === 0 && dy === 0) {
       const pointer = this.scene.input.activePointer;
-      const cam = this.scene.cameras.main;
-      const worldX = pointer.x / cam.zoom + cam.worldView.x;
-      const worldY = pointer.y / cam.zoom + cam.worldView.y;
-      // Use player sprite position (center of camera follow target)
-      const playerX = cam.worldView.x + cam.worldView.width / 2;
-      const playerY = cam.worldView.y + cam.worldView.height / 2;
-      dx = worldX - playerX;
-      dy = worldY - playerY;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      // Small deadzone so player doesn't jitter when pointer is right on them
-      if (len > 8) {
-        dx /= len;
-        dy /= len;
-      } else {
-        dx = 0;
-        dy = 0;
+      const tdx = pointer.x - this.touchOriginX;
+      const tdy = pointer.y - this.touchOriginY;
+      const len = Math.sqrt(tdx * tdx + tdy * tdy);
+      // Deadzone in screen pixels so a tap doesn't cause jitter
+      if (len > 15) {
+        dx = tdx / len;
+        dy = tdy / len;
       }
     }
 
