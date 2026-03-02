@@ -27,7 +27,7 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, MainMenuScene, GameScene, HUDScene, LevelUpScene, PauseScene, GameOverScene],
   render: {
     pixelArt: true,
-    antialias: false,
+    autoMobilePipeline: true,
   },
   input: {
     activePointers: 2, // support multi-touch
