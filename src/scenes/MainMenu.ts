@@ -38,6 +38,19 @@ export class MainMenuScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
+    // High scores button
+    const scoresBtn = this.add.rectangle(width / 2, height * 0.70, 200, 45, 0x333344)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => scoresBtn.setFillStyle(0x444466))
+      .on('pointerout', () => scoresBtn.setFillStyle(0x333344))
+      .on('pointerdown', () => this.scene.start('HighScores'));
+
+    this.add.text(width / 2, height * 0.70, 'HIGH SCORES', {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ffcc00',
+    }).setOrigin(0.5);
+
     // Controls hint
     this.add.text(width / 2, height * 0.88, 'WASD / Arrows to move  |  ESC to pause', {
       fontSize: '12px',
