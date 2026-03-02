@@ -1,0 +1,81 @@
+import Phaser from 'phaser';
+import { Enemy } from '../entities/Enemy';
+import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE, type TileMap, EnemyType } from '../shared';
+
+export class EnemyPool {
+  private pool: Enemy[] = [];
+  private active: Enemy[] = [];
+  private scene: Phaser.Scene;
+  private map: TileMap;
+  private nextId: number = 1;
+
+  constructor(scene: Phaser.Scene, map: TileMap) {
+    this.scene = scene;
+    this.map = map;
+
+    // Pre-allocate pool
+    for (let i = 0; i < ENEMY_POOL_INITIAL; i++) {
+      this.pool.push(new Enemy(scene, map));
+    }
+  }
+
+  spawn(type: EnemyType, x: number, y: number, gameTimeMs: number): Enemy | null {
+    if (this.active.length >= ENEMY_MAX_ACTIVE) return null;
+
+    let enemy: Enemy;
+    if (this.pool.length > 0) {
+      enemy = this.pool.pop()!;
+    } else {
+      enemy = new Enemy(this.scene, this.map);
+    }
+
+    enemy.activate(this.nextId++, type, x, y, gameTimeMs);
+    this.active.push(enemy);
+    return enemy;
+  }
+
+  update(dt: number, playerX: number, playerY: number): void {
+    // Calculate despawn range from viewport
+    const cam = this.scene.cameras.main;
+    const halfW = cam.worldView.width / 2;
+    const halfH = cam.worldView.height / 2;
+    const despawnRange = Math.sqrt(halfW * halfW + halfH * halfH) + 400;
+
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const enemy = this.active[i];
+      const stillActive = enemy.update(dt, playerX, playerY, despawnRange);
+      if (!stillActive) {
+        this.active.splice(i, 1);
+        this.pool.push(enemy);
+      }
+    }
+  }
+
+  getActive(): Enemy[] {
+    return this.active;
+  }
+
+  getActiveCount(): number {
+    return this.active.length;
+  }
+
+  /** Remove a specific enemy (when killed) and return it to pool */
+  returnToPool(enemy: Enemy): void {
+    const idx = this.active.indexOf(enemy);
+    if (idx !== -1) {
+      this.active.splice(idx, 1);
+      enemy.deactivate();
+      this.pool.push(enemy);
+    }
+  }
+
+  /** Get enemies near a point (brute force, use SpatialHash for better perf) */
+  getEnemiesInRadius(x: number, y: number, radius: number): Enemy[] {
+    const r2 = radius * radius;
+    return this.active.filter(e => {
+      const dx = e.state.x - x;
+      const dy = e.state.y - y;
+      return dx * dx + dy * dy < r2;
+    });
+  }
+}

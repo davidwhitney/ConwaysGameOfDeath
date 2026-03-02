@@ -1,0 +1,151 @@
+import Phaser from 'phaser';
+import { distance } from '../shared';
+
+/** Time in seconds before a gem can be collected (scatter animation window) */
+const SPAWN_DELAY = 0.4;
+/** Speed gems scatter outward during spawn delay */
+const SCATTER_SPEED = 120;
+
+export interface GemData {
+  sprite: Phaser.GameObjects.Sprite;
+  x: number;
+  y: number;
+  value: number;
+  alive: boolean;
+  magnetized: boolean;
+  /** Seconds since spawn; gem is not collectible until >= SPAWN_DELAY */
+  age: number;
+  /** Scatter direction chosen at spawn */
+  scatterDx: number;
+  scatterDy: number;
+  /** Golden gems heal 25% HP instead of giving XP */
+  golden: boolean;
+}
+
+export class XPGemPool {
+  private pool: Phaser.GameObjects.Sprite[] = [];
+  private active: GemData[] = [];
+  private scene: Phaser.Scene;
+  private container: Phaser.GameObjects.Container;
+
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
+    this.container = scene.add.container(0, 0);
+    this.container.setDepth(3);
+
+    // Pre-allocate
+    for (let i = 0; i < 100; i++) {
+      const s = scene.add.sprite(-1000, -1000, 'xp-gem');
+      s.setVisible(false);
+      this.container.add(s);
+      this.pool.push(s);
+    }
+  }
+
+  spawn(x: number, y: number, value: number): void {
+    this.spawnGem(x, y, value, false);
+  }
+
+  spawnGolden(x: number, y: number): void {
+    this.spawnGem(x, y, 0, true);
+  }
+
+  private spawnGem(x: number, y: number, value: number, golden: boolean): void {
+    const texKey = golden ? 'golden-gem' : 'xp-gem';
+    let sprite: Phaser.GameObjects.Sprite;
+    if (this.pool.length > 0) {
+      sprite = this.pool.pop()!;
+      sprite.setTexture(texKey);
+    } else {
+      sprite = this.scene.add.sprite(-1000, -1000, texKey);
+      this.container.add(sprite);
+    }
+
+    sprite.setPosition(x, y);
+    sprite.setVisible(true);
+    const scale = golden ? 1.4 : Math.min(2, 0.8 + value * 0.1);
+    sprite.setScale(scale);
+
+    // Random scatter direction so gems pop outward from the kill site
+    const angle = Math.random() * Math.PI * 2;
+
+    this.active.push({
+      sprite, x, y, value,
+      alive: true,
+      magnetized: false,
+      age: 0,
+      scatterDx: Math.cos(angle),
+      scatterDy: Math.sin(angle),
+      golden,
+    });
+  }
+
+  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number } {
+    let totalXp = 0;
+    let heals = 0;
+    const magnetRange = pickupRange * 3;
+
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const gem = this.active[i];
+      if (!gem.alive) continue;
+
+      gem.age += dt;
+
+      // During spawn delay the gem scatters outward and cannot be collected
+      if (gem.age < SPAWN_DELAY) {
+        const t = gem.age / SPAWN_DELAY;          // 0→1
+        const speed = SCATTER_SPEED * (1 - t);    // decelerating
+        gem.x += gem.scatterDx * speed * dt;
+        gem.y += gem.scatterDy * speed * dt;
+        gem.sprite.setPosition(gem.x, gem.y);
+        const baseScale = gem.golden ? 1.4 : Math.min(2, 0.8 + gem.value * 0.1);
+        gem.sprite.setScale(baseScale * (0.6 + 0.4 * t));
+        continue;
+      }
+
+      const dist = distance(gem, { x: playerX, y: playerY });
+
+      // Magnetize nearby gems
+      if (dist < magnetRange) {
+        gem.magnetized = true;
+      }
+
+      // Move magnetized gems toward player
+      if (gem.magnetized) {
+        const speed = 400;
+        const dx = playerX - gem.x;
+        const dy = playerY - gem.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          gem.x += (dx / len) * speed * dt;
+          gem.y += (dy / len) * speed * dt;
+          gem.sprite.setPosition(gem.x, gem.y);
+        }
+      }
+
+      // Pickup
+      if (dist < pickupRange) {
+        if (gem.golden) {
+          heals++;
+        } else {
+          totalXp += gem.value;
+        }
+        gem.alive = false;
+        gem.sprite.setVisible(false);
+        gem.sprite.setPosition(-1000, -1000);
+        this.pool.push(gem.sprite);
+        this.active.splice(i, 1);
+      }
+    }
+
+    return { xp: totalXp, heals };
+  }
+
+  getActive(): GemData[] {
+    return this.active;
+  }
+
+  destroy(): void {
+    this.container.destroy(true);
+  }
+}

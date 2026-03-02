@@ -1,0 +1,257 @@
+import Phaser from 'phaser';
+import {
+  type EnemyState, type EnemyDef, EnemyType, type Vec2,
+  ENEMY_DESPAWN_RANGE, TILE_SIZE,
+  type TileMap, isWalkable, directionTo, distance,
+} from '../shared';
+import { ENEMY_DEFS } from '../shared';
+
+const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
+  [EnemyType.Bat]: 'enemy-bat',
+  [EnemyType.Skeleton]: 'enemy-skeleton',
+  [EnemyType.Zombie]: 'enemy-zombie',
+  [EnemyType.Ghost]: 'enemy-ghost',
+  [EnemyType.Werewolf]: 'enemy-werewolf',
+  [EnemyType.Mummy]: 'enemy-mummy',
+  [EnemyType.Vampire]: 'enemy-vampire',
+  [EnemyType.Lich]: 'enemy-lich',
+  [EnemyType.Dragon]: 'enemy-dragon',
+  [EnemyType.Reaper]: 'enemy-reaper',
+};
+
+export class Enemy {
+  sprite: Phaser.GameObjects.Sprite;
+  state: EnemyState;
+  def: EnemyDef;
+  private scene: Phaser.Scene;
+  private map: TileMap;
+
+  // For orbit behavior
+  private orbitAngle: number = 0;
+  // For teleport behavior
+  private teleportTimer: number = 0;
+  // For cross behavior
+  private crossDir: Vec2 = { x: 1, y: 0 };
+
+  constructor(scene: Phaser.Scene, map: TileMap) {
+    this.scene = scene;
+    this.map = map;
+    this.def = ENEMY_DEFS[0];
+    this.sprite = scene.add.sprite(-1000, -1000, 'enemy-bat');
+    this.sprite.setDepth(5);
+    this.sprite.setVisible(false);
+
+    this.state = {
+      id: 0,
+      type: EnemyType.Bat,
+      x: -1000, y: -1000,
+      hp: 1, maxHp: 1,
+      speed: 0, damage: 0,
+      alive: false, xpValue: 0,
+    };
+  }
+
+  /** Activate this pooled enemy with given type and position */
+  activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number): void {
+    this.def = ENEMY_DEFS[type];
+    // Scale HP and damage aggressively with game time
+    const minute = gameTimeMs / 60000;
+    const hpScale = 1 + minute * 0.35;
+    const dmgScale = 1 + minute * 0.12;
+
+    this.state = {
+      id,
+      type,
+      x, y,
+      hp: Math.floor(this.def.baseHp * hpScale),
+      maxHp: Math.floor(this.def.baseHp * hpScale),
+      speed: this.def.baseSpeed,
+      damage: Math.floor(this.def.baseDamage * dmgScale),
+      alive: true,
+      xpValue: this.def.xpValue,
+    };
+
+    this.sprite.setTexture(ENEMY_TEXTURE_MAP[type]);
+    this.sprite.setPosition(x, y);
+    this.sprite.setVisible(true);
+    this.sprite.setAlpha(1);
+
+    // Init behavior state
+    this.orbitAngle = Math.random() * Math.PI * 2;
+    this.teleportTimer = 2000 + Math.random() * 3000;
+    const angle = Math.random() * Math.PI * 2;
+    this.crossDir = { x: Math.cos(angle), y: Math.sin(angle) };
+  }
+
+  deactivate(): void {
+    this.state.alive = false;
+    this.sprite.setVisible(false);
+    this.sprite.setPosition(-1000, -1000);
+  }
+
+  update(dt: number, playerX: number, playerY: number, despawnRange?: number): boolean {
+    if (!this.state.alive) return false;
+
+    // Check despawn distance
+    const dist = distance(this.state, { x: playerX, y: playerY });
+    if (dist > (despawnRange ?? ENEMY_DESPAWN_RANGE)) {
+      this.deactivate();
+      return false;
+    }
+
+    switch (this.def.behavior) {
+      case 'chase':
+        this.behaviorChase(dt, playerX, playerY);
+        break;
+      case 'cross':
+        this.behaviorCross(dt);
+        break;
+      case 'orbit':
+        this.behaviorOrbit(dt, playerX, playerY);
+        break;
+      case 'teleport':
+        this.behaviorTeleport(dt, playerX, playerY);
+        break;
+      case 'swarm':
+        this.behaviorSwarm(dt, playerX, playerY);
+        break;
+    }
+
+    this.sprite.setPosition(this.state.x, this.state.y);
+    this.sprite.setFlipX(playerX < this.state.x);
+    return true;
+  }
+
+  private behaviorChase(dt: number, px: number, py: number): void {
+    const dir = directionTo(this.state, { x: px, y: py });
+    this.tryMove(dir.x * this.state.speed * dt, dir.y * this.state.speed * dt);
+  }
+
+  private behaviorCross(dt: number): void {
+    // Move in a straight line across the screen
+    this.tryMove(this.crossDir.x * this.state.speed * dt, this.crossDir.y * this.state.speed * dt);
+  }
+
+  private behaviorOrbit(dt: number, px: number, py: number): void {
+    // Orbit around the player at a distance
+    const orbitDist = 150;
+    this.orbitAngle += this.state.speed * dt * 0.005;
+    const targetX = px + Math.cos(this.orbitAngle) * orbitDist;
+    const targetY = py + Math.sin(this.orbitAngle) * orbitDist;
+    const dir = directionTo(this.state, { x: targetX, y: targetY });
+    this.tryMove(dir.x * this.state.speed * dt, dir.y * this.state.speed * dt);
+  }
+
+  private behaviorTeleport(dt: number, px: number, py: number): void {
+    this.teleportTimer -= dt * 1000;
+    if (this.teleportTimer <= 0) {
+      // Teleport near player
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 120;
+      this.state.x = px + Math.cos(angle) * dist;
+      this.state.y = py + Math.sin(angle) * dist;
+      this.teleportTimer = 2000 + Math.random() * 2000;
+    } else {
+      // Slowly approach
+      const dir = directionTo(this.state, { x: px, y: py });
+      this.tryMove(dir.x * this.state.speed * 0.3 * dt, dir.y * this.state.speed * 0.3 * dt);
+    }
+  }
+
+  private behaviorSwarm(dt: number, px: number, py: number): void {
+    // Like chase but with slight weaving
+    const dir = directionTo(this.state, { x: px, y: py });
+    const wobble = Math.sin(Date.now() * 0.003 + this.state.id) * 0.3;
+    this.tryMove(
+      (dir.x + dir.y * wobble) * this.state.speed * dt,
+      (dir.y - dir.x * wobble) * this.state.speed * dt,
+    );
+  }
+
+  /**
+   * Try to move by (dx,dy). If blocked by a wall, steer around the obstacle
+   * by sliding along the wall and probing perpendicular directions.
+   */
+  private tryMove(dx: number, dy: number): void {
+    // Ghosts and cross-movers ignore walls
+    if (this.def.behavior === 'cross' || this.def.type === EnemyType.Ghost) {
+      this.state.x += dx;
+      this.state.y += dy;
+      return;
+    }
+
+    const halfSize = this.def.size / 2;
+
+    // Try full move first
+    const fullX = this.state.x + dx;
+    const fullY = this.state.y + dy;
+    if (this.posWalkable(fullX, fullY, halfSize)) {
+      this.state.x = fullX;
+      this.state.y = fullY;
+      return;
+    }
+
+    // Try X-only slide
+    const slideX = this.state.x + dx;
+    const xOk = this.posWalkable(slideX, this.state.y, halfSize);
+    if (xOk) {
+      this.state.x = slideX;
+    }
+
+    // Try Y-only slide
+    const slideY = this.state.y + dy;
+    const yOk = this.posWalkable(this.state.x, slideY, halfSize);
+    if (yOk) {
+      this.state.y = slideY;
+    }
+
+    // If completely stuck, try perpendicular nudges to steer around corners
+    if (!xOk && !yOk) {
+      const nudge = this.state.speed * 0.016; // ~1-frame nudge
+      // Try the four perpendicular directions
+      if (dx !== 0) {
+        if (this.posWalkable(this.state.x, this.state.y - nudge, halfSize)) {
+          this.state.y -= nudge;
+        } else if (this.posWalkable(this.state.x, this.state.y + nudge, halfSize)) {
+          this.state.y += nudge;
+        }
+      }
+      if (dy !== 0) {
+        if (this.posWalkable(this.state.x - nudge, this.state.y, halfSize)) {
+          this.state.x -= nudge;
+        } else if (this.posWalkable(this.state.x + nudge, this.state.y, halfSize)) {
+          this.state.x += nudge;
+        }
+      }
+    }
+  }
+
+  /** Check whether a position is walkable for all four corners of the enemy hitbox */
+  private posWalkable(x: number, y: number, half: number): boolean {
+    const t1x = Math.floor((x - half) / TILE_SIZE);
+    const t2x = Math.floor((x + half) / TILE_SIZE);
+    const t1y = Math.floor((y - half) / TILE_SIZE);
+    const t2y = Math.floor((y + half) / TILE_SIZE);
+    return (
+      isWalkable(this.map, t1x, t1y) &&
+      isWalkable(this.map, t2x, t1y) &&
+      isWalkable(this.map, t1x, t2y) &&
+      isWalkable(this.map, t2x, t2y)
+    );
+  }
+
+  takeDamage(damage: number): boolean {
+    this.state.hp -= damage;
+    // Flash white briefly
+    this.sprite.setTint(0xffffff);
+    this.scene.time.delayedCall(50, () => {
+      if (this.state.alive) this.sprite.clearTint();
+    });
+
+    if (this.state.hp <= 0) {
+      this.deactivate();
+      return true; // died
+    }
+    return false;
+  }
+}
