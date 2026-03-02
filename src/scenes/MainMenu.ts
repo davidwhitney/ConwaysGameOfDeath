@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { applyUIZoom } from '../ui/uiScale';
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -6,10 +7,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setZoom(2);
-    this.cameras.main.setScroll(-this.scale.width / 4, -this.scale.height / 4);
-    const width = this.scale.width / 2;
-    const height = this.scale.height / 2;
+    const { width, height } = applyUIZoom(this);
 
     // Title
     this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH", {

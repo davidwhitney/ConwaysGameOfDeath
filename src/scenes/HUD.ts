@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_DURATION_MS, MAX_LEVEL, WEAPON_DEFS, EFFECT_DEFS } from '../shared';
 import type { PlayerState, WeaponInstance, EffectInstance } from '../shared';
+import { applyUIZoom } from '../ui/uiScale';
 
 const SLOT_SIZE = 32;
 const SLOT_GAP = 4;
@@ -22,9 +23,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setZoom(2);
-    this.cameras.main.setScroll(-this.scale.width / 4, -this.scale.height / 4);
-    const width = this.scale.width / 2;
+    const { width } = applyUIZoom(this);
 
     this.hpBar = this.add.graphics();
     this.xpBar = this.add.graphics();
@@ -82,10 +81,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number): void {
-    // Keep scroll correct after resize
-    this.cameras.main.setScroll(-this.scale.width / 4, -this.scale.height / 4);
-    const width = this.scale.width / 2;
-    const height = this.scale.height / 2;
+    const { width, height } = applyUIZoom(this);
 
     // HP bar
     const hpPct = player.hp / player.maxHp;
