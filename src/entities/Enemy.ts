@@ -241,6 +241,7 @@ export class Enemy {
   }
 
   takeDamage(damage: number): boolean {
+    if (!this.state.alive) return false;
     this.state.hp -= damage;
     // Flash white briefly
     this.sprite.setTint(0xffffff);

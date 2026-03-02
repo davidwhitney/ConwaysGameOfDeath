@@ -1,10 +1,14 @@
 import Phaser from 'phaser';
 import { type LevelUpOption, WEAPON_DEFS, EFFECT_DEFS, WeaponType } from '../shared';
+import { GamepadNav } from '../ui/gamepadNav';
 
 export class LevelUpScene extends Phaser.Scene {
   private options: LevelUpOption[] = [];
   private cards: Phaser.GameObjects.Container[] = [];
+  private cardBgs: Phaser.GameObjects.Rectangle[] = [];
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
+  private gpNav!: GamepadNav;
+  private isNarrow = false;
 
   constructor() {
     super({ key: 'LevelUp' });
@@ -27,11 +31,11 @@ export class LevelUpScene extends Phaser.Scene {
     const baseCardH = 200;
     const spacing = 20;
     const horizontalNeeded = n * baseCardW + (n - 1) * spacing + 40;
-    const isNarrow = width < horizontalNeeded;
+    this.isNarrow = width < horizontalNeeded;
 
     // Scale cards to fit available space
     let cardW: number, cardH: number, scale: number;
-    if (isNarrow) {
+    if (this.isNarrow) {
       // Vertical layout — fit cards to width, distribute available height
       scale = Math.min(1, (width - 40) / baseCardW);
       cardW = baseCardW * scale;
@@ -65,9 +69,10 @@ export class LevelUpScene extends Phaser.Scene {
 
     // Create cards
     this.cards = [];
+    this.cardBgs = [];
     for (let i = 0; i < n; i++) {
       let cx: number, cy: number;
-      if (isNarrow) {
+      if (this.isNarrow) {
         const totalH = n * cardH + (n - 1) * spacing;
         const startY = titleAreaH + (height - titleAreaH - totalH) / 2 + cardH / 2;
         cx = width / 2;
@@ -90,6 +95,26 @@ export class LevelUpScene extends Phaser.Scene {
       }
     };
     window.addEventListener('keydown', this.keyHandler);
+
+    // Gamepad navigation
+    const direction = this.isNarrow ? 'vertical' as const : 'horizontal' as const;
+    this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), null, direction);
+  }
+
+  update(_time: number): void {
+    this.gpNav.update(_time);
+    const sel = this.gpNav.getSelected();
+    for (let i = 0; i < this.cardBgs.length; i++) {
+      if (i === sel) {
+        this.cardBgs[i].setFillStyle(0x333366, 1);
+        this.cardBgs[i].setStrokeStyle(2, 0x6666ff);
+        this.cards[i].setScale(1.05);
+      } else {
+        this.cardBgs[i].setFillStyle(0x222244, 0.9);
+        this.cardBgs[i].setStrokeStyle(2, 0x4444aa);
+        this.cards[i].setScale(1);
+      }
+    }
   }
 
   private createCard(i: number, cx: number, cy: number, cardW: number, cardH: number, scale: number): void {
@@ -156,6 +181,7 @@ export class LevelUpScene extends Phaser.Scene {
 
     card.add([bg, indicator, badge, name, level, desc, keyHint]);
     this.cards.push(card);
+    this.cardBgs.push(bg);
 
     bg.setInteractive({ useHandCursor: true })
       .on('pointerover', () => {

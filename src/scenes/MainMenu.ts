@@ -1,7 +1,13 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
+import { GamepadNav } from '../ui/gamepadNav';
 
 export class MainMenuScene extends Phaser.Scene {
+  private gpNav!: GamepadNav;
+  private buttons: Phaser.GameObjects.Rectangle[] = [];
+  private readonly defaultFills = [0x333366, 0x333344];
+  private readonly hoverFills = [0x444488, 0x444466];
+
   constructor() {
     super({ key: 'MainMenu' });
   }
@@ -29,7 +35,7 @@ export class MainMenuScene extends Phaser.Scene {
     const playBtn = this.add.rectangle(width / 2, height * 0.58, 220, 50, 0x333366)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => playBtn.setFillStyle(0x444488))
-      .on('pointerout', () => playBtn.setFillStyle(0x333366))
+      .on('pointerout', () => this.unhighlightBtn(0))
       .on('pointerdown', () => this.startGame());
 
     this.add.text(width / 2, height * 0.58, 'PLAY', {
@@ -42,7 +48,7 @@ export class MainMenuScene extends Phaser.Scene {
     const scoresBtn = this.add.rectangle(width / 2, height * 0.70, 200, 45, 0x333344)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => scoresBtn.setFillStyle(0x444466))
-      .on('pointerout', () => scoresBtn.setFillStyle(0x333344))
+      .on('pointerout', () => this.unhighlightBtn(1))
       .on('pointerdown', () => this.scene.start('HighScores'));
 
     this.add.text(width / 2, height * 0.70, 'HIGH SCORES', {
@@ -51,8 +57,10 @@ export class MainMenuScene extends Phaser.Scene {
       color: '#ffcc00',
     }).setOrigin(0.5);
 
+    this.buttons = [playBtn, scoresBtn];
+
     // Controls hint
-    this.add.text(width / 2, height * 0.88, 'WASD / Arrows to move  |  ESC to pause', {
+    this.add.text(width / 2, height * 0.88, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause', {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: '#666688',
@@ -61,6 +69,25 @@ export class MainMenuScene extends Phaser.Scene {
     // Press Enter to start
     this.input.keyboard!.on('keydown-ENTER', () => this.startGame());
     this.input.keyboard!.on('keydown-SPACE', () => this.startGame());
+
+    // Gamepad navigation
+    const actions = [
+      () => this.startGame(),
+      () => this.scene.start('HighScores'),
+    ];
+    this.gpNav = new GamepadNav(this, 2, (i) => actions[i]());
+  }
+
+  update(_time: number): void {
+    this.gpNav.update(_time);
+    const sel = this.gpNav.getSelected();
+    for (let i = 0; i < this.buttons.length; i++) {
+      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
+    }
+  }
+
+  private unhighlightBtn(index: number): void {
+    this.buttons[index]?.setFillStyle(this.defaultFills[index]);
   }
 
   private startGame(): void {

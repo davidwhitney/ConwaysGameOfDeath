@@ -32,6 +32,7 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   input: {
     activePointers: 2, // support multi-touch
+    gamepad: true,
   },
 };
 

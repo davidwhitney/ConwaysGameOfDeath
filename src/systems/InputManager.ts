@@ -10,6 +10,9 @@ export class InputManager {
   // Mouse/touch — hold to move toward pointer
   private pointerDown = false;
 
+  // Gamepad Start button edge detection
+  private startWasDown = false;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const kb = scene.input.keyboard!;
@@ -35,6 +38,22 @@ export class InputManager {
     if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
     if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
     if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
+
+    // Gamepad stick + dpad
+    if (dx === 0 && dy === 0) {
+      const pad = this.scene.input.gamepad?.pad1;
+      if (pad) {
+        const DEADZONE = 0.2;
+        if (Math.abs(pad.leftStick.x) > DEADZONE) dx = pad.leftStick.x;
+        if (Math.abs(pad.leftStick.y) > DEADZONE) dy = pad.leftStick.y;
+        if (dx === 0 && dy === 0) {
+          if (pad.left) dx -= 1;
+          if (pad.right) dx += 1;
+          if (pad.up) dy -= 1;
+          if (pad.down) dy += 1;
+        }
+      }
+    }
 
     // Mouse/touch — move toward pointer world position while held
     if (this.pointerDown && dx === 0 && dy === 0) {
@@ -71,7 +90,19 @@ export class InputManager {
   }
 
   isEscPressed(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.escKey);
+    if (Phaser.Input.Keyboard.JustDown(this.escKey)) return true;
+
+    const pad = this.scene.input.gamepad?.pad1;
+    if (pad) {
+      const startDown = pad.buttons[9]?.pressed ?? false;
+      if (startDown && !this.startWasDown) {
+        this.startWasDown = startDown;
+        return true;
+      }
+      this.startWasDown = startDown;
+    }
+
+    return false;
   }
 
   /** Get raw direction for facing (-1, 0, 1) */

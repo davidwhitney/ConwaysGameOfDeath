@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { addScore, formatTime } from '../ui/highScores';
+import { GamepadNav } from '../ui/gamepadNav';
 
 interface GameOverData {
   victory: boolean;
@@ -10,6 +11,11 @@ interface GameOverData {
 }
 
 export class GameOverScene extends Phaser.Scene {
+  private gpNav!: GamepadNav;
+  private buttons: Phaser.GameObjects.Rectangle[] = [];
+  private readonly defaultFills = [0x333366, 0x333344, 0x333344];
+  private readonly hoverFills = [0x444488, 0x444466, 0x444466];
+
   constructor() {
     super({ key: 'GameOver' });
   }
@@ -71,11 +77,8 @@ export class GameOverScene extends Phaser.Scene {
     const playBtn = this.add.rectangle(width / 2, height * 0.62, 220, 50, 0x333366)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => playBtn.setFillStyle(0x444488))
-      .on('pointerout', () => playBtn.setFillStyle(0x333366))
-      .on('pointerdown', () => {
-        this.scene.stop('HUD');
-        this.scene.start('Game', { seed: Date.now() });
-      });
+      .on('pointerout', () => this.unhighlightBtn(0))
+      .on('pointerdown', () => this.playAgain());
 
     this.add.text(width / 2, height * 0.62, 'PLAY AGAIN', {
       fontSize: '20px',
@@ -87,11 +90,8 @@ export class GameOverScene extends Phaser.Scene {
     const scoresBtn = this.add.rectangle(width / 2, height * 0.74, 220, 45, 0x333344)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => scoresBtn.setFillStyle(0x444466))
-      .on('pointerout', () => scoresBtn.setFillStyle(0x333344))
-      .on('pointerdown', () => {
-        this.scene.stop('HUD');
-        this.scene.start('HighScores');
-      });
+      .on('pointerout', () => this.unhighlightBtn(1))
+      .on('pointerdown', () => this.showHighScores());
 
     this.add.text(width / 2, height * 0.74, 'HIGH SCORES', {
       fontSize: '16px',
@@ -103,11 +103,8 @@ export class GameOverScene extends Phaser.Scene {
     const menuBtn = this.add.rectangle(width / 2, height * 0.85, 220, 45, 0x333344)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => menuBtn.setFillStyle(0x444466))
-      .on('pointerout', () => menuBtn.setFillStyle(0x333344))
-      .on('pointerdown', () => {
-        this.scene.stop('HUD');
-        this.scene.start('MainMenu');
-      });
+      .on('pointerout', () => this.unhighlightBtn(2))
+      .on('pointerdown', () => this.goToMenu());
 
     this.add.text(width / 2, height * 0.85, 'MAIN MENU', {
       fontSize: '16px',
@@ -115,10 +112,44 @@ export class GameOverScene extends Phaser.Scene {
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
+    this.buttons = [playBtn, scoresBtn, menuBtn];
+
     // Enter/Space to play again
-    this.input.keyboard!.on('keydown-ENTER', () => {
-      this.scene.stop('HUD');
-      this.scene.start('Game', { seed: Date.now() });
-    });
+    this.input.keyboard!.on('keydown-ENTER', () => this.playAgain());
+
+    // Gamepad navigation
+    const actions = [
+      () => this.playAgain(),
+      () => this.showHighScores(),
+      () => this.goToMenu(),
+    ];
+    this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
+  }
+
+  update(_time: number): void {
+    this.gpNav.update(_time);
+    const sel = this.gpNav.getSelected();
+    for (let i = 0; i < this.buttons.length; i++) {
+      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
+    }
+  }
+
+  private unhighlightBtn(index: number): void {
+    this.buttons[index]?.setFillStyle(this.defaultFills[index]);
+  }
+
+  private playAgain(): void {
+    this.scene.stop('HUD');
+    this.scene.start('Game', { seed: Date.now() });
+  }
+
+  private showHighScores(): void {
+    this.scene.stop('HUD');
+    this.scene.start('HighScores');
+  }
+
+  private goToMenu(): void {
+    this.scene.stop('HUD');
+    this.scene.start('MainMenu');
   }
 }

@@ -1,8 +1,12 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { loadScores, formatTime } from '../ui/highScores';
+import { GamepadNav } from '../ui/gamepadNav';
 
 export class HighScoresScene extends Phaser.Scene {
+  private gpNav!: GamepadNav;
+  private backBtn!: Phaser.GameObjects.Rectangle;
+
   constructor() {
     super({ key: 'HighScores' });
   }
@@ -67,11 +71,11 @@ export class HighScoresScene extends Phaser.Scene {
     }
 
     // Back button
-    const backBtn = this.add.rectangle(width / 2, height * 0.9, 200, 45, 0x333366)
+    this.backBtn = this.add.rectangle(width / 2, height * 0.9, 200, 45, 0x333366)
       .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => backBtn.setFillStyle(0x444488))
-      .on('pointerout', () => backBtn.setFillStyle(0x333366))
-      .on('pointerdown', () => this.scene.start('MainMenu'));
+      .on('pointerover', () => this.backBtn.setFillStyle(0x444488))
+      .on('pointerout', () => this.backBtn.setFillStyle(0x333366))
+      .on('pointerdown', () => this.goBack());
 
     this.add.text(width / 2, height * 0.9, 'BACK', {
       fontSize: '18px',
@@ -79,7 +83,21 @@ export class HighScoresScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    this.input.keyboard!.on('keydown-ESC', () => this.scene.start('MainMenu'));
-    this.input.keyboard!.on('keydown-ENTER', () => this.scene.start('MainMenu'));
+    this.input.keyboard!.on('keydown-ESC', () => this.goBack());
+    this.input.keyboard!.on('keydown-ENTER', () => this.goBack());
+
+    // Gamepad navigation — A/B/Start all go back
+    this.gpNav = new GamepadNav(this, 1, () => this.goBack(), () => this.goBack());
+  }
+
+  update(_time: number): void {
+    this.gpNav.update(_time);
+    // Single button — always highlighted when gamepad is connected
+    const pad = this.input.gamepad?.pad1;
+    this.backBtn.setFillStyle(pad ? 0x444488 : 0x333366);
+  }
+
+  private goBack(): void {
+    this.scene.start('MainMenu');
   }
 }
