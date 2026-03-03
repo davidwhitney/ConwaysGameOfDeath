@@ -35,12 +35,13 @@ export class HighScoresScene extends Phaser.Scene {
     } else {
       // Header
       const headerY = height * 0.17;
-      const col = { rank: width * 0.08, kills: width * 0.25, level: width * 0.48, time: width * 0.67, date: width * 0.85 };
+      const col = { rank: width * 0.06, kills: width * 0.18, level: width * 0.32, time: width * 0.46, seed: width * 0.62, date: width * 0.82 };
       const headerStyle = monoStyle('12px', '#888899');
       this.add.text(col.rank, headerY, '#', headerStyle).setOrigin(0.5);
       this.add.text(col.kills, headerY, 'KILLS', headerStyle).setOrigin(0.5);
       this.add.text(col.level, headerY, 'LEVEL', headerStyle).setOrigin(0.5);
       this.add.text(col.time, headerY, 'TIME', headerStyle).setOrigin(0.5);
+      this.add.text(col.seed, headerY, 'SEED', headerStyle).setOrigin(0.5);
       this.add.text(col.date, headerY, 'DATE', headerStyle).setOrigin(0.5);
 
       // Rows
@@ -54,6 +55,7 @@ export class HighScoresScene extends Phaser.Scene {
         this.add.text(col.kills, y, `${s.kills}`, style).setOrigin(0.5);
         this.add.text(col.level, y, `${s.level}`, style).setOrigin(0.5);
         this.add.text(col.time, y, formatTime(s.time), style).setOrigin(0.5);
+        this.add.text(col.seed, y, s.seed != null ? `${s.seed}` : '-', style).setOrigin(0.5);
         const d = new Date(s.date);
         const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
         this.add.text(col.date, y, dateStr, style).setOrigin(0.5);

@@ -219,6 +219,7 @@ export enum EffectType {
   GoldFind,
   Duration,
   Growth,
+  Vitality,
 }
 
 // ─── Map Types ───

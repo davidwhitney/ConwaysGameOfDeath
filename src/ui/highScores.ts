@@ -7,6 +7,7 @@ export interface ScoreEntry {
   time: number; // ms
   victory: boolean;
   date: number; // timestamp
+  seed?: number;
 }
 
 export function loadScores(): ScoreEntry[] {

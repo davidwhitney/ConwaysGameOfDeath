@@ -11,6 +11,7 @@ interface GameOverData {
   kills: number;
   level: number;
   time: number; // ms
+  seed: number;
 }
 
 export class GameOverScene extends Phaser.Scene {
@@ -34,6 +35,7 @@ export class GameOverScene extends Phaser.Scene {
       time: data.time,
       victory: data.victory,
       date: Date.now(),
+      seed: data.seed,
     });
 
     // Background

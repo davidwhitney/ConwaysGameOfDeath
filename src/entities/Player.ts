@@ -15,6 +15,7 @@ export class Player {
   private map: TileMap;
   facingX: number = 1;
   facingY: number = 0;
+  private baseMaxHp: number = PLAYER_BASE_HP;
 
   constructor(scene: Phaser.Scene, x: number, y: number, map: TileMap, id: string = 'local') {
     this.scene = scene;
@@ -181,11 +182,15 @@ export class Player {
       this.state.hp = Math.min(this.state.maxHp, this.state.hp + regen * dt);
     }
 
-    // Growth: slowly increase max HP over time
+    // Growth: slowly increase base max HP over time
     const growth = this.getEffectValue(EffectType.Growth);
     if (growth > 0) {
-      this.state.maxHp += growth * dt;
+      this.baseMaxHp += growth * dt;
     }
+
+    // Vitality: multiply max HP
+    const vitality = this.getEffectValue(EffectType.Vitality);
+    this.state.maxHp = Math.floor(this.baseMaxHp * (1 + vitality));
   }
 
   /** Flip sprite based on facing direction */

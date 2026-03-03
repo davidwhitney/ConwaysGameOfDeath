@@ -2,9 +2,10 @@ const STORAGE_KEY = 'cgod-settings';
 
 export interface Settings {
   crtEnabled: boolean;
+  gameZoom: number; // camera zoom multiplier (0.5 – 2.0, default 1.0)
 }
 
-const DEFAULTS: Settings = { crtEnabled: true };
+const DEFAULTS: Settings = { crtEnabled: true, gameZoom: 1.0 };
 
 export function loadSettings(): Settings {
   try {

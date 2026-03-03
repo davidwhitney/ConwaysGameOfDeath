@@ -193,4 +193,12 @@ export const EFFECT_DEFS: EffectDef[] = [
     maxLevel: 5,
     levelValues: [0.5, 1.0, 1.5, 2.5, 4.0],
   },
+  {
+    type: EffectType.Vitality,
+    name: 'Vitality',
+    description: 'Raises maximum HP up to 250%',
+    color: 0xff4488,
+    maxLevel: 5,
+    levelValues: [0.20, 0.40, 0.70, 1.05, 1.50],
+  },
 ];

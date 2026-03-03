@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { WORLD_WIDTH, WORLD_HEIGHT, CAMERA_ZOOM } from '../shared';
+import { loadSettings } from '../ui/preferences';
 
 export class CameraManager {
   private camera: Phaser.Cameras.Scene2D.Camera;
@@ -7,7 +8,8 @@ export class CameraManager {
   constructor(scene: Phaser.Scene) {
     this.camera = scene.cameras.main;
     this.camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.camera.setZoom(CAMERA_ZOOM);
+    const { gameZoom } = loadSettings();
+    this.camera.setZoom(CAMERA_ZOOM * gameZoom);
   }
 
   follow(target: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image): void {

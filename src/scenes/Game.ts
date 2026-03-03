@@ -513,6 +513,7 @@ export class GameScene extends Phaser.Scene {
       kills: this.kills,
       level: this.player.state.level,
       time: this.spawnController.getGameTimeMs(),
+      seed: this.seed,
     });
   }
 

@@ -4,15 +4,20 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
-import { loadSettings, saveSettings } from '../ui/preferences';
+import { loadSettings, saveSettings, type Settings } from '../ui/preferences';
+
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.25;
 
 export class SettingsScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333366];
-  private readonly hoverFills = [0x444488, 0x444488];
+  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x333366];
+  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x444488];
   private crtBtnText!: Phaser.GameObjects.Text;
-  private crtEnabled!: boolean;
+  private zoomValueText!: Phaser.GameObjects.Text;
+  private settings!: Settings;
 
   constructor() {
     super({ key: 'Settings' });
@@ -31,45 +36,72 @@ export class SettingsScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     // Load current settings
-    this.crtEnabled = loadSettings().crtEnabled;
+    this.settings = loadSettings();
 
-    // CRT toggle row
-    this.add.text(width / 2 - 100, height * 0.40, 'CRT Effect',
+    // ── CRT toggle row ──
+    this.add.text(width / 2 - 100, height * 0.35, 'CRT Effect',
       monoStyle('18px', '#aaaacc'),
     ).setOrigin(0, 0.5);
 
     const crtToggle = createButton(this, {
-      x: width / 2 + 80, y: height * 0.40, width: 80, height: 40,
-      label: this.crtEnabled ? 'ON' : 'OFF',
+      x: width / 2 + 80, y: height * 0.35, width: 80, height: 40,
+      label: this.settings.crtEnabled ? 'ON' : 'OFF',
       fontSize: '18px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.toggleCRT(),
     });
     this.crtBtnText = crtToggle.text;
 
-    // Back button
+    // ── Zoom slider row ──
+    this.add.text(width / 2 - 100, height * 0.50, 'Zoom',
+      monoStyle('18px', '#aaaacc'),
+    ).setOrigin(0, 0.5);
+
+    const zoomDown = createButton(this, {
+      x: width / 2 + 45, y: height * 0.50, width: 36, height: 36,
+      label: '-', fontSize: '22px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.adjustZoom(-ZOOM_STEP),
+    });
+
+    this.zoomValueText = this.add.text(width / 2 + 80, height * 0.50,
+      this.formatZoom(this.settings.gameZoom),
+      monoStyle('16px', '#ffffff'),
+    ).setOrigin(0.5);
+
+    const zoomUp = createButton(this, {
+      x: width / 2 + 115, y: height * 0.50, width: 36, height: 36,
+      label: '+', fontSize: '22px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.adjustZoom(ZOOM_STEP),
+    });
+
+    // ── Back button ──
     const back = createButton(this, {
-      x: width / 2, y: height * 0.70, width: 200, height: 45,
+      x: width / 2, y: height * 0.75, width: 200, height: 45,
       label: 'BACK', fontSize: '18px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.goBack(),
     });
 
-    this.buttons = [crtToggle.bg, back.bg];
+    this.buttons = [crtToggle.bg, zoomDown.bg, zoomUp.bg, back.bg];
 
     // Restore unhighlight behavior
-    crtToggle.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
-    back.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
+    this.buttons.forEach((btn, i) => {
+      btn.off('pointerout').on('pointerout', () => this.unhighlightBtn(i));
+    });
 
     // Keyboard
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
 
-    // Gamepad navigation — 2 items (CRT toggle, Back), B goes back
+    // Gamepad navigation — 4 items, B goes back
     const actions = [
       () => this.toggleCRT(),
+      () => this.adjustZoom(-ZOOM_STEP),
+      () => this.adjustZoom(ZOOM_STEP),
       () => this.goBack(),
     ];
-    this.gpNav = new GamepadNav(this, 2, (i) => actions[i](), () => this.goBack());
+    this.gpNav = new GamepadNav(this, 4, (i) => actions[i](), () => this.goBack());
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {
@@ -86,11 +118,22 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private toggleCRT(): void {
-    this.crtEnabled = !this.crtEnabled;
-    saveSettings({ crtEnabled: this.crtEnabled });
-    this.crtBtnText.setText(this.crtEnabled ? 'ON' : 'OFF');
+    this.settings.crtEnabled = !this.settings.crtEnabled;
+    saveSettings(this.settings);
+    this.crtBtnText.setText(this.settings.crtEnabled ? 'ON' : 'OFF');
     // Restart scene to apply/remove CRT effects
     this.scene.restart();
+  }
+
+  private adjustZoom(delta: number): void {
+    const raw = Math.round((this.settings.gameZoom + delta) * 100) / 100;
+    this.settings.gameZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, raw));
+    saveSettings(this.settings);
+    this.zoomValueText.setText(this.formatZoom(this.settings.gameZoom));
+  }
+
+  private formatZoom(z: number): string {
+    return `${Math.round(z * 100)}%`;
   }
 
   private goBack(): void {
