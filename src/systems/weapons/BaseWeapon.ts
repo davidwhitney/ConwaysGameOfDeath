@@ -36,7 +36,8 @@ export abstract class BaseWeapon {
   }
 
   protected hitEnemy(enemy: Enemy, damage: number, weaponType: WeaponType, player: Player): void {
-    const critChance = player.getEffectValue(EffectType.Luck);
+    // Crit: base from Luck + bonus from CritChance effect
+    const critChance = player.getEffectValue(EffectType.Luck) + player.getEffectValue(EffectType.CritChance);
     let finalDamage = damage;
     let isCrit = false;
     if (critChance > 0 && Math.random() < critChance) {
@@ -45,6 +46,26 @@ export abstract class BaseWeapon {
     }
     const killed = enemy.takeDamage(finalDamage);
     this.ctx.damageNumbers.show(enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+
+    // Lifesteal: heal player for % of damage dealt
+    const lifesteal = player.getEffectValue(EffectType.Lifesteal);
+    if (lifesteal > 0) {
+      const heal = Math.floor(finalDamage * lifesteal);
+      if (heal > 0) {
+        player.state.hp = Math.min(player.state.maxHp, player.state.hp + heal);
+      }
+    }
+
+    // Knockback: push enemy away from player
+    const knockback = player.getEffectValue(EffectType.Knockback);
+    if (knockback > 0 && enemy.state.alive) {
+      const dx = enemy.state.x - player.state.x;
+      const dy = enemy.state.y - player.state.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      enemy.state.x += (dx / dist) * knockback;
+      enemy.state.y += (dy / dist) * knockback;
+    }
+
     if (killed) {
       this.ctx.scene.events.emit('enemy-killed', enemy, weaponType);
     }

@@ -19,6 +19,14 @@ import { MagicMissileWeapon } from './weapons/projectile/MagicMissileWeapon';
 import { FireballWeapon } from './weapons/projectile/FireballWeapon';
 import { IceShardWeapon } from './weapons/projectile/IceShardWeapon';
 import { BaseForceFieldWeapon } from './weapons/BaseForceFieldWeapon';
+import { ShurikenWeapon } from './weapons/projectile/ShurikenWeapon';
+import { DeathRayWeapon } from './weapons/projectile/DeathRayWeapon';
+import { BoneTossWeapon } from './weapons/projectile/BoneTossWeapon';
+import { QuakeWeapon } from './weapons/aoe/QuakeWeapon';
+import { PlagueWeapon } from './weapons/aoe/PlagueWeapon';
+import { BloodAuraWeapon } from './weapons/forcefield/BloodAuraWeapon';
+import { GravityWellWeapon } from './weapons/forcefield/GravityWellWeapon';
+import { BaseProjectileWeapon } from './weapons/BaseProjectileWeapon';
 
 type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number]) => BaseWeapon;
 
@@ -58,6 +66,24 @@ export class WeaponSystem {
     [WeaponType.VoidField]: VoidFieldWeapon,
     [WeaponType.VoidBurn]: BaseForceFieldWeapon,
     [WeaponType.Vortex]: VortexWeapon,
+
+    // New Melee
+    [WeaponType.Spear]: BaseMeleeWeapon,
+    [WeaponType.Mace]: BaseMeleeWeapon,
+
+    // New AoE
+    [WeaponType.Quake]: QuakeWeapon,
+    [WeaponType.SpiritBomb]: BaseAoEWeapon,
+    [WeaponType.PlagueCloud]: PlagueWeapon,
+
+    // New Projectile
+    [WeaponType.Shuriken]: ShurikenWeapon,
+    [WeaponType.DeathRay]: DeathRayWeapon,
+    [WeaponType.BoneToss]: BoneTossWeapon,
+
+    // New Force Field
+    [WeaponType.BloodAura]: BloodAuraWeapon,
+    [WeaponType.GravityWell]: GravityWellWeapon,
   };
 
   constructor(scene: Phaser.Scene) {

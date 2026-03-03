@@ -178,6 +178,20 @@ export enum WeaponType {
   IceShard,
   Boomerang,
   Scythe,
+  // New Melee (22-23)
+  Spear,
+  Mace,
+  // New AoE (24-26)
+  Quake,
+  SpiritBomb,
+  PlagueCloud,
+  // New Projectile (27-29)
+  Shuriken,
+  DeathRay,
+  BoneToss,
+  // New Force Field (30-31)
+  BloodAura,
+  GravityWell,
 }
 
 export enum EffectType {
@@ -195,6 +209,16 @@ export enum EffectType {
   Fury,
   Focused,
   Evolution,
+  Thorns,
+  Lifesteal,
+  Berserk,
+  Dodge,
+  CritChance,
+  Knockback,
+  SlowAura,
+  GoldFind,
+  Duration,
+  Growth,
 }
 
 // ─── Map Types ───

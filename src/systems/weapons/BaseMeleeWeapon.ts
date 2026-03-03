@@ -36,7 +36,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
         y: player.state.y + Math.sin(angle) * stats.area * 0.6,
         radius: stats.area,
         damage: Math.floor(stats.damage * dmgMul),
-        duration: stats.duration,
+        duration: stats.duration * player.getDurationMultiplier(),
         age: 0,
         hitEnemies: new Set(),
         gfx,

@@ -113,6 +113,9 @@ export class GameScene extends Phaser.Scene {
     this.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
     this.events.on('levelup-reroll', () => this.handleReroll());
     this.events.on('levelup-skip', () => this.handleLevelUpSkip());
+    this.events.on('blood-aura-heal', (heal: number) => {
+      this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + heal);
+    });
 
     // Pause when browser tab loses focus or window blurs
     this.visibilityHandler = () => {
@@ -142,6 +145,7 @@ export class GameScene extends Phaser.Scene {
     this.updateBossSpawnTimer(delta);
     this.updateMapEvolution(delta);
     this.checkEnemyPlayerCollision(time);
+    this.applySlowAura();
     this.weaponSystem.update(dt, this.player, this.enemyPool, this.damageNumbers);
     this.updatePickups(dt);
     this.accumulateLevelUps();
@@ -199,6 +203,17 @@ export class GameScene extends Phaser.Scene {
     if (this.mapEvolutionTimer >= MAP_EVOLUTION_INTERVAL_MS) {
       this.mapEvolutionTimer -= MAP_EVOLUTION_INTERVAL_MS;
       this.triggerMapEvolution();
+    }
+  }
+
+  private applySlowAura(): void {
+    const slowValue = this.player.getEffectValue(EffectType.SlowAura);
+    if (slowValue <= 0) return;
+    const slowFactor = 1 - slowValue;
+    const range = 150 + slowValue * 100;
+    const enemies = this.enemyPool.getEnemiesInRadius(this.player.state.x, this.player.state.y, range);
+    for (const enemy of enemies) {
+      enemy.applySlow(slowFactor, 200);
     }
   }
 
@@ -272,10 +287,11 @@ export class GameScene extends Phaser.Scene {
       this.xpGemPool.spawn(enemy.state.x, enemy.state.y, enemy.state.xpValue);
     }
 
-    // Gold drop (scaled with luck)
+    // Gold drop (scaled with luck + GoldFind)
     const goldChance = Math.min(1, GOLD_DROP_BASE_CHANCE + luckValue * (GOLD_DROP_LUCK_BONUS / 0.15));
     if (Math.random() < goldChance) {
-      this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, 1);
+      const goldAmount = 1 + Math.floor(this.player.getEffectValue(EffectType.GoldFind));
+      this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, goldAmount);
     }
 
     // Boss kill: level up the weapon that killed it, or heal 50%
@@ -340,6 +356,16 @@ export class GameScene extends Phaser.Scene {
         if (dmg > 0) {
           this.damageNumbers.show(px, py - 20, dmg, '#ff4444');
           this.cameraManager.shake(80, 0.003);
+
+          // Thorns: reflect damage back to the enemy
+          const thorns = this.player.getEffectValue(EffectType.Thorns);
+          if (thorns > 0) {
+            const reflected = Math.floor(dmg * thorns);
+            if (reflected > 0) {
+              enemy.takeDamage(reflected);
+              this.damageNumbers.show(enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
+            }
+          }
         }
       }
     }
@@ -506,5 +532,6 @@ export class GameScene extends Phaser.Scene {
     this.events.off('levelup-choice');
     this.events.off('levelup-reroll');
     this.events.off('levelup-skip');
+    this.events.off('blood-aura-heal');
   }
 }

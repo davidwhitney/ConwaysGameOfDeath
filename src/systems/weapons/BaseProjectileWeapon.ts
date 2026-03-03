@@ -64,7 +64,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
         damage: Math.floor(stats.damage * dmgMul),
         pierce: stats.pierce,
         radius: stats.area,
-        lifetime: stats.duration,
+        lifetime: stats.duration * player.getDurationMultiplier(),
         age: 0,
         hitEnemies: new Set(),
         weaponType: this.def.type,

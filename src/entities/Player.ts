@@ -59,7 +59,13 @@ export class Player {
   }
 
   getDamageMultiplier(): number {
-    return 1 + this.getEffectValue(EffectType.Might);
+    let mul = 1 + this.getEffectValue(EffectType.Might);
+    // Berserk: bonus damage when below 50% HP
+    const berserk = this.getEffectValue(EffectType.Berserk);
+    if (berserk > 0 && this.state.hp < this.state.maxHp * 0.5) {
+      mul += berserk;
+    }
+    return mul;
   }
 
   getArmor(): number {
@@ -76,6 +82,10 @@ export class Player {
 
   getFocusedLevel(): number {
     return this.getEffectValue(EffectType.Focused);
+  }
+
+  getDurationMultiplier(): number {
+    return 1 + this.getEffectValue(EffectType.Duration);
   }
 
   move(dx: number, dy: number, dt: number): void {
@@ -123,6 +133,10 @@ export class Player {
     if (!this.state.alive) return 0;
     if (now < this.state.invincibleUntil) return 0;
 
+    // Dodge check
+    const dodgeChance = this.getEffectValue(EffectType.Dodge);
+    if (dodgeChance > 0 && Math.random() < dodgeChance) return 0;
+
     const reduced = Math.max(1, damage - this.getArmor());
     this.state.hp -= reduced;
     this.state.invincibleUntil = now + PLAYER_INVINCIBLE_MS;
@@ -165,6 +179,12 @@ export class Player {
     const regen = this.getEffectValue(EffectType.Regen);
     if (regen > 0 && this.state.hp < this.state.maxHp) {
       this.state.hp = Math.min(this.state.maxHp, this.state.hp + regen * dt);
+    }
+
+    // Growth: slowly increase max HP over time
+    const growth = this.getEffectValue(EffectType.Growth);
+    if (growth > 0) {
+      this.state.maxHp += growth * dt;
     }
   }
 

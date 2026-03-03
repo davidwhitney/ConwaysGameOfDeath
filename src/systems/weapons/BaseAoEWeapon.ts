@@ -47,7 +47,7 @@ export class BaseAoEWeapon extends BaseWeapon {
         y: target.y,
         radius: stats.area * auraMul,
         damage: Math.floor(stats.damage * dmgMul),
-        duration: Math.max(stats.duration, 300),
+        duration: Math.max(stats.duration * player.getDurationMultiplier(), 300),
         age: 0,
         tickTimer: 0,
         gfx,
