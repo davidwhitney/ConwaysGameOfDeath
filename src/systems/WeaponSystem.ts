@@ -25,8 +25,6 @@ type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number
 export class WeaponSystem {
   private scene: Phaser.Scene;
   private projectilePool: Phaser.GameObjects.Sprite[] = [];
-  private forceFieldGfx: Phaser.GameObjects.Graphics;
-  private forceFieldTickTimer = 0;
   private weaponMap = new Map<WeaponType, BaseWeapon>();
   private ctx: WeaponContext;
     
@@ -64,8 +62,6 @@ export class WeaponSystem {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.forceFieldGfx = scene.add.graphics();
-    this.forceFieldGfx.setDepth(8);
 
     for (let i = 0; i < 50; i++) {
       const s = scene.add.sprite(-1000, -1000, 'projectile');
@@ -78,8 +74,6 @@ export class WeaponSystem {
       scene,
       enemyPool: null!,
       damageNumbers: null!,
-      forceFieldGfx: this.forceFieldGfx,
-      forceFieldDoTick: false,
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
     };
@@ -88,12 +82,6 @@ export class WeaponSystem {
   update(dt: number, player: Player, enemyPool: EnemyPool, damageNumbers: DamageNumberSystem): void {
     this.ctx.enemyPool = enemyPool;
     this.ctx.damageNumbers = damageNumbers;
-
-    // Prepare force field shared state for this frame
-    this.forceFieldGfx.clear();
-    this.forceFieldTickTimer += dt * 1000;
-    this.ctx.forceFieldDoTick = this.forceFieldTickTimer >= 200;
-    if (this.ctx.forceFieldDoTick) this.forceFieldTickTimer -= 200;
 
     for (const weapon of player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
@@ -132,6 +120,5 @@ export class WeaponSystem {
   destroy(): void {
     for (const w of this.weaponMap.values()) w.destroy();
     for (const s of this.projectilePool) s.destroy();
-    this.forceFieldGfx.destroy();
   }
 }

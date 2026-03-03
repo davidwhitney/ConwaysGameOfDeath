@@ -8,6 +8,4 @@ export interface WeaponContext {
   damageNumbers: DamageNumberSystem;
   getProjectileSprite(texture: string): Phaser.GameObjects.Sprite;
   returnProjectileSprite(sprite: Phaser.GameObjects.Sprite): void;
-  forceFieldGfx: Phaser.GameObjects.Graphics;
-  forceFieldDoTick: boolean;
 }

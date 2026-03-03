@@ -7,15 +7,14 @@ export class HolyShieldWeapon extends BaseForceFieldWeapon {
     const stats = this.getStats(weapon);
     const area = stats.area * player.getAuraMultiplier();
     const dmgMul = player.getDamageMultiplier();
-    const gfx = this.ctx.forceFieldGfx;
 
     const time = this.ctx.scene.time.now * 0.002 * stats.speed;
     for (let i = 0; i < stats.amount; i++) {
       const angle = time + (i / stats.amount) * Math.PI * 2;
       const ox = player.state.x + Math.cos(angle) * area;
       const oy = player.state.y + Math.sin(angle) * area;
-      gfx.fillStyle(this.def.color, 0.7);
-      gfx.fillCircle(ox, oy, 8);
+      this.gfx.fillStyle(this.def.color, 0.7);
+      this.gfx.fillCircle(ox, oy, 8);
 
       if (doTick) {
         const enemies = this.ctx.enemyPool.getEnemiesInRadius(ox, oy, 15);
