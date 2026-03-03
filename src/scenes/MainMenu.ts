@@ -3,6 +3,7 @@ import { applyUIZoom } from '../ui/uiScale';
 import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
+import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 
 interface BloodDrip {
   x: number;
@@ -23,6 +24,7 @@ export class MainMenuScene extends Phaser.Scene {
   private seedInput!: HTMLInputElement;
   private drips: BloodDrip[] = [];
   private dripGfx!: Phaser.GameObjects.Graphics;
+  private gol!: BackgroundGameOfLife;
 
   constructor() {
     super({ key: 'MainMenu' });
@@ -30,6 +32,9 @@ export class MainMenuScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = applyUIZoom(this);
+
+    // Game of Life background
+    this.gol = new BackgroundGameOfLife(this, width, height);
 
     // Title
     const title = this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH",
@@ -162,6 +167,7 @@ export class MainMenuScene extends Phaser.Scene {
       this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
     }
     this.updateBloodDrips(delta / 1000);
+    this.gol.update(delta);
   }
 
   private initBloodDrips(title: Phaser.GameObjects.Text): void {
