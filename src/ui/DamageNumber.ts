@@ -30,7 +30,7 @@ export class DamageNumberSystem {
     }
   }
 
-  show(x: number, y: number, damage: number, color: string = '#ffffff'): void {
+  show(x: number, y: number, damage: number, color: string = '#ffffff', crit: boolean = false): void {
     let text: Phaser.GameObjects.Text;
     if (this.pool.length > 0) {
       text = this.pool.pop()!;
@@ -51,7 +51,7 @@ export class DamageNumberSystem {
     text.setPosition(x - text.width / 2, y);
     text.setVisible(true);
     text.setAlpha(1);
-    text.setScale(damage > 30 ? 1.3 : 1);
+    text.setScale(crit ? 1.8 : (damage > 30 ? 1.3 : 1));
 
     this.active.push({
       text,

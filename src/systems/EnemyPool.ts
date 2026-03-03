@@ -19,7 +19,7 @@ export class EnemyPool {
     }
   }
 
-  spawn(type: EnemyType, x: number, y: number, gameTimeMs: number): Enemy | null {
+  spawn(type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): Enemy | null {
     if (this.active.length >= ENEMY_MAX_ACTIVE) return null;
 
     let enemy: Enemy;
@@ -29,7 +29,7 @@ export class EnemyPool {
       enemy = new Enemy(this.scene, this.map);
     }
 
-    enemy.activate(this.nextId++, type, x, y, gameTimeMs);
+    enemy.activate(this.nextId++, type, x, y, gameTimeMs, boss);
     this.active.push(enemy);
     return enemy;
   }

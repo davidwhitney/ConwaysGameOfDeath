@@ -28,6 +28,14 @@ export const ENEMY_DESPAWN_RANGE = 1200;
 export const XP_DROP_BASE_CHANCE = 0.70;
 export const XP_DROP_LUCK_BONUS = 0.06; // per luck level
 
+// ─── Gold Drop ───
+export const GOLD_DROP_BASE_CHANCE = 0.10;
+export const GOLD_DROP_LUCK_BONUS = 0.04; // per luck level
+
+// ─── Reroll ───
+export const GOLD_REROLL_BASE_COST = 10;
+export const GOLD_REROLL_COST_MULTIPLIER = 1.10; // 10% more each time
+
 // ─── CA / Spawning ───
 export const CA_SPAWN_WIDTH = 64;
 export const CA_SPAWN_HEIGHT = 64;
@@ -44,7 +52,7 @@ export const CAMERA_ZOOM = 1.25;
 export const SPATIAL_CELL_SIZE = 64;
 
 // ─── Game ───
-export const GAME_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+export const GAME_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 // ─── XP ───
 export const XP_BASE = 5;

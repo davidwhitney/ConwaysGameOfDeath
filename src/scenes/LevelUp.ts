@@ -9,13 +9,19 @@ export class LevelUpScene extends Phaser.Scene {
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
   private gpNav!: GamepadNav;
   private isNarrow = false;
+  private kbSelected = 0;
+  private gold = 0;
+  private rerollCost = 0;
+  private prevY = false;
 
   constructor() {
     super({ key: 'LevelUp' });
   }
 
-  init(data: { options: LevelUpOption[] }): void {
+  init(data: { options: LevelUpOption[]; gold?: number; rerollCost?: number }): void {
     this.options = data.options;
+    this.gold = data.gold ?? 0;
+    this.rerollCost = data.rerollCost ?? 10;
   }
 
   create(): void {
@@ -26,6 +32,9 @@ export class LevelUpScene extends Phaser.Scene {
     // Darken background
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
+    // Space reserved for reroll row below cards
+    const rerollAreaH = 55;
+
     // Determine layout: horizontal if cards fit, vertical if narrow
     const baseCardW = 220;
     const baseCardH = 200;
@@ -33,13 +42,13 @@ export class LevelUpScene extends Phaser.Scene {
     const horizontalNeeded = n * baseCardW + (n - 1) * spacing + 40;
     this.isNarrow = width < horizontalNeeded;
 
-    // Scale cards to fit available space
+    // Scale cards to fit available space (minus reroll area)
     let cardW: number, cardH: number, scale: number;
     if (this.isNarrow) {
       // Vertical layout — fit cards to width, distribute available height
       scale = Math.min(1, (width - 40) / baseCardW);
       cardW = baseCardW * scale;
-      const availH = height - 120; // reserve space for title
+      const availH = height - 120 - rerollAreaH;
       cardH = Math.min(baseCardH * scale, (availH - (n - 1) * spacing) / n);
       scale = Math.min(scale, cardH / baseCardH);
     } else {
@@ -67,31 +76,77 @@ export class LevelUpScene extends Phaser.Scene {
 
     const titleAreaH = 20 * scale + titleSize + subtitleSize + 30;
 
-    // Create cards
+    // Create cards (shifted up to leave room for reroll row)
     this.cards = [];
     this.cardBgs = [];
+    let cardsBottomY = 0;
     for (let i = 0; i < n; i++) {
       let cx: number, cy: number;
       if (this.isNarrow) {
         const totalH = n * cardH + (n - 1) * spacing;
-        const startY = titleAreaH + (height - titleAreaH - totalH) / 2 + cardH / 2;
+        const startY = titleAreaH + (height - titleAreaH - rerollAreaH - totalH) / 2 + cardH / 2;
         cx = width / 2;
         cy = startY + i * (cardH + spacing);
       } else {
         const totalW = n * cardW + (n - 1) * spacing;
         const startX = (width - totalW) / 2 + cardW / 2;
         cx = startX + i * (cardW + spacing);
-        cy = titleAreaH + (height - titleAreaH) / 2;
+        cy = titleAreaH + (height - titleAreaH - rerollAreaH) / 2;
       }
 
       this.createCard(i, cx, cy, cardW, cardH, scale);
+      cardsBottomY = Math.max(cardsBottomY, cy + cardH / 2);
     }
 
-    // Keyboard shortcuts via native DOM listener
+    // Reroll row — right below cards
+    const goldY = cardsBottomY + 14;
+    const rerollBtnY = cardsBottomY + 36;
+
+    this.add.text(width / 2, goldY, `Gold: ${this.gold}`, {
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+
+    const canAfford = this.gold >= this.rerollCost;
+    const btnColor = canAfford ? 0x334433 : 0x222222;
+    const textColor = canAfford ? '#88cc88' : '#666666';
+    const btnW = Math.min(200, width - 40);
+    const rerollBtn = this.add.rectangle(width / 2, rerollBtnY, btnW, 28, btnColor)
+      .setStrokeStyle(1, canAfford ? 0x558855 : 0x444444);
+    this.add.text(width / 2, rerollBtnY, `Re-roll [R] - ${this.rerollCost}g`, {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: textColor,
+    }).setOrigin(0.5);
+    if (canAfford) {
+      rerollBtn.setInteractive({ useHandCursor: true })
+        .on('pointerover', () => rerollBtn.setFillStyle(0x446644))
+        .on('pointerout', () => rerollBtn.setFillStyle(0x334433))
+        .on('pointerdown', () => this.reroll());
+    }
+
+    // Keyboard navigation via native DOM listener
+    this.kbSelected = 0;
     this.keyHandler = (e: KeyboardEvent) => {
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= this.options.length) {
         this.selectOption(num - 1);
+        return;
+      }
+      const key = e.key.toLowerCase();
+      if (key === 'a' || key === 'arrowleft') {
+        this.kbSelected = (this.kbSelected - 1 + this.options.length) % this.options.length;
+      } else if (key === 'd' || key === 'arrowright') {
+        this.kbSelected = (this.kbSelected + 1) % this.options.length;
+      } else if (key === 'w' || key === 'arrowup') {
+        this.kbSelected = (this.kbSelected - 1 + this.options.length) % this.options.length;
+      } else if (key === 's' || key === 'arrowdown') {
+        this.kbSelected = (this.kbSelected + 1) % this.options.length;
+      } else if (key === ' ' || key === 'enter') {
+        this.selectOption(this.kbSelected);
+      } else if (key === 'r') {
+        if (this.gold >= this.rerollCost) this.reroll();
       }
     };
     window.addEventListener('keydown', this.keyHandler);
@@ -103,7 +158,18 @@ export class LevelUpScene extends Phaser.Scene {
 
   update(_time: number): void {
     this.gpNav.update(_time);
-    const sel = this.gpNav.getSelected();
+
+    // Gamepad Y button for reroll
+    const pad = this.input.gamepad?.pad1;
+    const yPressed = pad?.buttons[3]?.pressed ?? false;
+    if (yPressed && !this.prevY && this.gold >= this.rerollCost) {
+      this.reroll();
+    }
+    this.prevY = yPressed;
+
+    // Use whichever selection moved most recently
+    const gpSel = this.gpNav.getSelected();
+    const sel = pad ? gpSel : this.kbSelected;
     for (let i = 0; i < this.cardBgs.length; i++) {
       if (i === sel) {
         this.cardBgs[i].setFillStyle(0x333366, 1);
@@ -197,6 +263,12 @@ export class LevelUpScene extends Phaser.Scene {
       .on('pointerdown', () => {
         this.selectOption(i);
       });
+  }
+
+  private reroll(): void {
+    this.cleanupKeyHandler();
+    const gameScene = this.scene.get('Game');
+    gameScene.events.emit('levelup-reroll');
   }
 
   private selectOption(index: number): void {

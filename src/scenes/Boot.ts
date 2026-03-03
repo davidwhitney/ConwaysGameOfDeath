@@ -40,14 +40,25 @@ export class BootScene extends Phaser.Scene {
 
     // Golden Gem - gold diamond (heal pickup)
     const goldGemGfx = this.make.graphics({ x: 0, y: 0 });
-    goldGemGfx.fillStyle(0xffd700, 1);
+    goldGemGfx.fillStyle(0xff4444, 1);
     goldGemGfx.fillTriangle(8, 0, 16, 8, 8, 16);
     goldGemGfx.fillTriangle(8, 0, 0, 8, 8, 16);
-    goldGemGfx.lineStyle(1, 0xffec80, 1);
+    goldGemGfx.lineStyle(1, 0xff8888, 1);
     goldGemGfx.strokeTriangle(8, 0, 16, 8, 8, 16);
     goldGemGfx.strokeTriangle(8, 0, 0, 8, 8, 16);
     goldGemGfx.generateTexture('golden-gem', 16, 16);
     goldGemGfx.destroy();
+
+    // Gold Gem - gold diamond (currency pickup)
+    const coinGfx = this.make.graphics({ x: 0, y: 0 });
+    coinGfx.fillStyle(0xffd700, 1);
+    coinGfx.fillTriangle(7, 0, 14, 7, 7, 14);
+    coinGfx.fillTriangle(7, 0, 0, 7, 7, 14);
+    coinGfx.lineStyle(1, 0xffec80, 1);
+    coinGfx.strokeTriangle(7, 0, 14, 7, 7, 14);
+    coinGfx.strokeTriangle(7, 0, 0, 7, 7, 14);
+    coinGfx.generateTexture('gold-gem', 14, 14);
+    coinGfx.destroy();
 
     // Projectile - small white circle
     this.createCircleTexture('projectile', 6, 0xffffff, 0xcccccc);

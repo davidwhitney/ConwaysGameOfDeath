@@ -23,6 +23,7 @@ export class Enemy {
   sprite: Phaser.GameObjects.Sprite;
   state: EnemyState;
   def: EnemyDef;
+  effectiveSize: number = 10;
   private scene: Phaser.Scene;
   private map: TileMap;
 
@@ -48,33 +49,38 @@ export class Enemy {
       hp: 1, maxHp: 1,
       speed: 0, damage: 0,
       alive: false, xpValue: 0,
+      boss: false,
     };
   }
 
   /** Activate this pooled enemy with given type and position */
-  activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number): void {
+  activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): void {
     this.def = ENEMY_DEFS[type];
     // Scale HP and damage with game progress (0–1)
     const progress = gameTimeMs / GAME_DURATION_MS;
     const hpScale = 1 + progress * 10.5;
     const dmgScale = 1 + progress * 3.6;
 
+    const bossHpMul = boss ? 10 : 1;
     this.state = {
       id,
       type,
       x, y,
-      hp: Math.floor(this.def.baseHp * hpScale),
-      maxHp: Math.floor(this.def.baseHp * hpScale),
+      hp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
+      maxHp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
       speed: this.def.baseSpeed,
       damage: Math.floor(this.def.baseDamage * dmgScale),
       alive: true,
       xpValue: this.def.xpValue,
+      boss,
     };
 
+    this.effectiveSize = this.def.size * (boss ? 4 : 1);
     this.sprite.setTexture(ENEMY_TEXTURE_MAP[type]);
     this.sprite.setPosition(x, y);
     this.sprite.setVisible(true);
     this.sprite.setAlpha(1);
+    this.sprite.setScale(boss ? 4 : 1);
 
     // Init behavior state
     this.orbitAngle = Math.random() * Math.PI * 2;
@@ -180,7 +186,7 @@ export class Enemy {
       return;
     }
 
-    const halfSize = this.def.size / 2;
+    const halfSize = this.effectiveSize / 2;
 
     // Try full move first
     const fullX = this.state.x + dx;

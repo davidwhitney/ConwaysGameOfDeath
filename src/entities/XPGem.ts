@@ -6,6 +6,8 @@ const SPAWN_DELAY = 0.4;
 /** Speed gems scatter outward during spawn delay */
 const SCATTER_SPEED = 120;
 
+export type GemKind = 'xp' | 'heal' | 'gold';
+
 export interface GemData {
   sprite: Phaser.GameObjects.Sprite;
   x: number;
@@ -18,9 +20,14 @@ export interface GemData {
   /** Scatter direction chosen at spawn */
   scatterDx: number;
   scatterDy: number;
-  /** Golden gems heal 25% HP instead of giving XP */
-  golden: boolean;
+  kind: GemKind;
 }
+
+const TEX_MAP: Record<GemKind, string> = {
+  xp: 'xp-gem',
+  heal: 'golden-gem',
+  gold: 'gold-gem',
+};
 
 export class XPGemPool {
   private pool: Phaser.GameObjects.Sprite[] = [];
@@ -43,15 +50,19 @@ export class XPGemPool {
   }
 
   spawn(x: number, y: number, value: number): void {
-    this.spawnGem(x, y, value, false);
+    this.spawnGem(x, y, value, 'xp');
   }
 
   spawnGolden(x: number, y: number): void {
-    this.spawnGem(x, y, 0, true);
+    this.spawnGem(x, y, 0, 'heal');
   }
 
-  private spawnGem(x: number, y: number, value: number, golden: boolean): void {
-    const texKey = golden ? 'golden-gem' : 'xp-gem';
+  spawnGold(x: number, y: number, value: number): void {
+    this.spawnGem(x, y, value, 'gold');
+  }
+
+  private spawnGem(x: number, y: number, value: number, kind: GemKind): void {
+    const texKey = TEX_MAP[kind];
     let sprite: Phaser.GameObjects.Sprite;
     if (this.pool.length > 0) {
       sprite = this.pool.pop()!;
@@ -63,7 +74,7 @@ export class XPGemPool {
 
     sprite.setPosition(x, y);
     sprite.setVisible(true);
-    const scale = golden ? 1.4 : Math.min(2, 0.8 + value * 0.1);
+    const scale = kind === 'xp' ? Math.min(2, 0.8 + value * 0.1) : 1.4;
     sprite.setScale(scale);
 
     // Random scatter direction so gems pop outward from the kill site
@@ -76,13 +87,14 @@ export class XPGemPool {
       age: 0,
       scatterDx: Math.cos(angle),
       scatterDy: Math.sin(angle),
-      golden,
+      kind,
     });
   }
 
-  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number } {
+  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number; gold: number } {
     let totalXp = 0;
     let heals = 0;
+    let gold = 0;
     const magnetRange = pickupRange * 3;
 
     for (let i = this.active.length - 1; i >= 0; i--) {
@@ -98,7 +110,7 @@ export class XPGemPool {
         gem.x += gem.scatterDx * speed * dt;
         gem.y += gem.scatterDy * speed * dt;
         gem.sprite.setPosition(gem.x, gem.y);
-        const baseScale = gem.golden ? 1.4 : Math.min(2, 0.8 + gem.value * 0.1);
+        const baseScale = gem.kind === 'xp' ? Math.min(2, 0.8 + gem.value * 0.1) : 1.4;
         gem.sprite.setScale(baseScale * (0.6 + 0.4 * t));
         continue;
       }
@@ -125,8 +137,10 @@ export class XPGemPool {
 
       // Pickup
       if (dist < pickupRange) {
-        if (gem.golden) {
+        if (gem.kind === 'heal') {
           heals++;
+        } else if (gem.kind === 'gold') {
+          gold += gem.value;
         } else {
           totalXp += gem.value;
         }
@@ -138,7 +152,7 @@ export class XPGemPool {
       }
     }
 
-    return { xp: totalXp, heals };
+    return { xp: totalXp, heals, gold };
   }
 
   getActive(): GemData[] {

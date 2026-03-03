@@ -15,11 +15,17 @@ export class HUDScene extends Phaser.Scene {
   private killText!: Phaser.GameObjects.Text;
   private enemyCountText!: Phaser.GameObjects.Text;
   private goldText!: Phaser.GameObjects.Text;
+  private seedText!: Phaser.GameObjects.Text;
   private inventoryGfx!: Phaser.GameObjects.Graphics;
   private inventoryTexts: Phaser.GameObjects.Text[] = [];
+  private seed: number = 0;
 
   constructor() {
     super({ key: 'HUD' });
+  }
+
+  init(data: { seed?: number }): void {
+    this.seed = data.seed ?? 0;
   }
 
   create(): void {
@@ -78,6 +84,14 @@ export class HUDScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
     });
+
+    this.seedText = this.add.text(width / 2, 32, `Seed: ${this.seed}`, {
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: '#444466',
+      stroke: '#000000',
+      strokeThickness: 1,
+    }).setOrigin(0.5, 0);
   }
 
   updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number): void {
@@ -111,6 +125,9 @@ export class HUDScene extends Phaser.Scene {
     const seconds = totalSeconds % 60;
     this.timerText.setText(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
     this.timerText.setX(width / 2);
+
+    // Seed (reposition for resize)
+    this.seedText.setX(width / 2);
 
     // Kills (reposition for resize)
     this.killText.setText(`Kills: ${kills}`);

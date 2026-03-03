@@ -42,6 +42,7 @@ export interface EnemyState {
   damage: number;
   alive: boolean;
   xpValue: number;
+  boss: boolean;
 }
 
 export interface ProjectileState {

@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import {
-  type WeaponInstance, type WeaponDef, WeaponType,
+  type WeaponInstance, type WeaponDef, WeaponType, EffectType,
   WEAPON_DEFS, getWeaponStats, circlesOverlap, directionTo, angleToVec2,
 } from '../shared';
 import type { Player } from '../entities/Player';
+import type { Enemy } from '../entities/Enemy';
 import type { EnemyPool } from './EnemyPool';
 import type { DamageNumberSystem } from '../ui/DamageNumber';
 
@@ -61,6 +62,7 @@ export class WeaponSystem {
   private melees: ActiveMelee[] = [];
   private aoes: ActiveAoE[] = [];
   private nextProjectileId = 1;
+  private critChance = 0;
 
   // Force field state
   private forceFieldGfx: Phaser.GameObjects.Graphics;
@@ -84,6 +86,7 @@ export class WeaponSystem {
     const now = this.scene.time.now;
     const dmgMul = player.getDamageMultiplier();
     const cdReduction = player.getCooldownReduction();
+    this.critChance = player.getEffectValue(EffectType.Luck);
 
     // Process each weapon
     for (const weapon of player.state.weapons) {
@@ -312,14 +315,10 @@ export class WeaponSystem {
       const enemies = enemyPool.getEnemiesInRadius(p.x, p.y, p.radius + 20);
       for (const enemy of enemies) {
         if (p.hitEnemies.has(enemy.state.id)) continue;
-        if (circlesOverlap(p.x, p.y, p.radius, enemy.state.x, enemy.state.y, enemy.def.size)) {
+        if (circlesOverlap(p.x, p.y, p.radius, enemy.state.x, enemy.state.y, enemy.effectiveSize)) {
           p.hitEnemies.add(enemy.state.id);
           p.pierce--;
-          const killed = enemy.takeDamage(p.damage);
-          dmgNums.show(enemy.state.x, enemy.state.y - 15, p.damage);
-          if (killed) {
-            this.scene.events.emit('enemy-killed', enemy);
-          }
+          this.hitEnemy(enemy, p.damage, p.weaponType, dmgNums);
         }
       }
     }
@@ -350,11 +349,7 @@ export class WeaponSystem {
       for (const enemy of enemies) {
         if (m.hitEnemies.has(enemy.state.id)) continue;
         m.hitEnemies.add(enemy.state.id);
-        const killed = enemy.takeDamage(m.damage);
-        dmgNums.show(enemy.state.x, enemy.state.y - 15, m.damage);
-        if (killed) {
-          this.scene.events.emit('enemy-killed', enemy);
-        }
+        this.hitEnemy(enemy, m.damage, m.weaponType, dmgNums);
       }
     }
   }
@@ -386,11 +381,7 @@ export class WeaponSystem {
         a.tickTimer -= 200;
         const enemies = enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
         for (const enemy of enemies) {
-          const killed = enemy.takeDamage(a.damage);
-          dmgNums.show(enemy.state.x, enemy.state.y - 15, a.damage);
-          if (killed) {
-            this.scene.events.emit('enemy-killed', enemy);
-          }
+          this.hitEnemy(enemy, a.damage, a.weaponType, dmgNums);
         }
       }
     }
@@ -420,9 +411,7 @@ export class WeaponSystem {
           if (doTick) {
             const enemies = enemyPool.getEnemiesInRadius(ox, oy, 15);
             for (const enemy of enemies) {
-              const killed = enemy.takeDamage(Math.floor(stats.damage * dmgMul));
-              dmgNums.show(enemy.state.x, enemy.state.y - 15, Math.floor(stats.damage * dmgMul));
-              if (killed) this.scene.events.emit('enemy-killed', enemy);
+              this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), def.type, dmgNums);
             }
           }
         }
@@ -436,12 +425,24 @@ export class WeaponSystem {
         if (doTick) {
           const enemies = enemyPool.getEnemiesInRadius(player.state.x, player.state.y, stats.area);
           for (const enemy of enemies) {
-            const killed = enemy.takeDamage(Math.floor(stats.damage * dmgMul));
-            dmgNums.show(enemy.state.x, enemy.state.y - 15, Math.floor(stats.damage * dmgMul));
-            if (killed) this.scene.events.emit('enemy-killed', enemy);
+            this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), def.type, dmgNums);
           }
         }
       }
+    }
+  }
+
+  private hitEnemy(enemy: Enemy, damage: number, weaponType: WeaponType, dmgNums: DamageNumberSystem): void {
+    let finalDamage = damage;
+    let isCrit = false;
+    if (this.critChance > 0 && Math.random() < this.critChance) {
+      isCrit = true;
+      finalDamage = Math.floor(damage * 1.2);
+    }
+    const killed = enemy.takeDamage(finalDamage);
+    dmgNums.show(enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+    if (killed) {
+      this.scene.events.emit('enemy-killed', enemy, weaponType);
     }
   }
 
