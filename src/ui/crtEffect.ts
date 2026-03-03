@@ -53,13 +53,19 @@ function injectScanlines(scene: Phaser.Scene): void {
   // Ensure container is a positioning context
   container.style.position = 'relative';
 
+  // Scale scanline thickness with DPI so they don't look overly dense on mobile
+  const dpr = window.devicePixelRatio || 1;
+  const gap = Math.round(2 * dpr);
+  const line = Math.round(4 * dpr);
+  const alpha = dpr > 1 ? 0.06 : 0.12;
+
   const overlay = document.createElement('div');
   overlay.style.cssText = [
     'position:absolute',
     'inset:0',
     'pointer-events:none',
     'z-index:100',
-    'background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px)',
+    `background:repeating-linear-gradient(to bottom,transparent 0px,transparent ${gap}px,rgba(0,0,0,${alpha}) ${gap}px,rgba(0,0,0,${alpha}) ${line}px)`,
     'mix-blend-mode:multiply',
   ].join(';');
 
