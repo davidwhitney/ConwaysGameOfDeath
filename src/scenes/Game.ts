@@ -159,7 +159,7 @@ export class GameScene extends Phaser.Scene {
     this.player.updateVisuals();
 
     // Pause
-    if (this.inputManager.isEscPressed()) {
+    if (this.inputManager.isMenuPressed()) {
       this.scene.pause();
       this.scene.launch('Pause');
     }
