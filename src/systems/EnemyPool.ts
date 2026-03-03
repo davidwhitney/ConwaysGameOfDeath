@@ -69,6 +69,18 @@ export class EnemyPool {
     }
   }
 
+  /** Destroy all pooled and active enemy sprites */
+  destroy(): void {
+    for (const enemy of this.active) {
+      enemy.sprite.destroy();
+    }
+    for (const enemy of this.pool) {
+      enemy.sprite.destroy();
+    }
+    this.active.length = 0;
+    this.pool.length = 0;
+  }
+
   /** Get enemies near a point (brute force, use SpatialHash for better perf) */
   getEnemiesInRadius(x: number, y: number, radius: number): Enemy[] {
     const r2 = radius * radius;

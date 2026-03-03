@@ -10,6 +10,13 @@ import {
   GOLD_REROLL_BASE_COST, GOLD_REROLL_COST_MULTIPLIER,
   isWalkable,
 } from '../shared';
+import {
+  BOSS_HP_MULTIPLIER, BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT,
+  LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
+  BOSS_SPAWN_BASE_CHANCE, BOSS_SPAWN_LUCK_DIVISOR, BOSS_SPAWN_MIN_PROGRESS,
+  BOSS_SPAWN_DISTANCE,
+  SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
+} from '../shared/constants';
 import { Player } from '../entities/Player';
 import { InputManager } from '../systems/InputManager';
 import { CameraManager } from '../systems/CameraManager';
@@ -46,6 +53,7 @@ export class GameScene extends Phaser.Scene {
   private gameOver: boolean = false;
   private pendingLevelUps: number = 0;
   private rerollCount: number = 0;
+  private currentLevelUpOptions: LevelUpOption[] = [];
 
   constructor() {
     super({ key: 'Game' });
@@ -58,6 +66,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.pendingLevelUps = 0;
     this.rerollCount = 0;
+    this.currentLevelUpOptions = [];
   }
 
   create(): void {
@@ -92,75 +101,13 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('HUD', { seed: this.seed });
     this.hudScene = this.scene.get('HUD') as HUDScene;
 
-    // Enemy killed event — XP gem drops based on chance (boosted by Luck)
-    this.events.on('enemy-killed', (enemy: { state: { x: number; y: number; xpValue: number; boss: boolean } }, weaponType?: WeaponType) => {
-      this.kills++;
-      const luckValue = this.player.getEffectValue(EffectType.Luck);
-      const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));
-      if (Math.random() < dropChance) {
-        this.xpGemPool.spawn(enemy.state.x, enemy.state.y, enemy.state.xpValue);
-      }
+    // Event handlers
+    this.events.on('enemy-killed', (e: { state: { x: number; y: number; xpValue: number; boss: boolean } }, w?: WeaponType) => this.handleEnemyKilled(e, w));
+    this.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
+    this.events.on('levelup-reroll', () => this.handleReroll());
 
-      // Gold drop (scaled with luck)
-      const goldChance = Math.min(1, GOLD_DROP_BASE_CHANCE + luckValue * (GOLD_DROP_LUCK_BONUS / 0.15));
-      if (Math.random() < goldChance) {
-        this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, 1);
-      }
-
-      // Boss kill: level up the weapon that killed it, or heal 50%
-      if (enemy.state.boss && weaponType !== undefined) {
-        const weapon = this.player.state.weapons.find(w => w.type === weaponType);
-        if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
-          weapon.level++;
-          this.damageNumbers.show(
-            this.player.state.x, this.player.state.y - 40,
-            weapon.level, '#ffcc00',
-          );
-        } else {
-          const healAmount = Math.floor(this.player.state.maxHp * 0.5);
-          this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmount);
-          this.damageNumbers.show(
-            this.player.state.x, this.player.state.y - 40,
-            healAmount, '#ff4444',
-          );
-        }
-        this.cameraManager.shake(300, 0.015);
-      }
-    });
-
-    // Level up choice event
-    this.events.on('levelup-choice', (index: number) => {
-      this.handleLevelUpChoice(index);
-    });
-
-    // Level up reroll event
-    this.events.on('levelup-reroll', () => {
-      const cost = this.getRerollCost();
-      if (this.player.state.gold < cost) return;
-      this.player.state.gold -= cost;
-      this.rerollCount++;
-
-      let options: LevelUpOption[];
-      if (this.player.state.level > MAX_LEVEL) {
-        options = generatePostMaxOptions(this.player.state.level);
-      } else {
-        options = generateLevelUpOptions(
-          this.player.state.weapons,
-          this.player.state.effects,
-          () => this.rng.next(),
-        );
-      }
-      if (options.length === 0) return;
-      (this as any)._currentLevelUpOptions = options;
-
-      // Restart the LevelUp scene in-place (stop+launch in same frame is unreliable)
-      const levelUp = this.scene.get('LevelUp');
-      levelUp.scene.restart({
-        options,
-        gold: this.player.state.gold,
-        rerollCost: this.getRerollCost(),
-      });
-    });
+    // Cleanup on shutdown
+    this.events.once('shutdown', () => this.shutdown());
   }
 
   update(time: number, delta: number): void {
@@ -169,6 +116,28 @@ export class GameScene extends Phaser.Scene {
     const dt = delta / 1000; // seconds
     this.gameTimeMs += delta;
 
+    this.updateMovement(dt);
+    this.updateSystems(delta);
+    this.checkEnemyPlayerCollision(time);
+    this.weaponSystem.update(dt, this.player, this.enemyPool, this.damageNumbers);
+    this.updatePickups(dt);
+    this.accumulateLevelUps();
+
+    // Open level-up screen (pauses game) after all levels are tallied
+    if (this.pendingLevelUps > 0 && !this.scene.isActive('LevelUp')) {
+      this.processLevelUp();
+    }
+
+    this.damageNumbers.update(dt);
+    this.updateHUD();
+
+    // Check player death — surviving past target time counts as victory
+    if (!this.player.state.alive) {
+      this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
+    }
+  }
+
+  private updateMovement(dt: number): void {
     const movement = this.inputManager.getMovement();
     this.player.move(movement.x, movement.y, dt);
     this.player.applyRegen(dt);
@@ -179,22 +148,23 @@ export class GameScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch('Pause');
     }
+  }
 
+  private updateSystems(delta: number): void {
     this.mapRenderer.update(this.cameraManager.getCamera());
     this.spawnController.update(delta, this.player.state.x, this.player.state.y);
-    this.enemyPool.update(dt, this.player.state.x, this.player.state.y);
-    this.checkEnemyPlayerCollision(time);
-    this.weaponSystem.update(dt, this.player, this.enemyPool, this.damageNumbers);
+    this.enemyPool.update(delta / 1000, this.player.state.x, this.player.state.y);
+  }
 
-    // Update XP gems
+  private updatePickups(dt: number): void {
     const gemResult = this.xpGemPool.update(dt, this.player.state.x, this.player.state.y, this.player.getPickupRange());
-    
+
     if (gemResult.xp > 0) {
       this.player.addXp(gemResult.xp);
     }
 
     if (gemResult.heals > 0) {
-      const healTotal = this.player.state.maxHp * 0.25 * gemResult.heals;
+      const healTotal = this.player.state.maxHp * HEAL_GEM_PCT * gemResult.heals;
       this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healTotal);
       this.damageNumbers.show(
         this.player.state.x, this.player.state.y - 30,
@@ -205,8 +175,9 @@ export class GameScene extends Phaser.Scene {
     if (gemResult.gold > 0) {
       this.player.state.gold += gemResult.gold;
     }
+  }
 
-    // Accumulate all pending level ups (no cap — keeps going past 100)
+  private accumulateLevelUps(): void {
     while (this.player.state.xp >= this.player.state.xpToNext) {
       this.pendingLevelUps++;
       this.player.state.xp -= this.player.state.xpToNext;
@@ -226,41 +197,92 @@ export class GameScene extends Phaser.Scene {
       // Luck-based heal on level up
       const luckVal = this.player.getEffectValue(EffectType.Luck);
       if (luckVal > 0 && Math.random() < luckVal) {
-        const healPct = 0.05 + luckVal * 0.15;
+        const healPct = LEVELUP_LUCK_BASE_HEAL_PCT + luckVal * LEVELUP_LUCK_HEAL_SCALING;
         const healAmt = Math.floor(this.player.state.maxHp * healPct);
         this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmt);
         this.damageNumbers.show(this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
       }
 
       // Bad luck: chance to spawn a boss monster (not before 25% game progress)
-      const bossChance = this.gameTimeMs >= GAME_DURATION_MS * 0.25
-        ? Math.max(0, 0.10 * (1 - luckVal / 0.35))
+      const bossChance = this.gameTimeMs >= GAME_DURATION_MS * BOSS_SPAWN_MIN_PROGRESS
+        ? Math.max(0, BOSS_SPAWN_BASE_CHANCE * (1 - luckVal / BOSS_SPAWN_LUCK_DIVISOR))
         : 0;
       if (bossChance > 0 && Math.random() < bossChance) {
         this.spawnBoss();
       }
     }
+  }
 
-    // Open level-up screen (pauses game) after all levels are tallied
-    if (this.pendingLevelUps > 0 && !this.scene.isActive('LevelUp')) {
-      this.processLevelUp();
-    }
-
-    // Damage numbers
-    this.damageNumbers.update(dt);
-
-    // HUD
+  private updateHUD(): void {
     this.hudScene.updateHUD?.(
       this.player.state,
       this.spawnController.getGameTimeMs(),
       this.kills,
       this.enemyPool.getActiveCount(),
     );
+  }
 
-    // Check player death — surviving past target time counts as victory
-    if (!this.player.state.alive) {
-      this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
+  private handleEnemyKilled(enemy: { state: { x: number; y: number; xpValue: number; boss: boolean } }, weaponType?: WeaponType): void {
+    this.kills++;
+    const luckValue = this.player.getEffectValue(EffectType.Luck);
+    const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));
+    if (Math.random() < dropChance) {
+      this.xpGemPool.spawn(enemy.state.x, enemy.state.y, enemy.state.xpValue);
     }
+
+    // Gold drop (scaled with luck)
+    const goldChance = Math.min(1, GOLD_DROP_BASE_CHANCE + luckValue * (GOLD_DROP_LUCK_BONUS / 0.15));
+    if (Math.random() < goldChance) {
+      this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, 1);
+    }
+
+    // Boss kill: level up the weapon that killed it, or heal 50%
+    if (enemy.state.boss && weaponType !== undefined) {
+      const weapon = this.player.state.weapons.find(w => w.type === weaponType);
+      if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
+        weapon.level++;
+        this.damageNumbers.show(
+          this.player.state.x, this.player.state.y - 40,
+          weapon.level, '#ffcc00',
+        );
+      } else {
+        const healAmount = Math.floor(this.player.state.maxHp * BOSS_KILL_HEAL_PCT);
+        this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmount);
+        this.damageNumbers.show(
+          this.player.state.x, this.player.state.y - 40,
+          healAmount, '#ff4444',
+        );
+      }
+      this.cameraManager.shake(300, 0.015);
+    }
+  }
+
+  private handleReroll(): void {
+    const cost = this.getRerollCost();
+    if (this.player.state.gold < cost) return;
+    this.player.state.gold -= cost;
+    this.rerollCount++;
+
+    let options: LevelUpOption[];
+    if (this.player.state.level > MAX_LEVEL) {
+      options = generatePostMaxOptions(this.player.state.level);
+    } else {
+      options = generateLevelUpOptions(
+        this.player.state.weapons,
+        this.player.state.effects,
+        () => this.rng.next(),
+      );
+    }
+    if (options.length === 0) return;
+    this.currentLevelUpOptions = options;
+
+    // Restart the LevelUp scene in-place (stop+launch in same frame is unreliable)
+    const levelUp = this.scene.get('LevelUp');
+    levelUp.scene.restart({
+      options,
+      gold: this.player.state.gold,
+      rerollCost: this.getRerollCost(),
+    });
   }
 
   private checkEnemyPlayerCollision(now: number): void {
@@ -300,7 +322,7 @@ export class GameScene extends Phaser.Scene {
     if (options.length === 0) return;
 
     // Store options for the choice handler
-    (this as any)._currentLevelUpOptions = options;
+    this.currentLevelUpOptions = options;
 
     this.scene.pause();
     this.scene.launch('LevelUp', {
@@ -315,7 +337,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleLevelUpChoice(index: number): void {
-    const options: LevelUpOption[] = (this as any)._currentLevelUpOptions;
+    const options = this.currentLevelUpOptions;
     if (!options || index >= options.length) return;
 
     applyLevelUpChoice(this.player.state, options[index]);
@@ -332,7 +354,7 @@ export class GameScene extends Phaser.Scene {
   private scatterHealthGems(): void {
     const luckValue = this.player.getEffectValue(EffectType.Luck);
     // Base 3 gems, +2 per luck level, capped at 20
-    const count = Math.min(20, 3 + Math.floor(luckValue * (2 / 0.15)));
+    const count = Math.min(SCATTER_MAX_COUNT, SCATTER_BASE_COUNT + Math.floor(luckValue * (SCATTER_LUCK_BONUS / 0.15)));
 
     const cam = this.cameras.main;
     const viewHalfW = cam.worldView.width / 2;
@@ -370,7 +392,7 @@ export class GameScene extends Phaser.Scene {
 
     const type = availableTypes[Math.floor(this.rng.next() * availableTypes.length)].type;
     const angle = this.rng.next() * Math.PI * 2;
-    const dist = 600;
+    const dist = BOSS_SPAWN_DISTANCE;
     const bx = this.player.state.x + Math.cos(angle) * dist;
     const by = this.player.state.y + Math.sin(angle) * dist;
 
@@ -411,6 +433,7 @@ export class GameScene extends Phaser.Scene {
 
   shutdown(): void {
     this.weaponSystem?.destroy();
+    this.enemyPool?.destroy();
     this.xpGemPool?.destroy();
     this.damageNumbers?.destroy();
     this.mapRenderer?.destroy();

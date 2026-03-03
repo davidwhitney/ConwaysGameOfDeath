@@ -154,6 +154,9 @@ export class LevelUpScene extends Phaser.Scene {
     // Gamepad navigation
     const direction = this.isNarrow ? 'vertical' as const : 'horizontal' as const;
     this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), null, direction);
+
+    // Cleanup on shutdown
+    this.events.once('shutdown', () => this.shutdown());
   }
 
   update(_time: number): void {

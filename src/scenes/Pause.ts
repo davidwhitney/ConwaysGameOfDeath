@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { GamepadNav } from '../ui/gamepadNav';
+import { createButton } from '../ui/buttonFactory';
+import { monoStyle } from '../ui/textStyles';
 
 export class PauseScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -18,40 +20,29 @@ export class PauseScene extends Phaser.Scene {
     // Overlay
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
 
-    this.add.text(width / 2, height * 0.3, 'PAUSED', {
-      fontSize: '48px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.3, 'PAUSED',
+      monoStyle('48px', '#ffffff', { fontStyle: 'bold' }),
+    ).setOrigin(0.5);
 
     // Resume button
-    const resumeBtn = this.add.rectangle(width / 2, height * 0.5, 200, 45, 0x333366)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => resumeBtn.setFillStyle(0x444488))
-      .on('pointerout', () => this.unhighlightBtn(0))
-      .on('pointerdown', () => this.resume());
-
-    this.add.text(width / 2, height * 0.5, 'RESUME', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-    }).setOrigin(0.5);
+    const resume = createButton(this, {
+      x: width / 2, y: height * 0.5, width: 200, height: 45,
+      label: 'RESUME', fontSize: '20px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.resume(),
+    });
 
     // Quit button
-    const quitBtn = this.add.rectangle(width / 2, height * 0.62, 200, 45, 0x443333)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => quitBtn.setFillStyle(0x664444))
-      .on('pointerout', () => this.unhighlightBtn(1))
-      .on('pointerdown', () => this.quit());
+    const quit = createButton(this, {
+      x: width / 2, y: height * 0.62, width: 200, height: 45,
+      label: 'QUIT', fontSize: '20px', textColor: '#ff8888',
+      fillColor: 0x443333, hoverColor: 0x664444,
+      onClick: () => this.quit(),
+    });
 
-    this.add.text(width / 2, height * 0.62, 'QUIT', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#ff8888',
-    }).setOrigin(0.5);
-
-    this.buttons = [resumeBtn, quitBtn];
+    this.buttons = [resume.bg, quit.bg];
+    resume.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
+    quit.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
 
     // ESC to resume
     this.input.keyboard!.on('keydown-ESC', () => this.resume());
@@ -59,6 +50,11 @@ export class PauseScene extends Phaser.Scene {
     // Gamepad navigation — B/Start → resume
     const actions = [() => this.resume(), () => this.quit()];
     this.gpNav = new GamepadNav(this, 2, (i) => actions[i](), () => this.resume());
+
+    // Cleanup on shutdown
+    this.events.once('shutdown', () => {
+      this.input.keyboard!.removeAllListeners();
+    });
   }
 
   update(_time: number): void {

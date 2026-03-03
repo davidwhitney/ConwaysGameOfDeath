@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { GamepadNav } from '../ui/gamepadNav';
+import { createButton } from '../ui/buttonFactory';
+import { monoStyle } from '../ui/textStyles';
 
 export class MainMenuScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -17,58 +19,44 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = applyUIZoom(this);
 
     // Title
-    this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH", {
-      fontSize: '48px',
-      fontFamily: 'monospace',
-      color: '#ff4444',
-      fontStyle: 'bold',
-      align: 'center',
-      lineSpacing: 4,
-    }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH",
+      monoStyle('48px', '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
+    ).setOrigin(0.5);
 
-    this.add.text(width / 2, height * 0.40, 'Survive the Automaton', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#aaaacc',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.40, 'Survive the Automaton',
+      monoStyle('20px', '#aaaacc'),
+    ).setOrigin(0.5);
 
     // Play button
-    const playBtn = this.add.rectangle(width / 2, height * 0.58, 220, 50, 0x333366)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => playBtn.setFillStyle(0x444488))
-      .on('pointerout', () => this.unhighlightBtn(0))
-      .on('pointerdown', () => this.startGame());
-
-    this.add.text(width / 2, height * 0.58, 'PLAY', {
-      fontSize: '24px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-    }).setOrigin(0.5);
+    const play = createButton(this, {
+      x: width / 2, y: height * 0.58, width: 220, height: 50,
+      label: 'PLAY', fontSize: '24px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.startGame(),
+    });
 
     // Seed input (HTML element for editable text)
     this.createSeedInput();
 
     // High scores button
-    const scoresBtn = this.add.rectangle(width / 2, height * 0.70, 200, 45, 0x333344)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => scoresBtn.setFillStyle(0x444466))
-      .on('pointerout', () => this.unhighlightBtn(1))
-      .on('pointerdown', () => this.scene.start('HighScores'));
+    const scores = createButton(this, {
+      x: width / 2, y: height * 0.70, width: 200, height: 45,
+      label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
+      fillColor: 0x333344, hoverColor: 0x444466,
+      onClick: () => this.scene.start('HighScores'),
+    });
 
-    this.add.text(width / 2, height * 0.70, 'HIGH SCORES', {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: '#ffcc00',
-    }).setOrigin(0.5);
+    this.buttons = [play.bg, scores.bg];
 
-    this.buttons = [playBtn, scoresBtn];
+    // Restore unhighlight behavior (buttonFactory sets pointerout to fillColor, but
+    // gamepad nav also changes fills, so we override pointerout here)
+    play.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
+    scores.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
 
     // Controls hint
-    this.add.text(width / 2, height * 0.88, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#666688',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.88, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
+      monoStyle('12px', '#666688'),
+    ).setOrigin(0.5);
 
     // Press Enter to start
     this.input.keyboard!.on('keydown-ENTER', () => {

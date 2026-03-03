@@ -3,6 +3,7 @@ import {
   type WeaponInstance, type WeaponDef, WeaponType, EffectType,
   WEAPON_DEFS, getWeaponStats, circlesOverlap, directionTo, angleToVec2,
 } from '../shared';
+import { CRIT_DAMAGE_MULTIPLIER } from '../shared/constants';
 import type { Player } from '../entities/Player';
 import type { Enemy } from '../entities/Enemy';
 import type { EnemyPool } from './EnemyPool';
@@ -148,6 +149,18 @@ export class WeaponSystem {
     }
   }
 
+  private findNearestEnemy(enemies: Enemy[], px: number, py: number): Enemy | null {
+    let nearest: Enemy | null = null;
+    let nearDist = Infinity;
+    for (const e of enemies) {
+      const dx = e.state.x - px;
+      const dy = e.state.y - py;
+      const d = dx * dx + dy * dy;
+      if (d < nearDist) { nearDist = d; nearest = e; }
+    }
+    return nearest;
+  }
+
   private fireAoE(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number, enemyPool: EnemyPool): void {
     for (let i = 0; i < stats.amount; i++) {
       let targetX = player.state.x;
@@ -155,15 +168,7 @@ export class WeaponSystem {
 
       if (def.type === WeaponType.Lightning) {
         // Target nearest enemy
-        const enemies = enemyPool.getActive();
-        let nearest = enemies[0];
-        let nearDist = Infinity;
-        for (const e of enemies) {
-          const dx = e.state.x - player.state.x;
-          const dy = e.state.y - player.state.y;
-          const d = dx * dx + dy * dy;
-          if (d < nearDist) { nearDist = d; nearest = e; }
-        }
+        const nearest = this.findNearestEnemy(enemyPool.getActive(), player.state.x, player.state.y);
         if (nearest) { targetX = nearest.state.x; targetY = nearest.state.y; }
       } else {
         // Random position near player
@@ -196,15 +201,7 @@ export class WeaponSystem {
 
       if (def.type === WeaponType.MagicMissile) {
         // Aim at nearest enemy
-        const enemies = enemyPool.getActive();
-        let nearest = enemies[0];
-        let nearDist = Infinity;
-        for (const e of enemies) {
-          const dx = e.state.x - player.state.x;
-          const dy = e.state.y - player.state.y;
-          const d = dx * dx + dy * dy;
-          if (d < nearDist) { nearDist = d; nearest = e; }
-        }
+        const nearest = this.findNearestEnemy(enemyPool.getActive(), player.state.x, player.state.y);
         if (nearest) {
           angle = Math.atan2(nearest.state.y - player.state.y, nearest.state.x - player.state.x);
         } else {
@@ -437,7 +434,7 @@ export class WeaponSystem {
     let isCrit = false;
     if (this.critChance > 0 && Math.random() < this.critChance) {
       isCrit = true;
-      finalDamage = Math.floor(damage * 1.2);
+      finalDamage = Math.floor(damage * CRIT_DAMAGE_MULTIPLIER);
     }
     const killed = enemy.takeDamage(finalDamage);
     dmgNums.show(enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);

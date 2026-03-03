@@ -5,6 +5,10 @@ import {
   type TileMap, isWalkable, directionTo, distance,
 } from '../shared';
 import { ENEMY_DEFS } from '../shared';
+import {
+  ENEMY_HP_SCALING, ENEMY_DMG_SCALING,
+  BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER,
+} from '../shared/constants';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',
@@ -58,10 +62,10 @@ export class Enemy {
     this.def = ENEMY_DEFS[type];
     // Scale HP and damage with game progress (0–1)
     const progress = gameTimeMs / GAME_DURATION_MS;
-    const hpScale = 1 + progress * 10.5;
-    const dmgScale = 1 + progress * 3.6;
+    const hpScale = 1 + progress * ENEMY_HP_SCALING;
+    const dmgScale = 1 + progress * ENEMY_DMG_SCALING;
 
-    const bossHpMul = boss ? 10 : 1;
+    const bossHpMul = boss ? BOSS_HP_MULTIPLIER : 1;
     this.state = {
       id,
       type,
@@ -75,12 +79,12 @@ export class Enemy {
       boss,
     };
 
-    this.effectiveSize = this.def.size * (boss ? 4 : 1);
+    this.effectiveSize = this.def.size * (boss ? BOSS_SIZE_MULTIPLIER : 1);
     this.sprite.setTexture(ENEMY_TEXTURE_MAP[type]);
     this.sprite.setPosition(x, y);
     this.sprite.setVisible(true);
     this.sprite.setAlpha(1);
-    this.sprite.setScale(boss ? 4 : 1);
+    this.sprite.setScale(boss ? BOSS_SIZE_MULTIPLIER : 1);
 
     // Init behavior state
     this.orbitAngle = Math.random() * Math.PI * 2;

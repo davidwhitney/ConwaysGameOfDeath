@@ -58,6 +58,32 @@ export const GAME_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 export const XP_BASE = 5;
 export const XP_GROWTH = 0.2; // quadratic coefficient
 
+// ─── Boss ───
+export const BOSS_HP_MULTIPLIER = 10;
+export const BOSS_SIZE_MULTIPLIER = 4;
+export const BOSS_SPAWN_DISTANCE = 600;
+export const BOSS_KILL_HEAL_PCT = 0.5;
+export const BOSS_SPAWN_BASE_CHANCE = 0.10;
+export const BOSS_SPAWN_LUCK_DIVISOR = 0.35;
+export const BOSS_SPAWN_MIN_PROGRESS = 0.25;
+
+// ─── Healing ───
+export const HEAL_GEM_PCT = 0.25;
+export const LEVELUP_LUCK_BASE_HEAL_PCT = 0.05;
+export const LEVELUP_LUCK_HEAL_SCALING = 0.15;
+
+// ─── Scatter Health Gems ───
+export const SCATTER_BASE_COUNT = 3;
+export const SCATTER_LUCK_BONUS = 2;
+export const SCATTER_MAX_COUNT = 20;
+
+// ─── Enemy Scaling ───
+export const ENEMY_HP_SCALING = 10.5;
+export const ENEMY_DMG_SCALING = 3.6;
+
+// ─── Combat ───
+export const CRIT_DAMAGE_MULTIPLIER = 1.2;
+
 // ─── Network ───
 export const NET_INTERPOLATION_BUFFER_MS = 100;
 export const MAX_PLAYERS_PER_ROOM = 4;

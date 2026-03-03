@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { addScore, formatTime } from '../ui/highScores';
 import { GamepadNav } from '../ui/gamepadNav';
+import { createButton } from '../ui/buttonFactory';
+import { monoStyle } from '../ui/textStyles';
 
 interface GameOverData {
   victory: boolean;
@@ -38,12 +40,9 @@ export class GameOverScene extends Phaser.Scene {
     // Title
     const titleText = data.victory ? 'VICTORY!' : 'GAME OVER';
     const titleColor = data.victory ? '#ffcc00' : '#ff4444';
-    this.add.text(width / 2, height * 0.15, titleText, {
-      fontSize: '48px',
-      fontFamily: 'monospace',
-      color: titleColor,
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, height * 0.15, titleText,
+      monoStyle('48px', titleColor, { fontStyle: 'bold' }),
+    ).setOrigin(0.5);
 
     // Stats
     const timeStr = formatTime(data.time);
@@ -54,65 +53,48 @@ export class GameOverScene extends Phaser.Scene {
     ];
 
     stats.forEach((stat, i) => {
-      this.add.text(width / 2, height * 0.3 + i * 28, stat, {
-        fontSize: '18px',
-        fontFamily: 'monospace',
-        color: '#cccccc',
-      }).setOrigin(0.5);
+      this.add.text(width / 2, height * 0.3 + i * 28, stat,
+        monoStyle('18px', '#cccccc'),
+      ).setOrigin(0.5);
     });
 
     // Rank display
     const rankStr = rank > 0 ? `#${rank} High Score!` : '';
     const rankColor = rank === 1 ? '#ffcc00' : rank <= 3 ? '#ccaa44' : '#88aa88';
     if (rankStr) {
-      this.add.text(width / 2, height * 0.3 + stats.length * 28 + 10, rankStr, {
-        fontSize: '20px',
-        fontFamily: 'monospace',
-        color: rankColor,
-        fontStyle: 'bold',
-      }).setOrigin(0.5);
+      this.add.text(width / 2, height * 0.3 + stats.length * 28 + 10, rankStr,
+        monoStyle('20px', rankColor, { fontStyle: 'bold' }),
+      ).setOrigin(0.5);
     }
 
     // Play again button
-    const playBtn = this.add.rectangle(width / 2, height * 0.62, 220, 50, 0x333366)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => playBtn.setFillStyle(0x444488))
-      .on('pointerout', () => this.unhighlightBtn(0))
-      .on('pointerdown', () => this.playAgain());
-
-    this.add.text(width / 2, height * 0.62, 'PLAY AGAIN', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-    }).setOrigin(0.5);
+    const play = createButton(this, {
+      x: width / 2, y: height * 0.62, width: 220, height: 50,
+      label: 'PLAY AGAIN', fontSize: '20px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.playAgain(),
+    });
 
     // High scores button
-    const scoresBtn = this.add.rectangle(width / 2, height * 0.74, 220, 45, 0x333344)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => scoresBtn.setFillStyle(0x444466))
-      .on('pointerout', () => this.unhighlightBtn(1))
-      .on('pointerdown', () => this.showHighScores());
-
-    this.add.text(width / 2, height * 0.74, 'HIGH SCORES', {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: '#ffcc00',
-    }).setOrigin(0.5);
+    const scores = createButton(this, {
+      x: width / 2, y: height * 0.74, width: 220, height: 45,
+      label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
+      fillColor: 0x333344, hoverColor: 0x444466,
+      onClick: () => this.showHighScores(),
+    });
 
     // Menu button
-    const menuBtn = this.add.rectangle(width / 2, height * 0.85, 220, 45, 0x333344)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => menuBtn.setFillStyle(0x444466))
-      .on('pointerout', () => this.unhighlightBtn(2))
-      .on('pointerdown', () => this.goToMenu());
+    const menu = createButton(this, {
+      x: width / 2, y: height * 0.85, width: 220, height: 45,
+      label: 'MAIN MENU', fontSize: '16px', textColor: '#aaaaaa',
+      fillColor: 0x333344, hoverColor: 0x444466,
+      onClick: () => this.goToMenu(),
+    });
 
-    this.add.text(width / 2, height * 0.85, 'MAIN MENU', {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    this.buttons = [playBtn, scoresBtn, menuBtn];
+    this.buttons = [play.bg, scores.bg, menu.bg];
+    play.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
+    scores.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
+    menu.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
 
     // Enter/Space to play again
     this.input.keyboard!.on('keydown-ENTER', () => this.playAgain());
@@ -124,6 +106,11 @@ export class GameOverScene extends Phaser.Scene {
       () => this.goToMenu(),
     ];
     this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
+
+    // Cleanup on shutdown
+    this.events.once('shutdown', () => {
+      this.input.keyboard!.removeAllListeners();
+    });
   }
 
   update(_time: number): void {
