@@ -30,10 +30,10 @@ export function applyCRT(scene: Phaser.Scene): void {
     cam.postFX.addBarrel(1.04);
 
     // Phosphor glow — soft bloom like a CRT tube
-    cam.postFX.addBloom(0xffffff, 0.6, 0.6, 1.0, 1.2);
+    cam.postFX.addBloom(0xffffff, 0.3, 0.3, 1.0, 1.0);
 
     // Dark vignette around edges
-    cam.postFX.addVignette(0.5, 0.5, 0.85, 0.35);
+    cam.postFX.addVignette(0.5, 0.5, 0.88, 0.25);
   }
 
   // CSS scanlines work regardless of renderer
