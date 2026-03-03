@@ -114,7 +114,7 @@ export class LevelUpScene extends Phaser.Scene {
     const btnW = Math.min(200, width - 40);
     const rerollBtn = this.add.rectangle(width / 2, rerollBtnY, btnW, 28, btnColor)
       .setStrokeStyle(1, canAfford ? 0x558855 : 0x444444);
-    this.add.text(width / 2, rerollBtnY, `Re-roll [R] - ${this.rerollCost}g`, {
+    this.add.text(width / 2, rerollBtnY, `Re-roll [R/Y] - ${this.rerollCost}g`, {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: textColor,

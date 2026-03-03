@@ -54,6 +54,8 @@ export class GameScene extends Phaser.Scene {
   private pendingLevelUps: number = 0;
   private rerollCount: number = 0;
   private currentLevelUpOptions: LevelUpOption[] = [];
+  private visibilityHandler: (() => void) | null = null;
+  private visibilityChangeHandler: (() => void) | null = null;
 
   constructor() {
     super({ key: 'Game' });
@@ -105,6 +107,19 @@ export class GameScene extends Phaser.Scene {
     this.events.on('enemy-killed', (e: { state: { x: number; y: number; xpValue: number; boss: boolean } }, w?: WeaponType) => this.handleEnemyKilled(e, w));
     this.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
     this.events.on('levelup-reroll', () => this.handleReroll());
+
+    // Pause when browser tab loses focus or window blurs
+    this.visibilityHandler = () => {
+      if (!this.gameOver && !this.scene.isPaused()) {
+        this.scene.pause();
+        this.scene.launch('Pause');
+      }
+    };
+    this.visibilityChangeHandler = () => {
+      if (document.hidden) this.visibilityHandler!();
+    };
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+    window.addEventListener('blur', this.visibilityHandler);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => this.shutdown());
@@ -432,11 +447,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+      this.visibilityChangeHandler = null;
+    }
+    if (this.visibilityHandler) {
+      window.removeEventListener('blur', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
     this.weaponSystem?.destroy();
     this.enemyPool?.destroy();
     this.xpGemPool?.destroy();
     this.damageNumbers?.destroy();
     this.mapRenderer?.destroy();
-    this.events.removeAllListeners();
+    this.events.off('enemy-killed');
+    this.events.off('levelup-choice');
+    this.events.off('levelup-reroll');
   }
 }
