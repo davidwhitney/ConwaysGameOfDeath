@@ -188,13 +188,16 @@ export class HUDScene extends Phaser.Scene {
     this.inventoryGfx.lineStyle(1, 0x555577, 1);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
 
-    // Level indicator dots
-    for (let i = 0; i < level; i++) {
-      this.inventoryGfx.fillStyle(0xffffff, 1);
-      const dotX = x + 6 + i * 8;
-      const dotY = y + SLOT_SIZE - 5;
-      this.inventoryGfx.fillCircle(dotX, dotY, 2);
-    }
+    // Level number
+    const lvlText = this.add.text(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2, `${level}`, {
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(1, 1);
+    this.inventoryTexts.push(lvlText);
 
     // Name abbreviation (first 3 chars)
     const label = this.add.text(x + SLOT_SIZE / 2, y - 2, name.slice(0, 3).toUpperCase(), {

@@ -81,4 +81,28 @@ export const EFFECT_DEFS: EffectDef[] = [
     maxLevel: 5,
     levelValues: [0.20, 0.35, 0.50, 0.75, 1.0],
   },
+  {
+    type: EffectType.StrongAuras,
+    name: 'Strong Auras',
+    description: 'Increases AoE and force field size',
+    color: 0x8844ff,
+    maxLevel: 5,
+    levelValues: [0.15, 0.30, 0.45, 0.60, 0.80],
+  },
+  {
+    type: EffectType.Fury,
+    name: 'Fury',
+    description: 'Increases melee attack rate',
+    color: 0xff4400,
+    maxLevel: 5,
+    levelValues: [0.15, 0.25, 0.35, 0.45, 0.55],
+  },
+  {
+    type: EffectType.Focused,
+    name: 'Focused',
+    description: 'More and faster projectiles',
+    color: 0x00ffcc,
+    maxLevel: 5,
+    levelValues: [1, 2, 3, 4, 5],
+  },
 ];

@@ -87,6 +87,9 @@ export class WeaponSystem {
     const now = this.scene.time.now;
     const dmgMul = player.getDamageMultiplier();
     const cdReduction = player.getCooldownReduction();
+    const auraMul = player.getAuraMultiplier();
+    const furyReduction = player.getFuryReduction();
+    const focusedLevel = player.getFocusedLevel();
     this.critChance = player.getEffectValue(EffectType.Luck);
 
     // Process each weapon
@@ -96,23 +99,25 @@ export class WeaponSystem {
       if (weapon.cooldownTimer <= 0) {
         const def = WEAPON_DEFS[weapon.type];
         const stats = getWeaponStats(def, weapon.level);
-        const cooldown = stats.cooldown * (1 - cdReduction);
-        weapon.cooldownTimer = cooldown;
+        let cooldown = stats.cooldown * (1 - cdReduction);
 
         switch (def.category) {
           case 'melee':
+            cooldown *= (1 - furyReduction);
             this.fireMelee(player, def, stats, dmgMul);
             break;
           case 'aoe':
-            this.fireAoE(player, def, stats, dmgMul, enemyPool);
+            this.fireAoE(player, def, stats, dmgMul, enemyPool, auraMul);
             break;
           case 'projectile':
-            this.fireProjectile(player, def, stats, dmgMul, enemyPool);
+            this.fireProjectile(player, def, stats, dmgMul, enemyPool, focusedLevel);
             break;
           case 'forcefield':
             // Force fields don't fire on cooldown, they're always active
             break;
         }
+
+        weapon.cooldownTimer = cooldown;
       }
     }
 
@@ -126,7 +131,7 @@ export class WeaponSystem {
     this.updateAoEs(dt, enemyPool, damageNumbers, dmgMul);
 
     // Update force fields
-    this.updateForceFields(dt, player, enemyPool, damageNumbers, dmgMul);
+    this.updateForceFields(dt, player, enemyPool, damageNumbers, dmgMul, auraMul);
   }
 
   private fireMelee(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number): void {
@@ -161,7 +166,7 @@ export class WeaponSystem {
     return nearest;
   }
 
-  private fireAoE(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number, enemyPool: EnemyPool): void {
+  private fireAoE(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number, enemyPool: EnemyPool, auraMul: number = 1): void {
     for (let i = 0; i < stats.amount; i++) {
       let targetX = player.state.x;
       let targetY = player.state.y;
@@ -185,7 +190,7 @@ export class WeaponSystem {
         weaponType: def.type,
         x: targetX,
         y: targetY,
-        radius: stats.area,
+        radius: stats.area * auraMul,
         damage: Math.floor(stats.damage * dmgMul),
         duration: Math.max(stats.duration, 300),
         age: 0,
@@ -195,8 +200,10 @@ export class WeaponSystem {
     }
   }
 
-  private fireProjectile(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number, enemyPool: EnemyPool): void {
-    for (let i = 0; i < stats.amount; i++) {
+  private fireProjectile(player: Player, def: WeaponDef, stats: ReturnType<typeof getWeaponStats>, dmgMul: number, enemyPool: EnemyPool, focusedLevel: number = 0): void {
+    const totalAmount = stats.amount + focusedLevel;
+    const speedMul = 1 + focusedLevel * 0.15;
+    for (let i = 0; i < totalAmount; i++) {
       let angle: number;
 
       if (def.type === WeaponType.MagicMissile) {
@@ -210,11 +217,11 @@ export class WeaponSystem {
       } else if (def.type === WeaponType.IceShard) {
         // Spread pattern
         const baseAngle = Math.atan2(player.facingY, player.facingX);
-        angle = baseAngle + (i - (stats.amount - 1) / 2) * 0.3;
+        angle = baseAngle + (i - (totalAmount - 1) / 2) * 0.3;
       } else if (def.type === WeaponType.Scythe) {
-        angle = (i / stats.amount) * Math.PI * 2;
+        angle = (i / totalAmount) * Math.PI * 2;
       } else {
-        angle = Math.atan2(player.facingY, player.facingX) + (i - (stats.amount - 1) / 2) * 0.2;
+        angle = Math.atan2(player.facingY, player.facingX) + (i - (totalAmount - 1) / 2) * 0.2;
       }
 
       const texMap: Partial<Record<WeaponType, string>> = {
@@ -232,8 +239,8 @@ export class WeaponSystem {
         sprite,
         x: player.state.x,
         y: player.state.y,
-        vx: Math.cos(angle) * stats.speed,
-        vy: Math.sin(angle) * stats.speed,
+        vx: Math.cos(angle) * stats.speed * speedMul,
+        vy: Math.sin(angle) * stats.speed * speedMul,
         damage: Math.floor(stats.damage * dmgMul),
         pierce: stats.pierce,
         radius: stats.area,
@@ -379,12 +386,15 @@ export class WeaponSystem {
         const enemies = enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
         for (const enemy of enemies) {
           this.hitEnemy(enemy, a.damage, a.weaponType, dmgNums);
+          if (a.weaponType === WeaponType.Garlic) {
+            enemy.applySlow(0.6, 400);
+          }
         }
       }
     }
   }
 
-  private updateForceFields(dt: number, player: Player, enemyPool: EnemyPool, dmgNums: DamageNumberSystem, dmgMul: number): void {
+  private updateForceFields(dt: number, player: Player, enemyPool: EnemyPool, dmgNums: DamageNumberSystem, dmgMul: number, auraMul: number = 1): void {
     this.forceFieldGfx.clear();
     this.forceFieldTickTimer += dt * 1000;
     const doTick = this.forceFieldTickTimer >= 200;
@@ -394,14 +404,15 @@ export class WeaponSystem {
       const def = WEAPON_DEFS[weapon.type];
       if (def.category !== 'forcefield') continue;
       const stats = getWeaponStats(def, weapon.level);
+      const area = stats.area * auraMul;
 
       if (def.type === WeaponType.HolyShield) {
         // Rotating orbs
         const time = this.scene.time.now * 0.002 * stats.speed;
         for (let i = 0; i < stats.amount; i++) {
           const angle = time + (i / stats.amount) * Math.PI * 2;
-          const ox = player.state.x + Math.cos(angle) * stats.area;
-          const oy = player.state.y + Math.sin(angle) * stats.area;
+          const ox = player.state.x + Math.cos(angle) * area;
+          const oy = player.state.y + Math.sin(angle) * area;
           this.forceFieldGfx.fillStyle(def.color, 0.7);
           this.forceFieldGfx.fillCircle(ox, oy, 8);
 
@@ -415,14 +426,32 @@ export class WeaponSystem {
       } else {
         // Aura-type force fields
         this.forceFieldGfx.fillStyle(def.color, 0.1);
-        this.forceFieldGfx.fillCircle(player.state.x, player.state.y, stats.area);
+        this.forceFieldGfx.fillCircle(player.state.x, player.state.y, area);
         this.forceFieldGfx.lineStyle(1, def.color, 0.3);
-        this.forceFieldGfx.strokeCircle(player.state.x, player.state.y, stats.area);
+        this.forceFieldGfx.strokeCircle(player.state.x, player.state.y, area);
+
+        const enemies = enemyPool.getEnemiesInRadius(player.state.x, player.state.y, area);
+
+        // Vortex: pull enemies toward player every frame
+        if (def.type === WeaponType.Vortex) {
+          for (const enemy of enemies) {
+            const dir = directionTo(enemy.state, { x: player.state.x, y: player.state.y });
+            const pullSpeed = 120;
+            enemy.state.x += dir.x * pullSpeed * dt;
+            enemy.state.y += dir.y * pullSpeed * dt;
+          }
+        }
 
         if (doTick) {
-          const enemies = enemyPool.getEnemiesInRadius(player.state.x, player.state.y, stats.area);
           for (const enemy of enemies) {
-            this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), def.type, dmgNums);
+            if (def.type === WeaponType.VoidField) {
+              enemy.applySlow(0.4, 300);
+            } else {
+              this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), def.type, dmgNums);
+              if (def.type === WeaponType.FrostAura) {
+                enemy.applySlow(0.5, 500);
+              }
+            }
           }
         }
       }

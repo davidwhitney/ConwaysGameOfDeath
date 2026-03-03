@@ -66,6 +66,18 @@ export class Player {
     return this.getEffectValue(EffectType.Armor);
   }
 
+  getAuraMultiplier(): number {
+    return 1 + this.getEffectValue(EffectType.StrongAuras);
+  }
+
+  getFuryReduction(): number {
+    return this.getEffectValue(EffectType.Fury);
+  }
+
+  getFocusedLevel(): number {
+    return this.getEffectValue(EffectType.Focused);
+  }
+
   move(dx: number, dy: number, dt: number): void {
     if (!this.state.alive) return;
 

@@ -37,6 +37,9 @@ export class Enemy {
   private teleportTimer: number = 0;
   // For cross behavior
   private crossDir: Vec2 = { x: 1, y: 0 };
+  // Slow effect
+  private slowFactor: number = 1;
+  private slowUntil: number = 0;
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -99,6 +102,11 @@ export class Enemy {
     this.sprite.setPosition(-1000, -1000);
   }
 
+  applySlow(factor: number, durationMs: number): void {
+    this.slowFactor = Math.min(this.slowFactor, factor);
+    this.slowUntil = Math.max(this.slowUntil, this.scene.time.now + durationMs);
+  }
+
   update(dt: number, playerX: number, playerY: number, despawnRange?: number): boolean {
     if (!this.state.alive) return false;
 
@@ -109,21 +117,26 @@ export class Enemy {
       return false;
     }
 
+    // Apply slow effect
+    const now = this.scene.time.now;
+    if (now >= this.slowUntil) this.slowFactor = 1;
+    const effectiveDt = dt * this.slowFactor;
+
     switch (this.def.behavior) {
       case 'chase':
-        this.behaviorChase(dt, playerX, playerY);
+        this.behaviorChase(effectiveDt, playerX, playerY);
         break;
       case 'cross':
-        this.behaviorCross(dt);
+        this.behaviorCross(effectiveDt);
         break;
       case 'orbit':
-        this.behaviorOrbit(dt, playerX, playerY);
+        this.behaviorOrbit(effectiveDt, playerX, playerY);
         break;
       case 'teleport':
-        this.behaviorTeleport(dt, playerX, playerY);
+        this.behaviorTeleport(effectiveDt, playerX, playerY);
         break;
       case 'swarm':
-        this.behaviorSwarm(dt, playerX, playerY);
+        this.behaviorSwarm(effectiveDt, playerX, playerY);
         break;
     }
 

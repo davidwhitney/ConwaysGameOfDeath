@@ -13,7 +13,7 @@ import {
 import {
   BOSS_HP_MULTIPLIER, BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT,
   LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
-  BOSS_SPAWN_BASE_CHANCE, BOSS_SPAWN_LUCK_DIVISOR, BOSS_SPAWN_MIN_PROGRESS,
+  BOSS_SPAWN_BASE_CHANCE, BOSS_SPAWN_MIN_PROGRESS,
   BOSS_SPAWN_DISTANCE,
   SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
 } from '../shared/constants';
@@ -218,10 +218,13 @@ export class GameScene extends Phaser.Scene {
         this.damageNumbers.show(this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
       }
 
-      // Chance to spawn a boss monster (not before 25% game progress)
-      if (this.gameTimeMs >= GAME_DURATION_MS * BOSS_SPAWN_MIN_PROGRESS
-        && Math.random() < BOSS_SPAWN_BASE_CHANCE) {
-        this.spawnBoss(luckVal);
+      // Chance to spawn a boss monster (not before 25% game progress, scales with time)
+      const progress = this.gameTimeMs / GAME_DURATION_MS;
+      if (progress >= BOSS_SPAWN_MIN_PROGRESS) {
+        const bossChance = BOSS_SPAWN_BASE_CHANCE + (progress - BOSS_SPAWN_MIN_PROGRESS) * 0.6;
+        if (Math.random() < bossChance) {
+          this.spawnBoss(luckVal);
+        }
       }
     }
   }
@@ -398,8 +401,8 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Spawn a boss monster (random type, 4x size, 10x HP) */
-  private spawnBoss(): void {
+  /** Spawn a boss monster (random type, 4x size, 10x HP — luck reduces HP) */
+  private spawnBoss(luckValue: number): void {
     const progress = this.gameTimeMs / GAME_DURATION_MS;
     const availableTypes = ENEMY_DEFS.filter(d => progress >= d.unlockAt);
     if (availableTypes.length === 0) return;
@@ -410,7 +413,12 @@ export class GameScene extends Phaser.Scene {
     const bx = this.player.state.x + Math.cos(angle) * dist;
     const by = this.player.state.y + Math.sin(angle) * dist;
 
-    this.enemyPool.spawn(type, bx, by, this.gameTimeMs, true);
+    const boss = this.enemyPool.spawn(type, bx, by, this.gameTimeMs, true);
+    if (boss && luckValue > 0) {
+      const hpReduction = 1 - luckValue * 0.5;
+      boss.state.hp = Math.max(1, Math.floor(boss.state.hp * hpReduction));
+      boss.state.maxHp = boss.state.hp;
+    }
     this.cameraManager.shake(200, 0.008);
   }
 

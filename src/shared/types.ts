@@ -170,7 +170,9 @@ export enum WeaponType {
   PoisonCloud,
   ThunderRing,
   VoidField,
-  // Projectile (15-19)
+  VoidBurn,
+  Vortex,
+  // Projectile (17-21)
   MagicMissile,
   Fireball,
   IceShard,
@@ -189,6 +191,9 @@ export enum EffectType {
   Armor,
   Luck,
   Revival,
+  StrongAuras,
+  Fury,
+  Focused,
 }
 
 // ─── Map Types ───
