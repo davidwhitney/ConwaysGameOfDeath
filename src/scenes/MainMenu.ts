@@ -4,12 +4,25 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 
+interface BloodDrip {
+  x: number;
+  y: number;
+  startY: number;
+  speed: number;
+  length: number;
+  alpha: number;
+  delay: number;
+  maxDist: number;
+}
+
 export class MainMenuScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
   private readonly defaultFills = [0x333366, 0x333344];
   private readonly hoverFills = [0x444488, 0x444466];
   private seedInput!: HTMLInputElement;
+  private drips: BloodDrip[] = [];
+  private dripGfx!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super({ key: 'MainMenu' });
@@ -19,9 +32,13 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = applyUIZoom(this);
 
     // Title
-    this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH",
+    const title = this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH",
       monoStyle('48px', '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
     ).setOrigin(0.5);
+
+    // Blood drip effect
+    this.dripGfx = this.add.graphics().setDepth(title.depth - 1);
+    this.initBloodDrips(title);
 
     this.add.text(width / 2, height * 0.40, 'Survive the Automaton',
       monoStyle('20px', '#aaaacc'),
@@ -138,11 +155,73 @@ export class MainMenuScene extends Phaser.Scene {
     this.seedInput.style.top = `${y}px`;
   }
 
-  update(_time: number): void {
+  update(_time: number, delta: number): void {
     this.gpNav.update(_time);
     const sel = this.gpNav.getSelected();
     for (let i = 0; i < this.buttons.length; i++) {
       this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
+    }
+    this.updateBloodDrips(delta / 1000);
+  }
+
+  private initBloodDrips(title: Phaser.GameObjects.Text): void {
+    this.drips = [];
+    const bounds = title.getBounds();
+    // Bottom of line 1 ("CONWAY'S GAME") sits roughly at the midpoint
+    const line1Bottom = bounds.top + bounds.height * 0.48;
+    const line2Bottom = bounds.bottom;
+    const dripCount = 18;
+
+    for (let i = 0; i < dripCount; i++) {
+      const fromLine1 = Math.random() < 0.4;
+      const startY = fromLine1 ? line1Bottom : line2Bottom;
+      const x = bounds.left + Math.random() * bounds.width;
+      this.drips.push({
+        x,
+        y: startY,
+        startY,
+        speed: 10 + Math.random() * 20,
+        length: 4 + Math.random() * 14,
+        alpha: 0.5 + Math.random() * 0.5,
+        delay: Math.random() * 5,
+        maxDist: 25 + Math.random() * 55,
+      });
+    }
+  }
+
+  private updateBloodDrips(dt: number): void {
+    this.dripGfx.clear();
+
+    for (const drip of this.drips) {
+      if (drip.delay > 0) {
+        drip.delay -= dt;
+        continue;
+      }
+
+      drip.y += drip.speed * dt;
+      const dist = drip.y - drip.startY;
+      const progress = dist / drip.maxDist;
+      const fadeAlpha = drip.alpha * Math.max(0, 1 - progress);
+
+      // Drip trail from text bottom
+      const trailTop = Math.max(drip.startY, drip.y - drip.length);
+      const w = 2;
+      this.dripGfx.fillStyle(0xcc0000, fadeAlpha * 0.7);
+      this.dripGfx.fillRect(drip.x - w / 2, trailTop, w, drip.y - trailTop);
+
+      // Rounded drop at tip
+      this.dripGfx.fillStyle(0xaa0000, fadeAlpha);
+      this.dripGfx.fillCircle(drip.x, drip.y, 1.5);
+
+      // Reset when fully fallen
+      if (dist >= drip.maxDist) {
+        drip.y = drip.startY;
+        drip.delay = 2 + Math.random() * 6;
+        drip.speed = 10 + Math.random() * 20;
+        drip.length = 4 + Math.random() * 14;
+        drip.alpha = 0.5 + Math.random() * 0.5;
+        drip.maxDist = 25 + Math.random() * 55;
+      }
     }
   }
 
