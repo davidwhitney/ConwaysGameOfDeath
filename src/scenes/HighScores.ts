@@ -4,6 +4,7 @@ import { loadScores, formatTime } from '../ui/highScores';
 import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
+import { applyCRT } from '../ui/crtEffect';
 
 export class HighScoresScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -15,6 +16,7 @@ export class HighScoresScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = applyUIZoom(this);
+    applyCRT(this);
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);

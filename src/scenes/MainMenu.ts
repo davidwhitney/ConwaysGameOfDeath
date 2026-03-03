@@ -4,6 +4,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
+import { applyCRT } from '../ui/crtEffect';
 
 interface BloodDrip {
   x: number;
@@ -19,8 +20,8 @@ interface BloodDrip {
 export class MainMenuScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333344];
-  private readonly hoverFills = [0x444488, 0x444466];
+  private readonly defaultFills = [0x333366, 0x333344, 0x333344];
+  private readonly hoverFills = [0x444488, 0x444466, 0x444466];
   private seedInput!: HTMLInputElement;
   private drips: BloodDrip[] = [];
   private dripGfx!: Phaser.GameObjects.Graphics;
@@ -32,6 +33,8 @@ export class MainMenuScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = applyUIZoom(this);
+
+    applyCRT(this);
 
     // Game of Life background
     this.gol = new BackgroundGameOfLife(this, width, height);
@@ -68,15 +71,24 @@ export class MainMenuScene extends Phaser.Scene {
       onClick: () => this.scene.start('HighScores'),
     });
 
-    this.buttons = [play.bg, scores.bg];
+    // Settings button
+    const settings = createButton(this, {
+      x: width / 2, y: height * 0.80, width: 200, height: 45,
+      label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
+      fillColor: 0x333344, hoverColor: 0x444466,
+      onClick: () => this.scene.start('Settings'),
+    });
+
+    this.buttons = [play.bg, scores.bg, settings.bg];
 
     // Restore unhighlight behavior (buttonFactory sets pointerout to fillColor, but
     // gamepad nav also changes fills, so we override pointerout here)
     play.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
     scores.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
+    settings.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
 
     // Controls hint
-    this.add.text(width / 2, height * 0.88, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
+    this.add.text(width / 2, height * 0.92, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
       monoStyle('12px', '#666688'),
     ).setOrigin(0.5);
 
@@ -92,8 +104,9 @@ export class MainMenuScene extends Phaser.Scene {
     const actions = [
       () => this.startGame(),
       () => this.scene.start('HighScores'),
+      () => this.scene.start('Settings'),
     ];
-    this.gpNav = new GamepadNav(this, 2, (i) => actions[i]());
+    this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
 
     // Ensure seed input is removed on any scene transition
     this.events.once('shutdown', () => this.removeSeedInput());
@@ -153,9 +166,9 @@ export class MainMenuScene extends Phaser.Scene {
     const canvas = this.game.canvas;
     const rect = canvas.getBoundingClientRect();
     const cam = this.cameras.main;
-    // Place below play button at ~64% height
+    // Place above play button at ~52% height
     const x = rect.left + rect.width / 2 - 80;
-    const y = rect.top + rect.height * 0.64;
+    const y = rect.top + rect.height * 0.52;
     this.seedInput.style.left = `${x}px`;
     this.seedInput.style.top = `${y}px`;
   }

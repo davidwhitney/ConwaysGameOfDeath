@@ -4,6 +4,7 @@ import { addScore, formatTime } from '../ui/highScores';
 import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
+import { applyCRT } from '../ui/crtEffect';
 
 interface GameOverData {
   victory: boolean;
@@ -24,6 +25,7 @@ export class GameOverScene extends Phaser.Scene {
 
   create(data: GameOverData): void {
     const { width, height } = applyUIZoom(this);
+    applyCRT(this);
 
     // Save score
     const rank = addScore({

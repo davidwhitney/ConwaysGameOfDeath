@@ -7,6 +7,7 @@ import { LevelUpScene } from './scenes/LevelUp';
 import { PauseScene } from './scenes/Pause';
 import { GameOverScene } from './scenes/GameOver';
 import { HighScoresScene } from './scenes/HighScores';
+import { SettingsScene } from './scenes/Settings';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -25,7 +26,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, MainMenuScene, GameScene, HUDScene, LevelUpScene, PauseScene, GameOverScene, HighScoresScene],
+  scene: [BootScene, MainMenuScene, SettingsScene, GameScene, HUDScene, LevelUpScene, PauseScene, GameOverScene, HighScoresScene],
   render: {
     pixelArt: true,
     autoMobilePipeline: true,

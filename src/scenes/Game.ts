@@ -28,6 +28,7 @@ import { WeaponSystem } from '../systems/WeaponSystem';
 import { XPGemPool } from '../entities/XPGem';
 import { DamageNumberSystem } from '../ui/DamageNumber';
 import type { HUDScene } from './HUD';
+import { applyCRT } from '../ui/crtEffect';
 
 interface GameInitData {
   seed: number;
@@ -77,6 +78,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyCRT(this);
     this.rng = new SeededRandom(this.seed);
     this.map = generateMap(this.seed);
     this.mapRenderer = new MapRenderer(this, this.map);
