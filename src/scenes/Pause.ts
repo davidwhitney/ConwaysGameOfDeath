@@ -7,14 +7,15 @@ import { monoStyle } from '../ui/textStyles';
 export class PauseScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x443333];
-  private readonly hoverFills = [0x444488, 0x664444];
+  private readonly defaultFills = [0x333366, 0x333344, 0x443333];
+  private readonly hoverFills = [0x444488, 0x444466, 0x664444];
 
   constructor() {
     super({ key: 'Pause' });
   }
 
   create(): void {
+    this.scene.bringToTop();
     const { width, height } = applyUIZoom(this);
 
     // Overlay
@@ -32,24 +33,33 @@ export class PauseScene extends Phaser.Scene {
       onClick: () => this.resume(),
     });
 
+    // Settings button
+    const settings = createButton(this, {
+      x: width / 2, y: height * 0.62, width: 200, height: 45,
+      label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
+      fillColor: 0x333344, hoverColor: 0x444466,
+      onClick: () => this.openSettings(),
+    });
+
     // Quit button
     const quit = createButton(this, {
-      x: width / 2, y: height * 0.62, width: 200, height: 45,
+      x: width / 2, y: height * 0.74, width: 200, height: 45,
       label: 'QUIT', fontSize: '20px', textColor: '#ff8888',
       fillColor: 0x443333, hoverColor: 0x664444,
       onClick: () => this.quit(),
     });
 
-    this.buttons = [resume.bg, quit.bg];
+    this.buttons = [resume.bg, settings.bg, quit.bg];
     resume.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
-    quit.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
+    settings.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
+    quit.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
 
     // ESC to resume
     this.input.keyboard!.on('keydown-ESC', () => this.resume());
 
     // Gamepad navigation — B/Start → resume
-    const actions = [() => this.resume(), () => this.quit()];
-    this.gpNav = new GamepadNav(this, 2, (i) => actions[i](), () => this.resume());
+    const actions = [() => this.resume(), () => this.openSettings(), () => this.quit()];
+    this.gpNav = new GamepadNav(this, 3, (i) => actions[i](), () => this.resume());
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {
@@ -70,8 +80,17 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private resume(): void {
-    this.scene.resume('Game');
-    this.scene.stop();
+    if (this.scene.isPaused('Game')) {
+      this.scene.resume('Game');
+      this.scene.stop();
+    } else {
+      // No paused game to resume — bail to main menu
+      this.quit();
+    }
+  }
+
+  private openSettings(): void {
+    this.scene.start('Settings', { returnTo: 'Pause' });
   }
 
   private quit(): void {

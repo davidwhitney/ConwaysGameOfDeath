@@ -28,7 +28,8 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   scene: [BootScene, MainMenuScene, SettingsScene, GameScene, HUDScene, LevelUpScene, PauseScene, GameOverScene, HighScoresScene],
   render: {
-    pixelArt: true,
+    pixelArt: false,
+    antialias: true,
     autoMobilePipeline: true,
   },
   input: {

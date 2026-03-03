@@ -18,12 +18,20 @@ export class SettingsScene extends Phaser.Scene {
   private crtBtnText!: Phaser.GameObjects.Text;
   private zoomValueText!: Phaser.GameObjects.Text;
   private settings!: Settings;
+  private returnTo: string = 'MainMenu';
 
   constructor() {
     super({ key: 'Settings' });
   }
 
+  init(data?: { returnTo?: string }): void {
+    this.returnTo = data?.returnTo ?? 'MainMenu';
+  }
+
   create(): void {
+    // Ensure we render on top of all other scenes (e.g. paused Game)
+    this.scene.bringToTop();
+
     const { width, height } = applyUIZoom(this);
     applyCRT(this);
 
@@ -122,7 +130,7 @@ export class SettingsScene extends Phaser.Scene {
     saveSettings(this.settings);
     this.crtBtnText.setText(this.settings.crtEnabled ? 'ON' : 'OFF');
     // Restart scene to apply/remove CRT effects
-    this.scene.restart();
+    this.scene.restart({ returnTo: this.returnTo });
   }
 
   private adjustZoom(delta: number): void {
@@ -137,7 +145,12 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private goBack(): void {
-    this.scene.start('MainMenu');
+    // Only return to Pause if there's actually a paused game behind it
+    if (this.returnTo === 'Pause' && !this.scene.isPaused('Game')) {
+      this.scene.start('MainMenu');
+    } else {
+      this.scene.start(this.returnTo);
+    }
   }
 
   private unhighlightBtn(index: number): void {

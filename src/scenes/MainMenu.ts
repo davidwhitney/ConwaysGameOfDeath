@@ -76,7 +76,7 @@ export class MainMenuScene extends Phaser.Scene {
       x: width / 2, y: height * 0.80, width: 200, height: 45,
       label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
       fillColor: 0x333344, hoverColor: 0x444466,
-      onClick: () => this.scene.start('Settings'),
+      onClick: () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
     });
 
     this.buttons = [play.bg, scores.bg, settings.bg];
@@ -104,7 +104,7 @@ export class MainMenuScene extends Phaser.Scene {
     const actions = [
       () => this.startGame(),
       () => this.scene.start('HighScores'),
-      () => this.scene.start('Settings'),
+      () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
     ];
     this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
 
