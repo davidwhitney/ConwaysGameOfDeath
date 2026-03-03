@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 import { loadSettings } from './preferences';
 
-let scanlineOverlay: HTMLDivElement | null = null;
-
 function isWebGL(scene: Phaser.Scene): boolean {
   return scene.game.renderer.type === Phaser.WEBGL;
 }
@@ -14,68 +12,20 @@ function addPostFX(cam: Phaser.Cameras.Scene2D.Camera): void {
 }
 
 /**
- * Apply CRT post-processing to all scene cameras:
- * barrel distortion + bloom + vignette (Phaser FX, WebGL only)
- * and CSS scanline overlay (always).
+ * Apply CRT post-processing to the Game scene camera:
+ * barrel distortion + bloom + vignette (WebGL only).
  *
- * Checks the crtEnabled setting — if disabled, removes effects
- * from every scene. If enabled, clears and reapplies to every
- * scene so toggling mid-game updates all cameras.
+ * Only affects the playfield — HUD, menus, and overlays stay clean.
  */
 export function applyCRT(scene: Phaser.Scene): void {
   const { crtEnabled } = loadSettings();
 
   if (isWebGL(scene)) {
-    // Always clear first to avoid duplicates
-    for (const s of scene.game.scene.getScenes(false)) {
-      s.cameras.main?.postFX.clear();
+    const gameScene = scene.game.scene.getScene('Game');
+    const gameCam = gameScene?.cameras.main;
+    if (gameCam) {
+      gameCam.postFX.clear();
+      if (crtEnabled) addPostFX(gameCam);
     }
-
-    if (crtEnabled) {
-      for (const s of scene.game.scene.getScenes(false)) {
-        const cam = s.cameras.main;
-        if (cam) addPostFX(cam);
-      }
-    }
-  }
-
-  if (crtEnabled) {
-    if (!scanlineOverlay) injectScanlines(scene);
-  } else {
-    removeScanlines();
-  }
-}
-
-function injectScanlines(scene: Phaser.Scene): void {
-  const container = scene.game.canvas.parentElement;
-  if (!container) return;
-
-  // Ensure container is a positioning context
-  container.style.position = 'relative';
-
-  // Scale scanline thickness with DPI so they don't look overly dense on mobile
-  const dpr = window.devicePixelRatio || 1;
-  const gap = Math.round(2 * dpr);
-  const line = Math.round(4 * dpr);
-  const alpha = dpr > 1 ? 0.06 : 0.12;
-
-  const overlay = document.createElement('div');
-  overlay.style.cssText = [
-    'position:absolute',
-    'inset:0',
-    'pointer-events:none',
-    'z-index:100',
-    `background:repeating-linear-gradient(to bottom,transparent 0px,transparent ${gap}px,rgba(0,0,0,${alpha}) ${gap}px,rgba(0,0,0,${alpha}) ${line}px)`,
-    'mix-blend-mode:multiply',
-  ].join(';');
-
-  container.appendChild(overlay);
-  scanlineOverlay = overlay;
-}
-
-function removeScanlines(): void {
-  if (scanlineOverlay) {
-    scanlineOverlay.remove();
-    scanlineOverlay = null;
   }
 }
