@@ -16,7 +16,8 @@ export class GamepadNav {
   private prevA: boolean;
   private prevB: boolean;
   private prevStart: boolean;
-  private firstUpdate = true;
+  private waitForRelease = true;
+  private guardUntil = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -51,13 +52,25 @@ export class GamepadNav {
     const pad = this.scene.input.gamepad?.pad1;
     if (!pad) return;
 
-    // Skip first update to snapshot actual button state (pad may not be
-    // available in the constructor when a scene is first created)
-    if (this.firstUpdate) {
-      this.firstUpdate = false;
-      this.prevA = pad.buttons[0]?.pressed ?? false;
-      this.prevB = pad.buttons[1]?.pressed ?? false;
-      this.prevStart = pad.buttons[9]?.pressed ?? false;
+    // Wait until all action buttons are released AND a short guard period has
+    // elapsed before accepting input. The time guard prevents a single-frame
+    // button-state blip (common on initial gamepad connection) from fooling
+    // the release check.
+    if (this.waitForRelease) {
+      if (this.guardUntil === 0) this.guardUntil = time + 100;
+      const aDown = pad.buttons[0]?.pressed ?? false;
+      const bDown = pad.buttons[1]?.pressed ?? false;
+      const startDown = pad.buttons[9]?.pressed ?? false;
+      if (aDown || bDown || startDown || time < this.guardUntil) {
+        this.prevA = aDown;
+        this.prevB = bDown;
+        this.prevStart = startDown;
+        return;
+      }
+      this.waitForRelease = false;
+      this.prevA = aDown;
+      this.prevB = bDown;
+      this.prevStart = startDown;
       return;
     }
 

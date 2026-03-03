@@ -37,7 +37,7 @@ export class LevelUpSystem implements GameSystem {
     this.scene.events.on('levelup-skip', () => this.handleLevelUpSkip());
   }
 
-  update(_ctx: UpdateContext): void {
+  public update(_ctx: UpdateContext): void {
     const hadPending = this.pendingLevelUps > 0;
 
     while (this.player.state.xp >= this.player.state.xpToNext) {
@@ -56,8 +56,8 @@ export class LevelUpSystem implements GameSystem {
       }
     }
 
-    if (!hadPending && this.pendingLevelUps > 0) {
-      this.scene.events.emit('pending-levelup');
+    if (!hadPending && this.pendingLevelUps > 0 && !this.scene.scene.isActive('LevelUp')) {
+      this.processLevelUp();
     }
   }
 

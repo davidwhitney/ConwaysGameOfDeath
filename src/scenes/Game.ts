@@ -75,12 +75,6 @@ export class GameScene extends Phaser.Scene {
       this.subsystems.filter(s => s instanceof GameWorldSystem)[0].cameraShake(duration, intensity);
     });
 
-    this.events.on('pending-levelup', () => {
-      if (!this.scene.isActive('LevelUp')) {
-        this.subsystems.filter(s => s instanceof LevelUpSystem)[0].processLevelUp();
-      }
-    });
-
     this.events.on('blood-aura-heal', (heal: number) => {
       this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + heal);
     });
@@ -165,7 +159,6 @@ export class GameScene extends Phaser.Scene {
     this.damageNumbersUi?.destroy();
     this.events.off('show-damage');
     this.events.off('screen-shake');
-    this.events.off('pending-levelup');
     this.events.off('blood-aura-heal');
   }
 }
