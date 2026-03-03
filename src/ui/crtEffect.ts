@@ -7,38 +7,42 @@ function isWebGL(scene: Phaser.Scene): boolean {
   return scene.game.renderer.type === Phaser.WEBGL;
 }
 
+function addPostFX(cam: Phaser.Cameras.Scene2D.Camera): void {
+  cam.postFX.addBarrel(1.04);
+  cam.postFX.addBloom(0xffffff, 0.3, 0.3, 1.0, 1.0);
+  cam.postFX.addVignette(0.5, 0.5, 0.88, 0.25);
+}
+
 /**
- * Apply CRT post-processing to a scene's main camera:
+ * Apply CRT post-processing to all scene cameras:
  * barrel distortion + bloom + vignette (Phaser FX, WebGL only)
  * and CSS scanline overlay (always).
  *
- * Checks the crtEnabled setting — if disabled, removes any existing
- * scanline overlay and skips WebGL postFX.
+ * Checks the crtEnabled setting — if disabled, removes effects
+ * from every scene. If enabled, clears and reapplies to every
+ * scene so toggling mid-game updates all cameras.
  */
 export function applyCRT(scene: Phaser.Scene): void {
   const { crtEnabled } = loadSettings();
 
-  if (!crtEnabled) {
-    removeScanlines();
-    return;
-  }
-
   if (isWebGL(scene)) {
-    const cam = scene.cameras.main;
+    // Always clear first to avoid duplicates
+    for (const s of scene.game.scene.getScenes(false)) {
+      s.cameras.main?.postFX.clear();
+    }
 
-    // Barrel distortion — subtle CRT bulge
-    cam.postFX.addBarrel(1.04);
-
-    // Phosphor glow — soft bloom like a CRT tube
-    cam.postFX.addBloom(0xffffff, 0.3, 0.3, 1.0, 1.0);
-
-    // Dark vignette around edges
-    cam.postFX.addVignette(0.5, 0.5, 0.88, 0.25);
+    if (crtEnabled) {
+      for (const s of scene.game.scene.getScenes(false)) {
+        const cam = s.cameras.main;
+        if (cam) addPostFX(cam);
+      }
+    }
   }
 
-  // CSS scanlines work regardless of renderer
-  if (!scanlineOverlay) {
-    injectScanlines(scene);
+  if (crtEnabled) {
+    if (!scanlineOverlay) injectScanlines(scene);
+  } else {
+    removeScanlines();
   }
 }
 
