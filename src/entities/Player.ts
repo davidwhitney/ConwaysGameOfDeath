@@ -11,11 +11,13 @@ import { EFFECT_DEFS } from '../shared';
 export class Player {
   sprite: Phaser.GameObjects.Sprite;
   state: PlayerState;
+  private scene: Phaser.Scene;
   private map: TileMap;
   facingX: number = 1;
   facingY: number = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, map: TileMap, id: string = 'local') {
+    this.scene = scene;
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
     this.map = map;
@@ -112,6 +114,12 @@ export class Player {
     const reduced = Math.max(1, damage - this.getArmor());
     this.state.hp -= reduced;
     this.state.invincibleUntil = now + PLAYER_INVINCIBLE_MS;
+
+    // Flash the player sprite to show damage / i-frames
+    this.sprite.setTintFill(0xffffff);
+    this.scene.time.delayedCall(80, () => {
+      if (this.state.alive) this.sprite.clearTint();
+    });
 
     if (this.state.hp <= 0) {
       // Check revival
