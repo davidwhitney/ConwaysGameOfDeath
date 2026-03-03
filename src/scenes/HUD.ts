@@ -19,6 +19,7 @@ export class HUDScene extends Phaser.Scene {
   private inventoryGfx!: Phaser.GameObjects.Graphics;
   private inventoryTexts: Phaser.GameObjects.Text[] = [];
   private seed: number = 0;
+  private invBounds = { x: 0, y: 0, w: 0, h: 0 };
 
   constructor() {
     super({ key: 'HUD' });
@@ -92,6 +93,18 @@ export class HUDScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 1,
     }).setOrigin(0.5, 0);
+
+    // Tap inventory area on touch devices to pause
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.wasTouch) return;
+      const { x, y, w, h } = this.invBounds;
+      if (w > 0 && pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h) {
+        if (!this.scene.isPaused('Game')) {
+          this.scene.pause('Game');
+          this.scene.launch('Pause');
+        }
+      }
+    });
   }
 
   updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number): void {
@@ -157,6 +170,15 @@ export class HUDScene extends Phaser.Scene {
     const startX = (screenW - barWidth) / 2;
     const rowBottom = screenH - xpBarH - SLOT_SIZE - 6;
     const rowTop = rowBottom - SLOT_SIZE - 14;
+
+    // Touch hit-area for the inventory (with padding for easy tapping)
+    const pad = 10;
+    this.invBounds = {
+      x: startX - pad,
+      y: rowTop - 12 - pad,
+      w: barWidth + pad * 2,
+      h: (rowBottom + SLOT_SIZE) - (rowTop - 12) + pad * 2,
+    };
 
     // Draw all weapon slots (top row)
     for (let i = 0; i < MAX_WEAPONS; i++) {
