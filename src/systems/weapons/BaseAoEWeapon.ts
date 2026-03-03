@@ -55,7 +55,7 @@ export class BaseAoEWeapon extends BaseWeapon {
     }
   }
 
-  protected updateActive(dt: number, _player: Player): void {
+  protected updateActive(dt: number, player: Player): void {
     for (let i = this.aoes.length - 1; i >= 0; i--) {
       const a = this.aoes[i];
       a.age += dt * 1000;
@@ -79,7 +79,7 @@ export class BaseAoEWeapon extends BaseWeapon {
         a.tickTimer -= 200;
         const enemies = this.ctx.enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
         for (const enemy of enemies) {
-          this.ctx.hitEnemy(enemy, a.damage, this.def.type);
+          this.hitEnemy(enemy, a.damage, this.def.type, player);
           this.onTickHit(enemy);
         }
       }

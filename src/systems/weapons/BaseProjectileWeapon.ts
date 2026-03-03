@@ -104,7 +104,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
         if (circlesOverlap(p.x, p.y, p.radius, enemy.state.x, enemy.state.y, enemy.effectiveSize)) {
           p.hitEnemies.add(enemy.state.id);
           p.pierce--;
-          this.ctx.hitEnemy(enemy, p.damage, this.def.type);
+          this.hitEnemy(enemy, p.damage, this.def.type, player);
         }
       }
     }

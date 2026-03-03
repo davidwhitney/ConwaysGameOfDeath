@@ -44,7 +44,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
     }
   }
 
-  protected updateActive(dt: number, _player: Player): void {
+  protected updateActive(dt: number, player: Player): void {
     for (let i = this.melees.length - 1; i >= 0; i--) {
       const m = this.melees[i];
       m.age += dt * 1000;
@@ -66,7 +66,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
       for (const enemy of enemies) {
         if (m.hitEnemies.has(enemy.state.id)) continue;
         m.hitEnemies.add(enemy.state.id);
-        this.ctx.hitEnemy(enemy, m.damage, this.def.type);
+        this.hitEnemy(enemy, m.damage, this.def.type, player);
       }
     }
   }

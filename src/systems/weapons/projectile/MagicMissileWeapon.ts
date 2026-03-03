@@ -7,7 +7,7 @@ export class MagicMissileWeapon extends BaseProjectileWeapon {
   }
 
   protected computeAngle(_index: number, _total: number, player: Player): number {
-    const nearest = this.ctx.findNearestEnemy(player.state.x, player.state.y);
+    const nearest = this.findNearestEnemy(player.state.x, player.state.y);
     if (nearest) {
       return Math.atan2(nearest.state.y - player.state.y, nearest.state.x - player.state.x);
     }

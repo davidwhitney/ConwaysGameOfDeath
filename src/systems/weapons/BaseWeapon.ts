@@ -1,5 +1,7 @@
-import { type WeaponDef, type WeaponInstance, getWeaponStats } from '../../shared';
+import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, getWeaponStats } from '../../shared';
+import { CRIT_DAMAGE_MULTIPLIER } from '../../shared/constants';
 import type { Player } from '../../entities/Player';
+import type { Enemy } from '../../entities/Enemy';
 import type { WeaponContext } from './WeaponContext';
 
 export abstract class BaseWeapon {
@@ -18,6 +20,34 @@ export abstract class BaseWeapon {
   protected getCooldown(weapon: WeaponInstance, player: Player): number {
     const stats = this.getStats(weapon);
     return stats.cooldown * (1 - player.getCooldownReduction());
+  }
+
+  protected hitEnemy(enemy: Enemy, damage: number, weaponType: WeaponType, player: Player): void {
+    const critChance = player.getEffectValue(EffectType.Luck);
+    let finalDamage = damage;
+    let isCrit = false;
+    if (critChance > 0 && Math.random() < critChance) {
+      isCrit = true;
+      finalDamage = Math.floor(damage * (CRIT_DAMAGE_MULTIPLIER + critChance));
+    }
+    const killed = enemy.takeDamage(finalDamage);
+    this.ctx.damageNumbers.show(enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+    if (killed) {
+      this.ctx.scene.events.emit('enemy-killed', enemy, weaponType);
+    }
+  }
+
+  protected findNearestEnemy(px: number, py: number): Enemy | null {
+    const enemies = this.ctx.enemyPool.getActive();
+    let nearest: Enemy | null = null;
+    let nearDist = Infinity;
+    for (const e of enemies) {
+      const dx = e.state.x - px;
+      const dy = e.state.y - py;
+      const d = dx * dx + dy * dy;
+      if (d < nearDist) { nearDist = d; nearest = e; }
+    }
+    return nearest;
   }
 
   update(dt: number, player: Player, weapon: WeaponInstance): void {

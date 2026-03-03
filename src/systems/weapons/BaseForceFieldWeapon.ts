@@ -40,7 +40,7 @@ export class BaseForceFieldWeapon extends BaseWeapon {
     if (doTick) {
       for (const enemy of enemies) {
         if (this.dealsDamage()) {
-          this.ctx.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), this.def.type);
+          this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), this.def.type, player);
         }
         this.onTickHit(enemy, stats);
       }

@@ -20,7 +20,7 @@ export class HolyShieldWeapon extends BaseForceFieldWeapon {
       if (doTick) {
         const enemies = this.ctx.enemyPool.getEnemiesInRadius(ox, oy, 15);
         for (const enemy of enemies) {
-          this.ctx.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), this.def.type);
+          this.hitEnemy(enemy, Math.floor(stats.damage * dmgMul), this.def.type, player);
         }
       }
     }
