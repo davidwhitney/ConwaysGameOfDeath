@@ -1,11 +1,26 @@
 import Phaser from 'phaser';
-import { WeaponType } from '../shared';
+import { WEAPON_DEFS, WeaponType } from '../shared';
 import type { Player } from '../entities/Player';
 import type { EnemyPool } from './EnemyPool';
 import type { DamageNumberSystem } from '../ui/DamageNumber';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';
-import { createWeapon } from './weapons/WeaponRegistry';
+import { BoomerangWeapon } from './weapons/projectile/BoomerangWeapon';
+import { ScytheWeapon } from './weapons/projectile/ScytheWeapon';
+import { HolyShieldWeapon } from './weapons/forcefield/HolyShieldWeapon';
+import { VoidFieldWeapon } from './weapons/forcefield/VoidFieldWeapon';
+import { FrostAuraWeapon } from './weapons/forcefield/FrostAuraWeapon';
+import { VortexWeapon } from './weapons/forcefield/VortexWeapon';
+import { BaseMeleeWeapon } from './weapons/BaseMeleeWeapon';
+import { GarlicWeapon } from './weapons/aoe/GarlicWeapon';
+import { BaseAoEWeapon } from './weapons/BaseAoEWeapon';
+import { LightningWeapon } from './weapons/aoe/LightningWeapon';
+import { MagicMissileWeapon } from './weapons/projectile/MagicMissileWeapon';
+import { FireballWeapon } from './weapons/projectile/FireballWeapon';
+import { IceShardWeapon } from './weapons/projectile/IceShardWeapon';
+import { BaseForceFieldWeapon } from './weapons/BaseForceFieldWeapon';
+
+type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number]) => BaseWeapon;
 
 export class WeaponSystem {
   private scene: Phaser.Scene;
@@ -14,6 +29,38 @@ export class WeaponSystem {
   private forceFieldTickTimer = 0;
   private weaponMap = new Map<WeaponType, BaseWeapon>();
   private ctx: WeaponContext;
+    
+  private WEAPON_CLASS_MAP: Record<WeaponType, WeaponConstructor> = {
+    // Melee — all use default base
+    [WeaponType.Whip]: BaseMeleeWeapon,
+    [WeaponType.Sword]: BaseMeleeWeapon,
+    [WeaponType.Axe]: BaseMeleeWeapon,
+    [WeaponType.Knife]: BaseMeleeWeapon,
+    [WeaponType.Cross]: BaseMeleeWeapon,
+
+    // AoE
+    [WeaponType.Garlic]: GarlicWeapon,
+    [WeaponType.HolyWater]: BaseAoEWeapon,
+    [WeaponType.FireWand]: BaseAoEWeapon,
+    [WeaponType.Lightning]: LightningWeapon,
+    [WeaponType.Meteor]: BaseAoEWeapon,
+
+    // Projectile
+    [WeaponType.MagicMissile]: MagicMissileWeapon,
+    [WeaponType.Fireball]: FireballWeapon,
+    [WeaponType.IceShard]: IceShardWeapon,
+    [WeaponType.Boomerang]: BoomerangWeapon,
+    [WeaponType.Scythe]: ScytheWeapon,
+
+    // Force field
+    [WeaponType.HolyShield]: HolyShieldWeapon,
+    [WeaponType.FrostAura]: FrostAuraWeapon,
+    [WeaponType.PoisonCloud]: BaseForceFieldWeapon,
+    [WeaponType.ThunderRing]: BaseForceFieldWeapon,
+    [WeaponType.VoidField]: VoidFieldWeapon,
+    [WeaponType.VoidBurn]: BaseForceFieldWeapon,
+    [WeaponType.Vortex]: VortexWeapon,
+  };
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -57,7 +104,9 @@ export class WeaponSystem {
   private getOrCreate(type: WeaponType): BaseWeapon {
     let w = this.weaponMap.get(type);
     if (!w) {
-      w = createWeapon(type, this.ctx);
+      const Ctor = this.WEAPON_CLASS_MAP[type];
+      const def = WEAPON_DEFS[type];
+      w = new Ctor(this.ctx, def);
       this.weaponMap.set(type, w);
     }
     return w;

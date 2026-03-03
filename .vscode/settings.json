@@ -4,6 +4,7 @@
         "cooldown",
         "DEADZONE",
         "despawn",
+        "forcefield",
         "Regen",
         "tilemap",
         "wasd"
