@@ -1,5 +1,5 @@
 import { XP_BASE, XP_GROWTH, MAX_LEVEL, MAX_WEAPONS, MAX_EFFECTS, MAX_WEAPON_LEVEL, MAX_EFFECT_LEVEL } from '../constants';
-import { WeaponType, EffectType, type LevelUpOption, type WeaponInstance, type EffectInstance, type WeaponDef, type EffectDef } from '../types';
+import { WeaponType, EffectType, type LevelUpOption, type PlayerState, type WeaponInstance, type EffectInstance, type WeaponDef, type EffectDef } from '../types';
 import { WEAPON_DEFS } from '../entities/weapons';
 import { EFFECT_DEFS } from '../entities/effects';
 
@@ -47,74 +47,60 @@ export function generateLevelUpOptions(
 ): LevelUpOption[] {
   const pool: Array<{ option: LevelUpOption; weight: number }> = [];
 
-  // Weapon upgrades for owned weapons
-  for (const w of weapons) {
-    if (w.level < MAX_WEAPON_LEVEL) {
-      const def = WEAPON_DEFS[w.type];
-      pool.push({
-        option: {
-          kind: 'weapon',
-          type: w.type,
-          newLevel: w.level + 1,
-          name: def.name,
-          description: `Level ${w.level + 1}: +damage, improved stats`,
-        },
-        weight: 3,
-      });
-    }
-  }
+  const categories: Array<{
+    kind: 'weapon' | 'effect';
+    owned: Array<{ type: number; level: number }>;
+    defs: Array<{ type: number; name: string; description: string }>;
+    maxSlots: number;
+    maxLevel: (type: number) => number;
+    upgradeDesc: (type: number, level: number) => string;
+  }> = [
+    {
+      kind: 'weapon',
+      owned: weapons,
+      defs: WEAPON_DEFS,
+      maxSlots: MAX_WEAPONS,
+      maxLevel: () => MAX_WEAPON_LEVEL,
+      upgradeDesc: (_t, lvl) => `Level ${lvl}: +damage, improved stats`,
+    },
+    {
+      kind: 'effect',
+      owned: effects,
+      defs: EFFECT_DEFS,
+      maxSlots: MAX_EFFECTS,
+      maxLevel: (type) => EFFECT_DEFS[type].maxLevel,
+      upgradeDesc: (type, lvl) => `Level ${lvl}: ${EFFECT_DEFS[type].description}`,
+    },
+  ];
 
-  // Effect upgrades for owned effects
-  for (const e of effects) {
-    const def = EFFECT_DEFS[e.type];
-    if (e.level < def.maxLevel) {
-      pool.push({
-        option: {
-          kind: 'effect',
-          type: e.type,
-          newLevel: e.level + 1,
-          name: def.name,
-          description: `Level ${e.level + 1}: ${def.description}`,
-        },
-        weight: 3,
-      });
-    }
-  }
-
-  // New weapons (if slots available)
-  if (weapons.length < MAX_WEAPONS) {
-    const ownedTypes = new Set(weapons.map(w => w.type));
-    for (const def of WEAPON_DEFS) {
-      if (!ownedTypes.has(def.type)) {
+  for (const cat of categories) {
+    // Upgrades for owned items (weighted 3x)
+    for (const item of cat.owned) {
+      if (item.level < cat.maxLevel(item.type)) {
+        const def = cat.defs[item.type];
         pool.push({
           option: {
-            kind: 'weapon',
-            type: def.type,
-            newLevel: 1,
-            name: def.name,
-            description: def.description,
+            kind: cat.kind, type: item.type, newLevel: item.level + 1,
+            name: def.name, description: cat.upgradeDesc(item.type, item.level + 1),
           },
-          weight: 1,
+          weight: 3,
         });
       }
     }
-  }
 
-  // New effects (if slots available)
-  if (effects.length < MAX_EFFECTS) {
-    const ownedTypes = new Set(effects.map(e => e.type));
-    for (const def of EFFECT_DEFS) {
-      if (!ownedTypes.has(def.type)) {
-        pool.push({
-          option: {
-            kind: 'effect',
-            type: def.type,
-            newLevel: 1,
-            name: def.name,
-            description: def.description,
-          },
-          weight: 1,
-        });
+    // New items (if slots available)
+    if (cat.owned.length < cat.maxSlots) {
+      const ownedTypes = new Set(cat.owned.map(i => i.type));
+      for (const def of cat.defs) {
+        if (!ownedTypes.has(def.type)) {
+          pool.push({
+            option: {
+              kind: cat.kind, type: def.type, newLevel: 1,
+              name: def.name, description: def.description,
+            },
+            weight: 1,
+          });
+        }
       }
     }
   }
@@ -159,4 +145,28 @@ export function generatePostMaxOptions(level: number): LevelUpOption[] {
       description: 'Recover 25% of max HP',
     },
   ];
+}
+
+/** Apply a level-up choice to player state */
+export function applyLevelUpChoice(state: PlayerState, choice: LevelUpOption): void {
+  switch (choice.kind) {
+    case 'weapon': {
+      const existing = state.weapons.find(w => w.type === choice.type);
+      if (existing) existing.level = choice.newLevel;
+      else state.weapons.push({ type: choice.type as WeaponType, level: 1, cooldownTimer: 0 });
+      break;
+    }
+    case 'effect': {
+      const existing = state.effects.find(e => e.type === choice.type);
+      if (existing) existing.level = choice.newLevel;
+      else state.effects.push({ type: choice.type as number, level: 1 });
+      break;
+    }
+    case 'gold':
+      state.gold += 10 + Math.floor(state.level / 10) * 5;
+      break;
+    case 'heal':
+      state.hp = Math.min(state.maxHp, state.hp + state.maxHp * 0.25);
+      break;
+  }
 }

@@ -7,8 +7,10 @@ export class InputManager {
   private wasd: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private escKey: Phaser.Input.Keyboard.Key;
 
-  // Virtual d-pad: touch origin becomes the centre, drag direction = movement
-  private touchActive = false;
+  // Pointer state
+  private pointerDown = false;
+  private pointerIsTouch = false;
+  // Virtual d-pad origin (touch only)
   private touchOriginX = 0;
   private touchOriginY = 0;
 
@@ -28,11 +30,12 @@ export class InputManager {
     this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.touchActive = true;
+      this.pointerDown = true;
+      this.pointerIsTouch = pointer.wasTouch;
       this.touchOriginX = pointer.x;
       this.touchOriginY = pointer.y;
     });
-    scene.input.on('pointerup', () => { this.touchActive = false; });
+    scene.input.on('pointerup', () => { this.pointerDown = false; });
   }
 
   getMovement(): Vec2 {
@@ -61,16 +64,35 @@ export class InputManager {
       }
     }
 
-    // Touch/mouse virtual d-pad — direction is drag offset from touch origin
-    if (this.touchActive && dx === 0 && dy === 0) {
+    // Pointer input (touch vs mouse use different schemes)
+    if (this.pointerDown && dx === 0 && dy === 0) {
       const pointer = this.scene.input.activePointer;
-      const tdx = pointer.x - this.touchOriginX;
-      const tdy = pointer.y - this.touchOriginY;
-      const len = Math.sqrt(tdx * tdx + tdy * tdy);
-      // Deadzone in screen pixels so a tap doesn't cause jitter
-      if (len > 15) {
-        dx = tdx / len;
-        dy = tdy / len;
+      if (this.pointerIsTouch) {
+        // Touch: virtual d-pad — drag direction from initial touch point
+        const tdx = pointer.x - this.touchOriginX;
+        const tdy = pointer.y - this.touchOriginY;
+        const len = Math.sqrt(tdx * tdx + tdy * tdy);
+        if (len > 15) {
+          dx = tdx / len;
+          dy = tdy / len;
+        }
+      } else {
+        // Mouse: walk toward pointer world position
+        const cam = this.scene.cameras.main;
+        const worldX = pointer.x / cam.zoom + cam.worldView.x;
+        const worldY = pointer.y / cam.zoom + cam.worldView.y;
+        const playerX = cam.worldView.x + cam.worldView.width / 2;
+        const playerY = cam.worldView.y + cam.worldView.height / 2;
+        dx = worldX - playerX;
+        dy = worldY - playerY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 8) {
+          dx /= len;
+          dy /= len;
+        } else {
+          dx = 0;
+          dy = 0;
+        }
       }
     }
 

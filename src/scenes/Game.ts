@@ -3,7 +3,7 @@ import {
   generateMap, iterateMap, ensureWalkable,
   TILE_SIZE, MAP_WIDTH, MAP_HEIGHT,
   PLAYER_SIZE, GAME_DURATION_MS, WeaponType, type LevelUpOption,
-  SeededRandom, xpForLevel, generateLevelUpOptions, generatePostMaxOptions, MAX_LEVEL,
+  SeededRandom, xpForLevel, generateLevelUpOptions, generatePostMaxOptions, applyLevelUpChoice, MAX_LEVEL,
   circlesOverlap, EffectType,
   XP_DROP_BASE_CHANCE, XP_DROP_LUCK_BONUS,
   isWalkable,
@@ -235,38 +235,7 @@ export class GameScene extends Phaser.Scene {
     const options: LevelUpOption[] = (this as any)._currentLevelUpOptions;
     if (!options || index >= options.length) return;
 
-    const choice = options[index];
-
-    if (choice.kind === 'weapon') {
-      const existing = this.player.state.weapons.find(w => w.type === choice.type);
-      if (existing) {
-        existing.level = choice.newLevel;
-      } else {
-        this.player.state.weapons.push({
-          type: choice.type as WeaponType,
-          level: 1,
-          cooldownTimer: 0,
-        });
-      }
-    } else if (choice.kind === 'effect') {
-      const existing = this.player.state.effects.find(e => e.type === choice.type);
-      if (existing) {
-        existing.level = choice.newLevel;
-      } else {
-        this.player.state.effects.push({
-          type: choice.type as number,
-          level: 1,
-        });
-      }
-    } else if (choice.kind === 'gold') {
-      const goldAmount = 10 + Math.floor(this.player.state.level / 10) * 5;
-      this.player.state.gold += goldAmount;
-    } else if (choice.kind === 'heal') {
-      this.player.state.hp = Math.min(
-        this.player.state.maxHp,
-        this.player.state.hp + this.player.state.maxHp * 0.25,
-      );
-    }
+    applyLevelUpChoice(this.player.state, options[index]);
 
     // Process next pending level up or resume game
     if (this.pendingLevelUps > 0) {

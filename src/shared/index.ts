@@ -11,7 +11,7 @@ export { EFFECT_DEFS } from './entities/effects';
 export { CellularAutomaton } from './systems/cellular-automaton';
 export { generateMap, iterateMap, ensureWalkable, isWalkable, worldToTile } from './systems/map-generator';
 export { SpawnManager, PATTERNS, type SpawnEvent } from './systems/spawn-manager';
-export { xpForLevel, totalXpToLevel, getWeaponStats, generateLevelUpOptions, generatePostMaxOptions } from './systems/leveling';
+export { xpForLevel, totalXpToLevel, getWeaponStats, generateLevelUpOptions, generatePostMaxOptions, applyLevelUpChoice } from './systems/leveling';
 export { SpatialHash, type SpatialEntity } from './systems/physics';
 
 // Utils
