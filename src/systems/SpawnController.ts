@@ -42,7 +42,4 @@ export class SpawnController {
     }
   }
 
-  getGameTimeMs(): number {
-    return this.spawnManager.getGameTimeMs();
-  }
 }

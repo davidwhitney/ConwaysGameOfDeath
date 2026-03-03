@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { UpdateContext } from '../systems/UpdateContext';
 
 interface DamageText {
   text: Phaser.GameObjects.Text;
@@ -6,7 +7,7 @@ interface DamageText {
   vy: number;
 }
 
-export class DamageNumberSystem {
+export class DamageNumbersUiComponent {
   private scene: Phaser.Scene;
   private active: DamageText[] = [];
   private pool: Phaser.GameObjects.Text[] = [];
@@ -60,7 +61,8 @@ export class DamageNumberSystem {
     });
   }
 
-  update(dt: number): void {
+  update(ctx: UpdateContext): void {
+    const dt = ctx.time.delta;
     for (let i = this.active.length - 1; i >= 0; i--) {
       const d = this.active[i];
       d.age += dt;

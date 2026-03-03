@@ -2,10 +2,17 @@
  * Mulberry32 PRNG - fast, deterministic, 32-bit state
  */
 export class SeededRandom {
-  private state: number;
+  private _state: number;
+  public get state(): number {
+    return this._state;
+  }
+  
+  private set state(value: number) {
+    this._state = value | 0;
+  }
 
   constructor(seed: number) {
-    this.state = seed | 0;
+    this._state = seed | 0;
   }
 
   /** Returns float in [0, 1) */

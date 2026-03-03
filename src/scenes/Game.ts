@@ -3,21 +3,20 @@ import {
   generateMap,
   TILE_SIZE, MAP_WIDTH, MAP_HEIGHT,
   GAME_DURATION_MS, WeaponType,
-  SeededRandom,
+  SeededRandom, type TileMap,
 } from '../shared';
 import { Player } from '../entities/Player';
-import { InputManager } from '../systems/InputManager';
-import { CameraManager } from '../systems/CameraManager';
-import { MapRenderer } from '../systems/MapRenderer';
 import { WeaponSystem } from '../systems/WeaponSystem';
-import { DamageNumberSystem } from '../ui/DamageNumber';
+import { DamageNumbersUiComponent } from '../ui/DamageNumbersUiComponent';
 import { BossSpawnSystem } from '../systems/BossSpawnSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { LevelUpSystem } from '../systems/LevelUpSystem';
 import { PlayerPhysicsSystem } from '../systems/PlayerPhysicsSystem';
 import { GameWorldSystem } from '../systems/GameWorldSystem';
+import type { UpdateContext } from '../systems/UpdateContext';
 import type { HUDScene } from './HUD';
 import { applyCRT } from '../ui/crtEffect';
+import { GameSystem } from '../systems/GameSystem';
 
 interface GameInitData {
   seed: number;
@@ -25,150 +24,116 @@ interface GameInitData {
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
-  private cameraManager!: CameraManager;
-  private weaponSystem!: WeaponSystem;
-  private damageNumbers!: DamageNumberSystem;
+  private damageNumbersUi!: DamageNumbersUiComponent;
 
-  private playerPhysics!: PlayerPhysicsSystem;
-  private gameWorldSystem!: GameWorldSystem;
-  private bossSpawnSystem!: BossSpawnSystem;
-  private lootSystem!: LootSystem;
-  private levelUpSystem!: LevelUpSystem;
+  private subsystems: GameSystem[] = [];
 
   private seed: number = 0;
   private rng!: SeededRandom;
+  private map!: TileMap;
   private gameTimeMs: number = 0;
   private gameOver: boolean = false;
   private hudScene!: HUDScene;
   private visibilityHandler: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
 
-  constructor() {
+  public constructor() {
     super({ key: 'Game' });
   }
 
-  init(data: GameInitData): void {
+  public init(data: GameInitData): void {
     this.seed = data.seed || Date.now();
     this.gameTimeMs = 0;
     this.gameOver = false;
   }
 
-  create(): void {
+  public create(): void {
     applyCRT(this);
     this.rng = new SeededRandom(this.seed);
-    const map = generateMap(this.seed);
-    const mapRenderer = new MapRenderer(this, map);
-
-    // Create player at center of map
+    this.map = generateMap(this.seed);
     const centerX = Math.floor(MAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
     const centerY = Math.floor(MAP_HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2;
-    this.player = new Player(this, centerX, centerY, map);
 
-    // Give player a starting weapon
-    this.player.state.weapons.push({
-      type: WeaponType.Whip,
-      level: 1,
-      cooldownTimer: 0,
-    });
+    this.player = new Player(this, centerX, centerY);
+    this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
 
-    const inputManager = new InputManager(this);
-    this.cameraManager = new CameraManager(this);
-    this.cameraManager.follow(this.player.sprite);
+    this.subsystems = [
+      new PlayerPhysicsSystem({ scene: this }),
+      new GameWorldSystem({ scene: this, rng: this.rng, map: this.map }),
+      new BossSpawnSystem({ scene: this, rng: this.rng }),
+      new WeaponSystem(this),
+      new LootSystem({ scene: this, player: this.player }),
+      new LevelUpSystem({ scene: this, rng: this.rng, player: this.player })
+    ];
 
-    this.weaponSystem = new WeaponSystem(this);
-    this.damageNumbers = new DamageNumberSystem(this);
-
-    // Systems
-    this.gameWorldSystem = new GameWorldSystem({
-      scene: this, player: this.player, rng: this.rng, mapRenderer,
-      cameraManager: this.cameraManager, map, spawnSeed: this.seed + 1,
-    });
-
-    const enemyPool = this.gameWorldSystem.getEnemyPool();
-    const xpGemPool = this.gameWorldSystem.getXPGemPool();
-
-    this.playerPhysics = new PlayerPhysicsSystem({
-      scene: this, player: this.player, inputManager, enemyPool,
-      cameraManager: this.cameraManager,
-    });
-
-    this.bossSpawnSystem = new BossSpawnSystem({
-      player: this.player, rng: this.rng,
-      enemyPool, cameraManager: this.cameraManager,
-    });
-
-    this.lootSystem = new LootSystem({
-      scene: this, player: this.player,
-      xpGemPool, cameraManager: this.cameraManager,
-    });
-
-    this.levelUpSystem = new LevelUpSystem({
-      scene: this, player: this.player, rng: this.rng,
-    });
-
-    // HUD
-    this.scene.launch('HUD', { seed: this.seed });
-    this.hudScene = this.scene.get('HUD') as HUDScene;
-
-    // Damage numbers — all systems emit 'show-damage' events
+    // Events
     this.events.on('show-damage', (x: number, y: number, amount: number, color?: string, crit?: boolean) => {
-      this.damageNumbers.show(x, y, amount, color, crit);
+      this.damageNumbersUi.show(x, y, amount, color, crit);
     });
 
-    // Blood aura heal event
+    this.events.on('screen-shake', (duration: number, intensity: number) => {
+      this.subsystems.filter(s => s instanceof GameWorldSystem)[0].cameraShake(duration, intensity);
+    });
+
+    this.events.on('pending-levelup', () => {
+      if (!this.scene.isActive('LevelUp')) {
+        this.subsystems.filter(s => s instanceof LevelUpSystem)[0].processLevelUp();
+      }
+    });
+
     this.events.on('blood-aura-heal', (heal: number) => {
       this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + heal);
     });
 
-    // Pause when browser tab loses focus or window blurs
+    // UI Events
     this.visibilityHandler = () => {
       if (!this.gameOver && !this.scene.isPaused()) {
         this.scene.pause();
         this.scene.launch('Pause');
       }
     };
-    this.visibilityChangeHandler = () => {
-      if (document.hidden) this.visibilityHandler!();
-    };
+    this.visibilityChangeHandler = () => { if (document.hidden) this.visibilityHandler!(); };
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
     window.addEventListener('blur', this.visibilityHandler);
-
-    // Cleanup on shutdown
     this.events.once('shutdown', () => this.shutdown());
+
+    // Start HUD
+    this.scene.launch('HUD', { seed: this.seed });
+    this.hudScene = this.scene.get('HUD') as HUDScene;
+    this.damageNumbersUi = new DamageNumbersUiComponent(this);
   }
 
-  update(time: number, delta: number): void {
-    if (this.gameOver) return;
-
-    const dt = delta / 1000;
-    this.gameTimeMs += delta;
-
-    this.playerPhysics.update(dt, time);
-    this.gameWorldSystem.update(delta);
-    this.bossSpawnSystem.update(delta, this.gameTimeMs);
-    this.weaponSystem.update(dt, this.player, this.gameWorldSystem.getEnemyPool());
-    this.lootSystem.updatePickups(dt);
-    this.levelUpSystem.accumulateLevelUps();
-
-    if (this.levelUpSystem.hasPendingLevelUp() && !this.scene.isActive('LevelUp')) {
-      this.levelUpSystem.processLevelUp();
+  public update(time: number, delta: number): void {
+    if (this.gameOver) {
+      return;
     }
 
-    this.damageNumbers.update(dt);
-    this.updateHUD();
+    this.gameTimeMs += delta;
+    const gameWorldSystem = this.subsystems.filter(s => s instanceof GameWorldSystem)[0] as GameWorldSystem;
+    const lootSystem = this.subsystems.filter(s => s instanceof LootSystem)[0] as LootSystem;
+
+    const ctx: UpdateContext = {
+      time: { delta: delta / 1000, deltaMs: delta, now: time, elapsed: this.gameTimeMs },
+      player: this.player,
+      enemyPool: gameWorldSystem.getEnemyPool(),
+      map: this.map,
+    };
+
+    for (const system of this.subsystems) {
+      system.update(ctx);
+    }
+
+    this.damageNumbersUi.update(ctx);
+    this.hudScene.updateHUD?.(
+      this.player.state,
+      this.gameTimeMs,
+      lootSystem.getKills(),
+      gameWorldSystem.getActiveEnemyCount(),
+    );
 
     if (!this.player.state.alive) {
       this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
     }
-  }
-
-  private updateHUD(): void {
-    this.hudScene.updateHUD?.(
-      this.player.state,
-      this.gameWorldSystem.getGameTimeMs(),
-      this.lootSystem.getKills(),
-      this.gameWorldSystem.getActiveEnemyCount(),
-    );
   }
 
   private endGame(victory: boolean): void {
@@ -178,14 +143,14 @@ export class GameScene extends Phaser.Scene {
     this.scene.stop('Pause');
     this.scene.start('GameOver', {
       victory,
-      kills: this.lootSystem.getKills(),
+      kills: this.subsystems.filter(s => s instanceof LootSystem)[0].getKills(),
       level: this.player.state.level,
-      time: this.gameWorldSystem.getGameTimeMs(),
+      time: this.gameTimeMs,
       seed: this.seed,
     });
   }
 
-  shutdown(): void {
+  private shutdown(): void {
     if (this.visibilityChangeHandler) {
       document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
       this.visibilityChangeHandler = null;
@@ -194,14 +159,13 @@ export class GameScene extends Phaser.Scene {
       window.removeEventListener('blur', this.visibilityHandler);
       this.visibilityHandler = null;
     }
-    this.weaponSystem?.destroy();
-    this.damageNumbers?.destroy();
-    this.playerPhysics?.destroy();
-    this.gameWorldSystem?.destroy();
-    this.lootSystem?.destroy();
-    this.levelUpSystem?.destroy();
-    this.bossSpawnSystem?.destroy();
+    for (const system of this.subsystems) {
+      system.destroy();
+    }
+    this.damageNumbersUi?.destroy();
     this.events.off('show-damage');
+    this.events.off('screen-shake');
+    this.events.off('pending-levelup');
     this.events.off('blood-aura-heal');
   }
 }

@@ -6,36 +6,40 @@ import {
 } from '../shared';
 import { BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT } from '../shared/constants';
 import type { Player } from '../entities/Player';
-import type { XPGemPool } from '../entities/XPGem';
-import type { CameraManager } from './CameraManager';
+import { XPGemPool } from '../entities/XPGem';
+import type { UpdateContext } from './UpdateContext';
+import type { GameSystem } from './GameSystem';
 
 export interface LootDeps {
   scene: Phaser.Scene;
   player: Player;
-  xpGemPool: XPGemPool;
-  cameraManager: CameraManager;
 }
 
-export class LootSystem {
+export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
   private player: Player;
   private xpGemPool: XPGemPool;
-  private cameraManager: CameraManager;
   private kills: number = 0;
 
   constructor(deps: LootDeps) {
     this.scene = deps.scene;
     this.player = deps.player;
-    this.xpGemPool = deps.xpGemPool;
-    this.cameraManager = deps.cameraManager;
+    this.xpGemPool = new XPGemPool(deps.scene);
 
     this.scene.events.on('enemy-killed',
       (e: { state: { x: number; y: number; xpValue: number; boss: boolean }; def?: { color: number } }, w?: WeaponType) =>
         this.handleEnemyKilled(e, w),
     );
+
+    this.scene.events.on('scatter-health-gems', (positions: { x: number; y: number }[]) => {
+      for (const p of positions) {
+        this.xpGemPool.spawnGolden(p.x, p.y);
+      }
+    });
   }
 
-  updatePickups(dt: number): void {
+  update(ctx: UpdateContext): void {
+    const dt = ctx.time.delta;
     const gemResult = this.xpGemPool.update(
       dt, this.player.state.x, this.player.state.y, this.player.getPickupRange(),
     );
@@ -68,6 +72,8 @@ export class LootSystem {
 
   destroy(): void {
     this.scene.events.off('enemy-killed');
+    this.scene.events.off('scatter-health-gems');
+    this.xpGemPool.destroy();
   }
 
   private handleEnemyKilled(
@@ -107,7 +113,7 @@ export class LootSystem {
           healAmount, '#ff4444',
         );
       }
-      this.cameraManager.shake(300, 0.015);
+      this.scene.events.emit('screen-shake', 300, 0.015);
     }
   }
 

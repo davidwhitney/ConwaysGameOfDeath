@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   PLAYER_BASE_HP, PLAYER_BASE_SPEED, PLAYER_SIZE, PLAYER_INVINCIBLE_MS,
-  PLAYER_PICKUP_RANGE, TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT,
+  PLAYER_PICKUP_RANGE, TILE_SIZE, WORLD_WIDTH, WORLD_HEIGHT,
   EffectType,
   type PlayerState, type WeaponInstance, type EffectInstance, type TileMap,
   isWalkable, clamp,
@@ -12,16 +12,14 @@ export class Player {
   sprite: Phaser.GameObjects.Sprite;
   state: PlayerState;
   private scene: Phaser.Scene;
-  private map: TileMap;
   facingX: number = 1;
   facingY: number = 0;
   private baseMaxHp: number = PLAYER_BASE_HP;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, map: TileMap, id: string = 'local') {
+  constructor(scene: Phaser.Scene, x: number, y: number, id: string = 'local') {
     this.scene = scene;
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
-    this.map = map;
 
     this.state = {
       id,
@@ -89,7 +87,7 @@ export class Player {
     return 1 + this.getEffectValue(EffectType.Duration);
   }
 
-  move(dx: number, dy: number, dt: number): void {
+  move(dx: number, dy: number, dt: number, map: TileMap): void {
     if (!this.state.alive) return;
 
     const speed = this.getSpeed();
@@ -109,7 +107,7 @@ export class Player {
     const testTx = Math.floor((newX + (dx > 0 ? halfSize : -halfSize)) / TILE_SIZE);
     const testTyTop = Math.floor((this.state.y - halfSize) / TILE_SIZE);
     const testTyBot = Math.floor((this.state.y + halfSize) / TILE_SIZE);
-    if (!isWalkable(this.map, testTx, testTyTop) || !isWalkable(this.map, testTx, testTyBot)) {
+    if (!isWalkable(map, testTx, testTyTop) || !isWalkable(map, testTx, testTyBot)) {
       newX = this.state.x;
     }
 
@@ -117,7 +115,7 @@ export class Player {
     const testTy = Math.floor((newY + (dy > 0 ? halfSize : -halfSize)) / TILE_SIZE);
     const testTxLeft = Math.floor((newX - halfSize) / TILE_SIZE);
     const testTxRight = Math.floor((newX + halfSize) / TILE_SIZE);
-    if (!isWalkable(this.map, testTxLeft, testTy) || !isWalkable(this.map, testTxRight, testTy)) {
+    if (!isWalkable(map, testTxLeft, testTy) || !isWalkable(map, testTxRight, testTy)) {
       newY = this.state.y;
     }
 

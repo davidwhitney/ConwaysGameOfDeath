@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { WEAPON_DEFS, WeaponType } from '../shared';
-import type { Player } from '../entities/Player';
-import type { EnemyPool } from './EnemyPool';
+import type { UpdateContext } from './UpdateContext';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';
 import { BoomerangWeapon } from './weapons/projectile/BoomerangWeapon';
@@ -26,10 +25,11 @@ import { PlagueWeapon } from './weapons/aoe/PlagueWeapon';
 import { BloodAuraWeapon } from './weapons/forcefield/BloodAuraWeapon';
 import { GravityWellWeapon } from './weapons/forcefield/GravityWellWeapon';
 import { BaseProjectileWeapon } from './weapons/BaseProjectileWeapon';
+import { GameSystem } from './GameSystem';
 
 type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number]) => BaseWeapon;
 
-export class WeaponSystem {
+export class WeaponSystem implements GameSystem {
   private scene: Phaser.Scene;
   private projectilePool: Phaser.GameObjects.Sprite[] = [];
   private weaponMap = new Map<WeaponType, BaseWeapon>();
@@ -103,12 +103,12 @@ export class WeaponSystem {
     };
   }
 
-  update(dt: number, player: Player, enemyPool: EnemyPool): void {
-    this.ctx.enemyPool = enemyPool;
+  update(ctx: UpdateContext): void {
+    this.ctx.enemyPool = ctx.enemyPool;
 
-    for (const weapon of player.state.weapons) {
+    for (const weapon of ctx.player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
-      weaponSystem.update(dt, player, weapon);
+      weaponSystem.update(ctx.time.delta, ctx.player, weapon);
     }
   }
 

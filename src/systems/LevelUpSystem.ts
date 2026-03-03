@@ -9,6 +9,8 @@ import {
   LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
 } from '../shared/constants';
 import type { Player } from '../entities/Player';
+import type { UpdateContext } from '../systems/UpdateContext';
+import type { GameSystem } from '../systems/GameSystem';
 
 export interface LevelUpDeps {
   scene: Phaser.Scene;
@@ -16,7 +18,7 @@ export interface LevelUpDeps {
   rng: SeededRandom;
 }
 
-export class LevelUpSystem {
+export class LevelUpSystem implements GameSystem {
   private scene: Phaser.Scene;
   private player: Player;
   private rng: SeededRandom;
@@ -35,7 +37,9 @@ export class LevelUpSystem {
     this.scene.events.on('levelup-skip', () => this.handleLevelUpSkip());
   }
 
-  accumulateLevelUps(): void {
+  update(_ctx: UpdateContext): void {
+    const hadPending = this.pendingLevelUps > 0;
+
     while (this.player.state.xp >= this.player.state.xpToNext) {
       this.pendingLevelUps++;
       this.player.state.xp -= this.player.state.xpToNext;
@@ -50,6 +54,10 @@ export class LevelUpSystem {
         this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmt);
         this.scene.events.emit('show-damage', this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
       }
+    }
+
+    if (!hadPending && this.pendingLevelUps > 0) {
+      this.scene.events.emit('pending-levelup');
     }
   }
 
@@ -68,10 +76,6 @@ export class LevelUpSystem {
       gold: this.player.state.gold,
       rerollCost: this.getRerollCost(),
     });
-  }
-
-  hasPendingLevelUp(): boolean {
-    return this.pendingLevelUps > 0;
   }
 
   getRerollCost(): number {
