@@ -1,0 +1,93 @@
+import type { WeaponInstance } from '../../shared';
+import type { Player } from '../../entities/Player';
+import { BaseWeapon } from './BaseWeapon';
+import type { Enemy } from '../../entities/Enemy';
+
+interface ActiveAoE {
+  weaponType: number;
+  x: number;
+  y: number;
+  radius: number;
+  damage: number;
+  duration: number;
+  age: number;
+  tickTimer: number;
+  gfx: Phaser.GameObjects.Graphics;
+}
+
+export class BaseAoEWeapon extends BaseWeapon {
+  protected aoes: ActiveAoE[] = [];
+
+  protected pickTarget(player: Player): { x: number; y: number } {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 50 + Math.random() * 150;
+    return {
+      x: player.state.x + Math.cos(angle) * dist,
+      y: player.state.y + Math.sin(angle) * dist,
+    };
+  }
+
+  protected onTickHit(_enemy: Enemy): void {
+    // Override in subclasses for per-weapon effects
+  }
+
+  protected fire(weapon: WeaponInstance, player: Player): void {
+    const stats = this.getStats(weapon);
+    const dmgMul = player.getDamageMultiplier();
+    const auraMul = player.getAuraMultiplier();
+
+    for (let i = 0; i < stats.amount; i++) {
+      const target = this.pickTarget(player);
+      const gfx = this.ctx.scene.add.graphics();
+      gfx.setDepth(6);
+
+      this.aoes.push({
+        weaponType: this.def.type,
+        x: target.x,
+        y: target.y,
+        radius: stats.area * auraMul,
+        damage: Math.floor(stats.damage * dmgMul),
+        duration: Math.max(stats.duration, 300),
+        age: 0,
+        tickTimer: 0,
+        gfx,
+      });
+    }
+  }
+
+  protected updateActive(dt: number, _player: Player): void {
+    for (let i = this.aoes.length - 1; i >= 0; i--) {
+      const a = this.aoes[i];
+      a.age += dt * 1000;
+
+      if (a.age >= a.duration) {
+        a.gfx.destroy();
+        this.aoes.splice(i, 1);
+        continue;
+      }
+
+      const progress = a.age / a.duration;
+      const alpha = progress < 0.1 ? progress * 10 : (progress > 0.8 ? (1 - progress) * 5 : 1);
+      a.gfx.clear();
+      a.gfx.fillStyle(this.def.color, alpha * 0.3);
+      a.gfx.fillCircle(a.x, a.y, a.radius);
+      a.gfx.lineStyle(2, this.def.color, alpha * 0.6);
+      a.gfx.strokeCircle(a.x, a.y, a.radius);
+
+      a.tickTimer += dt * 1000;
+      if (a.tickTimer >= 200) {
+        a.tickTimer -= 200;
+        const enemies = this.ctx.enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
+        for (const enemy of enemies) {
+          this.ctx.hitEnemy(enemy, a.damage, this.def.type);
+          this.onTickHit(enemy);
+        }
+      }
+    }
+  }
+
+  destroy(): void {
+    for (const a of this.aoes) a.gfx.destroy();
+    this.aoes.length = 0;
+  }
+}
