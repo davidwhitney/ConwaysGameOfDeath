@@ -18,15 +18,15 @@ export function totalXpToLevel(level: number): number {
   return total;
 }
 
-/** Calculate weapon stats at a given level (max 3 levels) */
+/** Calculate weapon stats at a given level */
 export function getWeaponStats(def: WeaponDef, level: number) {
-  const lvl = level - 1; // 0-indexed for scaling (0, 1, 2)
+  const lvl = level - 1; // 0-indexed for scaling
   return {
     damage: Math.floor(def.baseDamage * (1 + def.levelScaling.damage * lvl)),
     cooldown: Math.max(100, def.baseCooldown * (1 - def.levelScaling.cooldown * lvl)),
     area: def.baseArea * (1 + def.levelScaling.area * lvl),
-    amount: def.baseAmount + (lvl >= 2 ? def.levelScaling.amount : 0),
-    pierce: def.basePierce + (lvl >= 1 ? def.levelScaling.pierce : 0),
+    amount: def.baseAmount + Math.floor(lvl / 2) * def.levelScaling.amount,
+    pierce: def.basePierce + Math.floor((lvl + 1) / 2) * def.levelScaling.pierce,
     duration: def.baseDuration * (1 + def.levelScaling.duration * lvl),
     speed: def.baseSpeed,
   };

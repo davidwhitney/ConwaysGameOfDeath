@@ -2,6 +2,7 @@ import { EnemyType, type EnemyDef } from '../types';
 
 // Damage tuned so bats kill player in ~6 hits (100hp / 6 ≈ 16)
 // Later enemies hit proportionally harder
+// unlockAt is fraction of total game duration (0–1)
 export const ENEMY_DEFS: EnemyDef[] = [
   {
     type: EnemyType.Bat,
@@ -12,7 +13,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 16,
     baseSpeed: 100,
     xpValue: 1,
-    minMinute: 0,
+    unlockAt: 0,
     behavior: 'chase',
   },
   {
@@ -24,7 +25,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 18,
     baseSpeed: 60,
     xpValue: 2,
-    minMinute: 1,
+    unlockAt: 0.03,
     behavior: 'chase',
   },
   {
@@ -36,7 +37,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 20,
     baseSpeed: 40,
     xpValue: 3,
-    minMinute: 3,
+    unlockAt: 0.10,
     behavior: 'swarm',
   },
   {
@@ -48,7 +49,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 14,
     baseSpeed: 90,
     xpValue: 3,
-    minMinute: 5,
+    unlockAt: 0.17,
     behavior: 'cross',
   },
   {
@@ -60,7 +61,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 24,
     baseSpeed: 120,
     xpValue: 5,
-    minMinute: 8,
+    unlockAt: 0.27,
     behavior: 'chase',
   },
   {
@@ -72,7 +73,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 22,
     baseSpeed: 35,
     xpValue: 5,
-    minMinute: 11,
+    unlockAt: 0.37,
     behavior: 'swarm',
   },
   {
@@ -84,7 +85,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 28,
     baseSpeed: 110,
     xpValue: 8,
-    minMinute: 15,
+    unlockAt: 0.50,
     behavior: 'teleport',
   },
   {
@@ -96,7 +97,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 32,
     baseSpeed: 50,
     xpValue: 12,
-    minMinute: 20,
+    unlockAt: 0.67,
     behavior: 'orbit',
   },
   {
@@ -108,7 +109,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 40,
     baseSpeed: 70,
     xpValue: 20,
-    minMinute: 25,
+    unlockAt: 0.83,
     behavior: 'chase',
   },
   {
@@ -120,7 +121,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 56,
     baseSpeed: 80,
     xpValue: 50,
-    minMinute: 28,
+    unlockAt: 0.93,
     behavior: 'teleport',
   },
 ];

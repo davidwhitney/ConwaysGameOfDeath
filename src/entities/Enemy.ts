@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   type EnemyState, type EnemyDef, EnemyType, type Vec2,
-  ENEMY_DESPAWN_RANGE, TILE_SIZE,
+  ENEMY_DESPAWN_RANGE, GAME_DURATION_MS, TILE_SIZE,
   type TileMap, isWalkable, directionTo, distance,
 } from '../shared';
 import { ENEMY_DEFS } from '../shared';
@@ -54,10 +54,10 @@ export class Enemy {
   /** Activate this pooled enemy with given type and position */
   activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number): void {
     this.def = ENEMY_DEFS[type];
-    // Scale HP and damage aggressively with game time
-    const minute = gameTimeMs / 60000;
-    const hpScale = 1 + minute * 0.35;
-    const dmgScale = 1 + minute * 0.12;
+    // Scale HP and damage with game progress (0–1)
+    const progress = gameTimeMs / GAME_DURATION_MS;
+    const hpScale = 1 + progress * 10.5;
+    const dmgScale = 1 + progress * 3.6;
 
     this.state = {
       id,

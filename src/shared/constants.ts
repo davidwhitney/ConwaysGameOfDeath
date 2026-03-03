@@ -14,8 +14,8 @@ export const PLAYER_PICKUP_RANGE = 20;
 export const MAX_WEAPONS = 6;
 export const MAX_EFFECTS = 6;
 export const MAX_LEVEL = 100;
-export const MAX_WEAPON_LEVEL = 3;
-export const MAX_EFFECT_LEVEL = 3;
+export const MAX_WEAPON_LEVEL = 8;
+export const MAX_EFFECT_LEVEL = 5;
 
 // ─── Enemies ───
 export const ENEMY_MAX_ACTIVE = 800;
@@ -44,9 +44,7 @@ export const CAMERA_ZOOM = 1.25;
 export const SPATIAL_CELL_SIZE = 64;
 
 // ─── Game ───
-export const GAME_DURATION_MS = 30 * 60 * 1000; // 30 minutes
-export const SERVER_TICK_RATE = 20; // Hz
-export const SERVER_TICK_MS = 1000 / SERVER_TICK_RATE;
+export const GAME_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 // ─── XP ───
 export const XP_BASE = 5;

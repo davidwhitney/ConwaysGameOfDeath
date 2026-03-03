@@ -110,11 +110,6 @@ export class GameScene extends Phaser.Scene {
     const dt = delta / 1000; // seconds
     this.gameTimeMs += delta;
 
-    if (this.gameTimeMs >= GAME_DURATION_MS) {
-      this.endGame(true);
-      return;
-    }
-
     const movement = this.inputManager.getMovement();
     this.player.move(movement.x, movement.y, dt);
     this.player.applyRegen(dt);
@@ -182,9 +177,9 @@ export class GameScene extends Phaser.Scene {
       this.enemyPool.getActiveCount(),
     );
 
-    // Check player death
+    // Check player death — surviving past target time counts as victory
     if (!this.player.state.alive) {
-      this.endGame(false);
+      this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
     }
   }
 

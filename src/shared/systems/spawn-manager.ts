@@ -1,6 +1,6 @@
 import { CellularAutomaton } from './cellular-automaton';
 import { SeededRandom } from '../utils/seeded-random';
-import { CA_SPAWN_WIDTH, CA_SPAWN_HEIGHT, ENEMY_SPAWN_RANGE_MIN, ENEMY_SPAWN_RANGE_MAX } from '../constants';
+import { CA_SPAWN_WIDTH, CA_SPAWN_HEIGHT, ENEMY_SPAWN_RANGE_MIN, ENEMY_SPAWN_RANGE_MAX, GAME_DURATION_MS } from '../constants';
 import { EnemyType, type EnemyDef } from '../types';
 import { ENEMY_DEFS } from '../entities/enemies';
 
@@ -75,10 +75,10 @@ export class SpawnManager {
     this.ca.placePattern(PATTERNS.lwss, 10, 40);
   }
 
-  /** Get available enemy types based on elapsed game time */
+  /** Get available enemy types based on game progress (0–1) */
   getAvailableEnemyTypes(gameTimeMs: number): EnemyDef[] {
-    const minute = gameTimeMs / 60000;
-    return ENEMY_DEFS.filter(def => minute >= def.minMinute);
+    const progress = gameTimeMs / GAME_DURATION_MS;
+    return ENEMY_DEFS.filter(def => progress >= def.unlockAt);
   }
 
   /** Pick enemy type weighted towards stronger enemies as time passes */
@@ -86,11 +86,11 @@ export class SpawnManager {
     const available = this.getAvailableEnemyTypes(gameTimeMs);
     if (available.length === 0) return EnemyType.Bat;
 
-    // Weight stronger enemies more as time progresses
-    const minute = gameTimeMs / 60000;
+    // Weight stronger enemies more as game progresses
+    const progress = gameTimeMs / GAME_DURATION_MS;
     const weights = available.map(def => {
-      const timeSinceUnlock = minute - def.minMinute;
-      return Math.max(1, timeSinceUnlock + 1);
+      const sinceFrac = progress - def.unlockAt;
+      return Math.max(1, sinceFrac * 15 + 1);
     });
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     let roll = this.rng.next() * totalWeight;
@@ -128,16 +128,16 @@ export class SpawnManager {
 
     // Spawn enemies from alive cells
     this.spawnTimer += deltaMs;
-    // Spawn rate increases with game time
-    const minute = this.gameTimeMs / 60000;
-    const dynamicCooldown = Math.max(150, this.spawnCooldownMs - minute * 60);
+    // Spawn rate increases with game progress (0–1)
+    const progress = this.gameTimeMs / GAME_DURATION_MS;
+    const dynamicCooldown = Math.max(150, this.spawnCooldownMs * (1 - progress));
 
     if (this.spawnTimer >= dynamicCooldown) {
       this.spawnTimer -= dynamicCooldown;
 
       const aliveCells = this.ca.getAliveCells();
-      // Start with 2 spawns per tick, ramp hard over time
-      const maxSpawns = Math.min(2 + Math.floor(minute * 1.5), 20);
+      // Start with 2 spawns per tick, ramp to cap by ~40% through
+      const maxSpawns = Math.min(2 + Math.floor(progress * 45), 20);
       const spawns = Math.min(aliveCells.length, maxSpawns);
 
       for (let i = 0; i < spawns; i++) {

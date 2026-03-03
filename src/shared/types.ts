@@ -129,7 +129,7 @@ export interface EnemyDef {
   baseDamage: number;
   baseSpeed: number;
   xpValue: number;
-  minMinute: number;    // earliest spawn minute
+  unlockAt: number;     // game progress fraction (0–1) when this enemy starts spawning
   behavior: EnemyBehavior;
 }
 
