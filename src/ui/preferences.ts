@@ -20,3 +20,9 @@ export function loadSettings(): Settings {
 export function saveSettings(s: Settings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
+
+/** Remove all game data (settings + high scores) from localStorage */
+export function clearAllData(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem('cgod-highscores');
+}

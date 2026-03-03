@@ -4,7 +4,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
-import { loadSettings, saveSettings, type Settings } from '../ui/preferences';
+import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/preferences';
 
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -13,10 +13,12 @@ const ZOOM_STEP = 0.25;
 export class SettingsScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x333366];
-  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x444488];
+  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x443333, 0x333366];
+  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x664444, 0x444488];
   private crtBtnText!: Phaser.GameObjects.Text;
   private zoomValueText!: Phaser.GameObjects.Text;
+  private clearBtnText!: Phaser.GameObjects.Text;
+  private clearConfirm = false;
   private settings!: Settings;
   private returnTo: string = 'MainMenu';
 
@@ -84,15 +86,24 @@ export class SettingsScene extends Phaser.Scene {
       onClick: () => this.adjustZoom(ZOOM_STEP),
     });
 
+    // ── Clear data button ──
+    const clear = createButton(this, {
+      x: width / 2, y: height * 0.65, width: 200, height: 40,
+      label: 'CLEAR DATA', fontSize: '14px', textColor: '#ff8888',
+      fillColor: 0x443333, hoverColor: 0x664444,
+      onClick: () => this.clearData(),
+    });
+    this.clearBtnText = clear.text;
+
     // ── Back button ──
     const back = createButton(this, {
-      x: width / 2, y: height * 0.75, width: 200, height: 45,
+      x: width / 2, y: height * 0.80, width: 200, height: 45,
       label: 'BACK', fontSize: '18px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.goBack(),
     });
 
-    this.buttons = [crtToggle.bg, zoomDown.bg, zoomUp.bg, back.bg];
+    this.buttons = [crtToggle.bg, zoomDown.bg, zoomUp.bg, clear.bg, back.bg];
 
     // Restore unhighlight behavior
     this.buttons.forEach((btn, i) => {
@@ -102,14 +113,15 @@ export class SettingsScene extends Phaser.Scene {
     // Keyboard
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
 
-    // Gamepad navigation — 4 items, B goes back
+    // Gamepad navigation — 5 items, B goes back
     const actions = [
       () => this.toggleCRT(),
       () => this.adjustZoom(-ZOOM_STEP),
       () => this.adjustZoom(ZOOM_STEP),
+      () => this.clearData(),
       () => this.goBack(),
     ];
-    this.gpNav = new GamepadNav(this, 4, (i) => actions[i](), () => this.goBack());
+    this.gpNav = new GamepadNav(this, 5, (i) => actions[i](), () => this.goBack());
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {
@@ -142,6 +154,17 @@ export class SettingsScene extends Phaser.Scene {
 
   private formatZoom(z: number): string {
     return `${Math.round(z * 100)}%`;
+  }
+
+  private clearData(): void {
+    if (!this.clearConfirm) {
+      this.clearConfirm = true;
+      this.clearBtnText.setText('ARE YOU SURE?');
+      return;
+    }
+    clearAllData();
+    this.settings = loadSettings();
+    this.scene.restart({ returnTo: this.returnTo });
   }
 
   private goBack(): void {
