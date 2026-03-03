@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { WEAPON_DEFS, WeaponType } from '../shared';
 import type { Player } from '../entities/Player';
 import type { EnemyPool } from './EnemyPool';
-import type { DamageNumberSystem } from '../ui/DamageNumber';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';
 import { BoomerangWeapon } from './weapons/projectile/BoomerangWeapon';
@@ -99,15 +98,13 @@ export class WeaponSystem {
     this.ctx = {
       scene,
       enemyPool: null!,
-      damageNumbers: null!,
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
     };
   }
 
-  update(dt: number, player: Player, enemyPool: EnemyPool, damageNumbers: DamageNumberSystem): void {
+  update(dt: number, player: Player, enemyPool: EnemyPool): void {
     this.ctx.enemyPool = enemyPool;
-    this.ctx.damageNumbers = damageNumbers;
 
     for (const weapon of player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
