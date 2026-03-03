@@ -25,7 +25,7 @@ export function getWeaponStats(def: WeaponDef, level: number) {
     damage: Math.floor(def.baseDamage * (1 + def.levelScaling.damage * lvl)),
     cooldown: Math.max(100, def.baseCooldown * (1 - def.levelScaling.cooldown * lvl)),
     area: def.baseArea * (1 + def.levelScaling.area * lvl),
-    amount: def.baseAmount + Math.floor(lvl / 2) * def.levelScaling.amount,
+    amount: def.baseAmount + lvl * def.levelScaling.amount,
     pierce: def.basePierce + Math.floor((lvl + 1) / 2) * def.levelScaling.pierce,
     duration: def.baseDuration * (1 + def.levelScaling.duration * lvl),
     speed: def.baseSpeed,

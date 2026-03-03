@@ -434,7 +434,7 @@ export class WeaponSystem {
     let isCrit = false;
     if (this.critChance > 0 && Math.random() < this.critChance) {
       isCrit = true;
-      finalDamage = Math.floor(damage * CRIT_DAMAGE_MULTIPLIER);
+      finalDamage = Math.floor(damage * (CRIT_DAMAGE_MULTIPLIER + this.critChance));
     }
     const killed = enemy.takeDamage(finalDamage);
     dmgNums.show(enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);

@@ -15,7 +15,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.1 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.1 },
   },
   {
     type: WeaponType.Sword,
@@ -30,7 +30,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.25, cooldown: 0.04, area: 0.12, amount: 1, pierce: 0, duration: 0.08 },
+    levelScaling: { damage: 0.55, cooldown: 0.04, area: 0.12, amount: 1, pierce: 0, duration: 0.08 },
   },
   {
     type: WeaponType.Axe,
@@ -45,7 +45,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.3, cooldown: 0.04, area: 0.08, amount: 1, pierce: 0, duration: 0.05 },
+    levelScaling: { damage: 0.65, cooldown: 0.04, area: 0.08, amount: 1, pierce: 0, duration: 0.05 },
   },
   {
     type: WeaponType.Knife,
@@ -60,7 +60,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 2,
-    levelScaling: { damage: 0.15, cooldown: 0.06, area: 0.05, amount: 1, pierce: 1, duration: 0.05 },
+    levelScaling: { damage: 0.45, cooldown: 0.06, area: 0.05, amount: 1, pierce: 1, duration: 0.05 },
   },
   {
     type: WeaponType.Cross,
@@ -75,7 +75,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 200,
     baseAmount: 1,
     basePierce: 5,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.1, amount: 1, pierce: 1, duration: 0.1 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.1, amount: 1, pierce: 1, duration: 0.1 },
   },
 
   // ─── AoE (area damage) ───
@@ -92,7 +92,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.15, cooldown: 0.05, area: 0.15, amount: 0, pierce: 0, duration: 0 },
+    levelScaling: { damage: 0.45, cooldown: 0.05, area: 0.15, amount: 0, pierce: 0, duration: 0 },
   },
   {
     type: WeaponType.HolyWater,
@@ -107,7 +107,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.12, amount: 1, pierce: 0, duration: 0.15 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.12, amount: 1, pierce: 0, duration: 0.15 },
   },
   {
     type: WeaponType.FireWand,
@@ -122,7 +122,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.25, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.1 },
+    levelScaling: { damage: 0.55, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.1 },
   },
   {
     type: WeaponType.Lightning,
@@ -137,7 +137,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 3,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.08, amount: 1, pierce: 1, duration: 0.05 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.08, amount: 1, pierce: 1, duration: 0.05 },
   },
   {
     type: WeaponType.Meteor,
@@ -152,7 +152,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.3, cooldown: 0.04, area: 0.15, amount: 1, pierce: 0, duration: 0.1 },
+    levelScaling: { damage: 0.65, cooldown: 0.04, area: 0.15, amount: 1, pierce: 0, duration: 0.1 },
   },
 
   // ─── Force Field (orbits/surrounds player) ───
@@ -169,7 +169,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 2,
     baseAmount: 2,
     basePierce: 99,
-    levelScaling: { damage: 0.15, cooldown: 0, area: 0.1, amount: 1, pierce: 0, duration: 0 },
+    levelScaling: { damage: 0.45, cooldown: 0, area: 0.1, amount: 1, pierce: 0, duration: 0 },
   },
   {
     type: WeaponType.FrostAura,
@@ -184,7 +184,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.12, cooldown: 0, area: 0.15, amount: 0, pierce: 0, duration: 0 },
+    levelScaling: { damage: 0.4, cooldown: 0, area: 0.15, amount: 0, pierce: 0, duration: 0 },
   },
   {
     type: WeaponType.PoisonCloud,
@@ -199,7 +199,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.2, cooldown: 0, area: 0.12, amount: 0, pierce: 0, duration: 0 },
+    levelScaling: { damage: 0.5, cooldown: 0, area: 0.12, amount: 0, pierce: 0, duration: 0 },
   },
   {
     type: WeaponType.ThunderRing,
@@ -214,7 +214,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 3,
     baseAmount: 3,
     basePierce: 99,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.05 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.1, amount: 1, pierce: 0, duration: 0.05 },
   },
   {
     type: WeaponType.VoidField,
@@ -229,7 +229,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 0,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.18, cooldown: 0, area: 0.1, amount: 0, pierce: 0, duration: 0 },
+    levelScaling: { damage: 0.45, cooldown: 0, area: 0.1, amount: 0, pierce: 0, duration: 0 },
   },
 
   // ─── Projectile (fires in direction) ───
@@ -246,7 +246,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 300,
     baseAmount: 1,
     basePierce: 1,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.05, amount: 1, pierce: 1, duration: 0.1 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.05, amount: 1, pierce: 1, duration: 0.1 },
   },
   {
     type: WeaponType.Fireball,
@@ -261,7 +261,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 180,
     baseAmount: 1,
     basePierce: 99,
-    levelScaling: { damage: 0.25, cooldown: 0.05, area: 0.15, amount: 1, pierce: 0, duration: 0.1 },
+    levelScaling: { damage: 0.55, cooldown: 0.05, area: 0.15, amount: 1, pierce: 0, duration: 0.1 },
   },
   {
     type: WeaponType.IceShard,
@@ -276,7 +276,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 400,
     baseAmount: 2,
     basePierce: 3,
-    levelScaling: { damage: 0.15, cooldown: 0.06, area: 0.05, amount: 1, pierce: 1, duration: 0.08 },
+    levelScaling: { damage: 0.45, cooldown: 0.06, area: 0.05, amount: 1, pierce: 1, duration: 0.08 },
   },
   {
     type: WeaponType.Boomerang,
@@ -291,7 +291,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 250,
     baseAmount: 1,
     basePierce: 5,
-    levelScaling: { damage: 0.2, cooldown: 0.05, area: 0.08, amount: 1, pierce: 1, duration: 0.1 },
+    levelScaling: { damage: 0.5, cooldown: 0.05, area: 0.08, amount: 1, pierce: 1, duration: 0.1 },
   },
   {
     type: WeaponType.Scythe,
@@ -306,6 +306,6 @@ export const WEAPON_DEFS: WeaponDef[] = [
     baseSpeed: 100,
     baseAmount: 1,
     basePierce: 8,
-    levelScaling: { damage: 0.22, cooldown: 0.04, area: 0.1, amount: 1, pierce: 1, duration: 0.12 },
+    levelScaling: { damage: 0.5, cooldown: 0.04, area: 0.1, amount: 1, pierce: 1, duration: 0.12 },
   },
 ];

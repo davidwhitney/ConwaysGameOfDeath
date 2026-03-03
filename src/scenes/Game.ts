@@ -218,12 +218,10 @@ export class GameScene extends Phaser.Scene {
         this.damageNumbers.show(this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
       }
 
-      // Bad luck: chance to spawn a boss monster (not before 25% game progress)
-      const bossChance = this.gameTimeMs >= GAME_DURATION_MS * BOSS_SPAWN_MIN_PROGRESS
-        ? Math.max(0, BOSS_SPAWN_BASE_CHANCE * (1 - luckVal / BOSS_SPAWN_LUCK_DIVISOR))
-        : 0;
-      if (bossChance > 0 && Math.random() < bossChance) {
-        this.spawnBoss();
+      // Chance to spawn a boss monster (not before 25% game progress)
+      if (this.gameTimeMs >= GAME_DURATION_MS * BOSS_SPAWN_MIN_PROGRESS
+        && Math.random() < BOSS_SPAWN_BASE_CHANCE) {
+        this.spawnBoss(luckVal);
       }
     }
   }
@@ -381,7 +379,8 @@ export class GameScene extends Phaser.Scene {
       // Pick random angle and distance that's offscreen but not too far
       for (let attempt = 0; attempt < 20; attempt++) {
         const angle = this.rng.next() * Math.PI * 2;
-        const dist = 800 + this.rng.next() * 2000;
+        const maxDist = 2800 * (1 - luckValue * 0.6);
+        const dist = 200 + this.rng.next() * maxDist;
         const gx = px + Math.cos(angle) * dist;
         const gy = py + Math.sin(angle) * dist;
 

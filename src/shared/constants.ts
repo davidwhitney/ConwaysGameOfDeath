@@ -78,11 +78,11 @@ export const SCATTER_LUCK_BONUS = 2;
 export const SCATTER_MAX_COUNT = 20;
 
 // ─── Enemy Scaling ───
-export const ENEMY_HP_SCALING = 10.5;
+export const ENEMY_HP_SCALING = 7.0;
 export const ENEMY_DMG_SCALING = 3.6;
 
 // ─── Combat ───
-export const CRIT_DAMAGE_MULTIPLIER = 1.2;
+export const CRIT_DAMAGE_MULTIPLIER = 2.0;
 
 // ─── Network ───
 export const NET_INTERPOLATION_BUFFER_MS = 100;
