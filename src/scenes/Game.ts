@@ -14,8 +14,9 @@ import {
   BOSS_HP_MULTIPLIER, BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT,
   LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
   BOSS_SPAWN_BASE_CHANCE, BOSS_SPAWN_MIN_PROGRESS,
-  BOSS_SPAWN_DISTANCE,
+  BOSS_SPAWN_DISTANCE, BOSS_SPAWN_INTERVAL_START, BOSS_SPAWN_INTERVAL_END,
   SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
+  MAP_EVOLUTION_INTERVAL_MS,
 } from '../shared/constants';
 import { Player } from '../entities/Player';
 import { InputManager } from '../systems/InputManager';
@@ -54,6 +55,8 @@ export class GameScene extends Phaser.Scene {
   private pendingLevelUps: number = 0;
   private rerollCount: number = 0;
   private currentLevelUpOptions: LevelUpOption[] = [];
+  private bossSpawnTimer: number = 0;
+  private mapEvolutionTimer: number = 0;
   private visibilityHandler: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
 
@@ -69,6 +72,8 @@ export class GameScene extends Phaser.Scene {
     this.pendingLevelUps = 0;
     this.rerollCount = 0;
     this.currentLevelUpOptions = [];
+    this.bossSpawnTimer = 0;
+    this.mapEvolutionTimer = 0;
   }
 
   create(): void {
@@ -107,6 +112,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('enemy-killed', (e: { state: { x: number; y: number; xpValue: number; boss: boolean } }, w?: WeaponType) => this.handleEnemyKilled(e, w));
     this.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
     this.events.on('levelup-reroll', () => this.handleReroll());
+    this.events.on('levelup-skip', () => this.handleLevelUpSkip());
 
     // Pause when browser tab loses focus or window blurs
     this.visibilityHandler = () => {
@@ -133,6 +139,8 @@ export class GameScene extends Phaser.Scene {
 
     this.updateMovement(dt);
     this.updateSystems(delta);
+    this.updateBossSpawnTimer(delta);
+    this.updateMapEvolution(delta);
     this.checkEnemyPlayerCollision(time);
     this.weaponSystem.update(dt, this.player, this.enemyPool, this.damageNumbers);
     this.updatePickups(dt);
@@ -171,6 +179,29 @@ export class GameScene extends Phaser.Scene {
     this.enemyPool.update(delta / 1000, this.player.state.x, this.player.state.y);
   }
 
+  private updateBossSpawnTimer(delta: number): void {
+    const progress = this.gameTimeMs / GAME_DURATION_MS;
+    if (progress < BOSS_SPAWN_MIN_PROGRESS) return;
+
+    this.bossSpawnTimer -= delta;
+    if (this.bossSpawnTimer <= 0) {
+      const t = Math.min(1, (progress - BOSS_SPAWN_MIN_PROGRESS) / (1 - BOSS_SPAWN_MIN_PROGRESS));
+      const interval = BOSS_SPAWN_INTERVAL_START + (BOSS_SPAWN_INTERVAL_END - BOSS_SPAWN_INTERVAL_START) * t;
+      this.bossSpawnTimer = interval;
+      const luckVal = this.player.getEffectValue(EffectType.Luck);
+      this.spawnBoss(luckVal);
+    }
+  }
+
+  private updateMapEvolution(delta: number): void {
+    const evoSpeed = 1 + this.player.getEffectValue(EffectType.Evolution);
+    this.mapEvolutionTimer += delta * evoSpeed;
+    if (this.mapEvolutionTimer >= MAP_EVOLUTION_INTERVAL_MS) {
+      this.mapEvolutionTimer -= MAP_EVOLUTION_INTERVAL_MS;
+      this.triggerMapEvolution();
+    }
+  }
+
   private updatePickups(dt: number): void {
     const gemResult = this.xpGemPool.update(dt, this.player.state.x, this.player.state.y, this.player.getPickupRange());
 
@@ -202,11 +233,6 @@ export class GameScene extends Phaser.Scene {
       // Every 5 levels: scatter heal gems around the map
       if (this.player.state.level % 5 === 0) {
         this.scatterHealthGems();
-      }
-
-      // Evolve the map (delayed so the player sees it happen)
-      if (this.player.state.level % 3 === 0) {
-        this.time.delayedCall(3000, () => this.triggerMapEvolution());
       }
 
       // Luck-based heal on level up
@@ -366,6 +392,15 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private handleLevelUpSkip(): void {
+    // Skip without applying any choice
+    if (this.pendingLevelUps > 0) {
+      this.processLevelUp();
+    } else {
+      this.scene.resume();
+    }
+  }
+
   /** Scatter heal gems around the map, offscreen, based on luck */
   private scatterHealthGems(): void {
     const luckValue = this.player.getEffectValue(EffectType.Luck);
@@ -415,7 +450,7 @@ export class GameScene extends Phaser.Scene {
 
     const boss = this.enemyPool.spawn(type, bx, by, this.gameTimeMs, true);
     if (boss && luckValue > 0) {
-      const hpReduction = 1 - luckValue * 0.5;
+      const hpReduction = Math.max(0.7, 1 - luckValue * 0.1);
       boss.state.hp = Math.max(1, Math.floor(boss.state.hp * hpReduction));
       boss.state.maxHp = boss.state.hp;
     }
@@ -470,5 +505,6 @@ export class GameScene extends Phaser.Scene {
     this.events.off('enemy-killed');
     this.events.off('levelup-choice');
     this.events.off('levelup-reroll');
+    this.events.off('levelup-skip');
   }
 }

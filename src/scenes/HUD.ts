@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_DURATION_MS, MAX_LEVEL, WEAPON_DEFS, EFFECT_DEFS } from '../shared';
+import { GAME_DURATION_MS, MAX_LEVEL, WEAPON_DEFS, EFFECT_DEFS, MAX_WEAPONS, MAX_EFFECTS } from '../shared';
 import type { PlayerState, WeaponInstance, EffectInstance } from '../shared';
 import { applyUIZoom } from '../ui/uiScale';
 
@@ -107,14 +107,15 @@ export class HUDScene extends Phaser.Scene {
     this.hpBar.fillRect(10, 24, 200 * hpPct, 8);
     this.hpText.setText(`HP: ${Math.ceil(player.hp)}/${player.maxHp}`);
 
-    // XP bar (full width above inventory bar)
+    // XP bar (full width, pinned to very bottom)
+    const xpBarH = 8;
     const xpPct = player.xpToNext > 0 ? player.xp / player.xpToNext : 0;
     this.xpBar.clear();
-    const xpBarY = height - SLOT_SIZE - 16;
+    const xpBarY = height - xpBarH;
     this.xpBar.fillStyle(0x333333, 0.6);
-    this.xpBar.fillRect(0, xpBarY, width, 4);
+    this.xpBar.fillRect(0, xpBarY, width, xpBarH);
     this.xpBar.fillStyle(0x00ccff, 1);
-    this.xpBar.fillRect(0, xpBarY, width * xpPct, 4);
+    this.xpBar.fillRect(0, xpBarY, width * xpPct, xpBarH);
 
     // Level
     this.levelText.setText(`Lv ${player.level}`);
@@ -149,30 +150,42 @@ export class HUDScene extends Phaser.Scene {
     for (const t of this.inventoryTexts) t.destroy();
     this.inventoryTexts = [];
 
-    const totalSlots = weapons.length + effects.length;
-    if (totalSlots === 0) return;
-
-    const barWidth = totalSlots * (SLOT_SIZE + SLOT_GAP) - SLOT_GAP;
+    // 6x2 grid: weapons on top row, effects on bottom row (always show all slots)
+    const COLS = 6;
+    const xpBarH = 8;
+    const barWidth = COLS * (SLOT_SIZE + SLOT_GAP) - SLOT_GAP;
     const startX = (screenW - barWidth) / 2;
-    const y = screenH - SLOT_SIZE - 6;
+    const rowBottom = screenH - xpBarH - SLOT_SIZE - 6;
+    const rowTop = rowBottom - SLOT_SIZE - 14;
 
-    let idx = 0;
-
-    // Draw weapon slots
-    for (const w of weapons) {
-      const def = WEAPON_DEFS[w.type];
-      const x = startX + idx * (SLOT_SIZE + SLOT_GAP);
-      this.drawSlot(x, y, def.color, def.name, w.level);
-      idx++;
+    // Draw all weapon slots (top row)
+    for (let i = 0; i < MAX_WEAPONS; i++) {
+      const x = startX + i * (SLOT_SIZE + SLOT_GAP);
+      if (i < weapons.length) {
+        const def = WEAPON_DEFS[weapons[i].type];
+        this.drawSlot(x, rowTop, def.color, def.name, weapons[i].level);
+      } else {
+        this.drawEmptySlot(x, rowTop);
+      }
     }
 
-    // Draw effect slots
-    for (const e of effects) {
-      const def = EFFECT_DEFS[e.type];
-      const x = startX + idx * (SLOT_SIZE + SLOT_GAP);
-      this.drawSlot(x, y, def.color, def.name, e.level);
-      idx++;
+    // Draw all effect slots (bottom row)
+    for (let i = 0; i < MAX_EFFECTS; i++) {
+      const x = startX + i * (SLOT_SIZE + SLOT_GAP);
+      if (i < effects.length) {
+        const def = EFFECT_DEFS[effects[i].type];
+        this.drawSlot(x, rowBottom, def.color, def.name, effects[i].level);
+      } else {
+        this.drawEmptySlot(x, rowBottom);
+      }
     }
+  }
+
+  private drawEmptySlot(x: number, y: number): void {
+    this.inventoryGfx.fillStyle(0x111122, 0.4);
+    this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
+    this.inventoryGfx.lineStyle(1, 0x333344, 0.6);
+    this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
   }
 
   private drawSlot(x: number, y: number, color: number, name: string, level: number): void {

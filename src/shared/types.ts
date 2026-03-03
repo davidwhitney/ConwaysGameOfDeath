@@ -194,6 +194,7 @@ export enum EffectType {
   StrongAuras,
   Fury,
   Focused,
+  Evolution,
 }
 
 // ─── Map Types ───

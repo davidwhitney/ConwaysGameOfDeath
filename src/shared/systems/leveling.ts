@@ -24,7 +24,8 @@ export function totalXpToLevel(level: number): number {
  * - 3 choices offered
  * - Can offer new weapons (if < MAX_WEAPONS) or upgrade existing ones (if < max level)
  * - Can offer new effects (if < MAX_EFFECTS) or upgrade existing ones
- * - Owned items are weighted 3x more likely to appear
+ * - Owned items are weighted 1.5x more likely to appear
+ * - New items only offered if slots available for that type
  */
 export function generateLevelUpOptions(
   weapons: WeaponInstance[],
@@ -69,7 +70,7 @@ export function generateLevelUpOptions(
             kind: cat.kind, type: item.type, newLevel: item.level + 1,
             name: def.name, description: cat.upgradeDesc(item.type, item.level + 1),
           },
-          weight: 3,
+          weight: 1.5,
         });
       }
     }
@@ -139,13 +140,17 @@ export function applyLevelUpChoice(state: PlayerState, choice: LevelUpOption): v
     case 'weapon': {
       const existing = state.weapons.find(w => w.type === choice.type);
       if (existing) existing.level = choice.newLevel;
-      else state.weapons.push({ type: choice.type as WeaponType, level: 1, cooldownTimer: 0 });
+      else if (state.weapons.length < MAX_WEAPONS) {
+        state.weapons.push({ type: choice.type as WeaponType, level: 1, cooldownTimer: 0 });
+      }
       break;
     }
     case 'effect': {
       const existing = state.effects.find(e => e.type === choice.type);
       if (existing) existing.level = choice.newLevel;
-      else state.effects.push({ type: choice.type as number, level: 1 });
+      else if (state.effects.length < MAX_EFFECTS) {
+        state.effects.push({ type: choice.type as number, level: 1 });
+      }
       break;
     }
     case 'gold':

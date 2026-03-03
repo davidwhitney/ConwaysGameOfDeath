@@ -29,8 +29,8 @@ export const XP_DROP_BASE_CHANCE = 0.70;
 export const XP_DROP_LUCK_BONUS = 0.06; // per luck level
 
 // ─── Gold Drop ───
-export const GOLD_DROP_BASE_CHANCE = 0.10;
-export const GOLD_DROP_LUCK_BONUS = 0.04; // per luck level
+export const GOLD_DROP_BASE_CHANCE = 0.04;
+export const GOLD_DROP_LUCK_BONUS = 0.02; // per luck level
 
 // ─── Reroll ───
 export const GOLD_REROLL_BASE_COST = 10;
@@ -48,6 +48,9 @@ export const CA_MAP_FILL_CHANCE = 0.39; // more open than default but not barren
 // ─── Camera ───
 export const CAMERA_ZOOM = 1.25;
 
+// ─── Map Evolution ───
+export const MAP_EVOLUTION_INTERVAL_MS = 90000; // 90s base interval
+
 // ─── Physics ───
 export const SPATIAL_CELL_SIZE = 64;
 
@@ -59,13 +62,16 @@ export const XP_BASE = 5;
 export const XP_GROWTH = 0.2; // quadratic coefficient
 
 // ─── Boss ───
-export const BOSS_HP_MULTIPLIER = 10;
+export const BOSS_HP_MULTIPLIER = 25;
 export const BOSS_SIZE_MULTIPLIER = 4;
 export const BOSS_SPAWN_DISTANCE = 600;
 export const BOSS_KILL_HEAL_PCT = 0.5;
-export const BOSS_SPAWN_BASE_CHANCE = 0.10;
+export const BOSS_SPAWN_BASE_CHANCE = 0.25;
 export const BOSS_SPAWN_LUCK_DIVISOR = 0.35;
 export const BOSS_SPAWN_MIN_PROGRESS = 0.25;
+export const BOSS_DAMAGE_MULTIPLIER = 2;
+export const BOSS_SPAWN_INTERVAL_START = 60000; // 60s at 25% progress
+export const BOSS_SPAWN_INTERVAL_END = 20000;   // 20s at 100% progress
 
 // ─── Healing ───
 export const HEAL_GEM_PCT = 0.25;

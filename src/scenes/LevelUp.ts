@@ -111,10 +111,14 @@ export class LevelUpScene extends Phaser.Scene {
     const canAfford = this.gold >= this.rerollCost;
     const btnColor = canAfford ? 0x334433 : 0x222222;
     const textColor = canAfford ? '#88cc88' : '#666666';
-    const btnW = Math.min(200, width - 40);
-    const rerollBtn = this.add.rectangle(width / 2, rerollBtnY, btnW, 28, btnColor)
+    const btnW = Math.min(160, (width - 60) / 2);
+    const btnGap = 12;
+
+    // Reroll button (left)
+    const rerollX = width / 2 - btnW / 2 - btnGap / 2;
+    const rerollBtn = this.add.rectangle(rerollX, rerollBtnY, btnW, 28, btnColor)
       .setStrokeStyle(1, canAfford ? 0x558855 : 0x444444);
-    this.add.text(width / 2, rerollBtnY, `Re-roll [R/Y] - ${this.rerollCost}g`, {
+    this.add.text(rerollX, rerollBtnY, `Re-roll [R/Y] - ${this.rerollCost}g`, {
       fontSize: '12px',
       fontFamily: 'monospace',
       color: textColor,
@@ -125,6 +129,20 @@ export class LevelUpScene extends Phaser.Scene {
         .on('pointerout', () => rerollBtn.setFillStyle(0x334433))
         .on('pointerdown', () => this.reroll());
     }
+
+    // Skip button (right)
+    const skipX = width / 2 + btnW / 2 + btnGap / 2;
+    const skipBtn = this.add.rectangle(skipX, rerollBtnY, btnW, 28, 0x332222)
+      .setStrokeStyle(1, 0x554444);
+    this.add.text(skipX, rerollBtnY, 'Skip [E/B]', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#cc8888',
+    }).setOrigin(0.5);
+    skipBtn.setInteractive({ useHandCursor: true })
+      .on('pointerover', () => skipBtn.setFillStyle(0x443333))
+      .on('pointerout', () => skipBtn.setFillStyle(0x332222))
+      .on('pointerdown', () => this.skip());
 
     // Keyboard navigation via native DOM listener
     this.kbSelected = 0;
@@ -147,13 +165,15 @@ export class LevelUpScene extends Phaser.Scene {
         this.selectOption(this.kbSelected);
       } else if (key === 'r') {
         if (this.gold >= this.rerollCost) this.reroll();
+      } else if (key === 'e') {
+        this.skip();
       }
     };
     window.addEventListener('keydown', this.keyHandler);
 
     // Gamepad navigation
     const direction = this.isNarrow ? 'vertical' as const : 'horizontal' as const;
-    this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), null, direction);
+    this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), () => this.skip(), direction);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => this.shutdown());
@@ -266,6 +286,13 @@ export class LevelUpScene extends Phaser.Scene {
       .on('pointerdown', () => {
         this.selectOption(i);
       });
+  }
+
+  private skip(): void {
+    this.cleanupKeyHandler();
+    const gameScene = this.scene.get('Game');
+    gameScene.events.emit('levelup-skip');
+    this.scene.stop();
   }
 
   private reroll(): void {

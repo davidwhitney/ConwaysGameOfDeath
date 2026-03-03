@@ -7,7 +7,7 @@ import {
 import { ENEMY_DEFS } from '../shared';
 import {
   ENEMY_HP_SCALING, ENEMY_DMG_SCALING,
-  BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER,
+  BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER,
 } from '../shared/constants';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
@@ -76,7 +76,7 @@ export class Enemy {
       hp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
       maxHp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
       speed: this.def.baseSpeed,
-      damage: Math.floor(this.def.baseDamage * dmgScale),
+      damage: Math.floor(this.def.baseDamage * dmgScale * (boss ? BOSS_DAMAGE_MULTIPLIER : 1)),
       alive: true,
       xpValue: this.def.xpValue,
       boss,

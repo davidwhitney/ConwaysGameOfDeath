@@ -105,4 +105,12 @@ export const EFFECT_DEFS: EffectDef[] = [
     maxLevel: 5,
     levelValues: [1, 2, 3, 4, 5],
   },
+  {
+    type: EffectType.Evolution,
+    name: 'Evolution',
+    description: 'Map evolves faster, reshaping the world',
+    color: 0x44bb44,
+    maxLevel: 5,
+    levelValues: [0.5, 1.25, 2.0, 4.0, 8.0],
+  },
 ];
