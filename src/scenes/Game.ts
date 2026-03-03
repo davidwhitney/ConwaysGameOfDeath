@@ -281,8 +281,56 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private handleEnemyKilled(enemy: { state: { x: number; y: number; xpValue: number; boss: boolean } }, weaponType?: WeaponType): void {
+  private spawnDeathBurst(x: number, y: number, color: number, boss: boolean): void {
+    const count = boss ? 12 : 6;
+    const dist = boss ? 50 : 28;
+    const radius = boss ? 5 : 3;
+
+    const gfx = this.add.graphics().setDepth(15);
+    gfx.fillStyle(color, 1);
+    for (let i = 0; i < count; i++) {
+      gfx.fillCircle(0, 0, radius);
+    }
+
+    const particles: { ax: number; ay: number; dx: number; dy: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+      const r = dist * (0.5 + Math.random() * 0.5);
+      particles.push({
+        ax: x, ay: y,
+        dx: x + Math.cos(angle) * r,
+        dy: y + Math.sin(angle) * r,
+      });
+    }
+
+    let elapsed = 0;
+    const duration = 350;
+    const onUpdate = (_time: number, delta: number) => {
+      elapsed += delta;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = 1 - (1 - t) * (1 - t); // quadratic ease-out
+      const alpha = 1 - t;
+      const s = 1 - t * 0.6;
+
+      gfx.clear();
+      gfx.fillStyle(color, alpha);
+      for (const p of particles) {
+        const px = p.ax + (p.dx - p.ax) * ease;
+        const py = p.ay + (p.dy - p.ay) * ease;
+        gfx.fillCircle(px, py, radius * s);
+      }
+
+      if (t >= 1) {
+        this.events.off('update', onUpdate);
+        gfx.destroy();
+      }
+    };
+    this.events.on('update', onUpdate);
+  }
+
+  private handleEnemyKilled(enemy: { state: { x: number; y: number; xpValue: number; boss: boolean }; def?: { color: number } }, weaponType?: WeaponType): void {
     this.kills++;
+    this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def?.color ?? 0xffffff, enemy.state.boss);
     const luckValue = this.player.getEffectValue(EffectType.Luck);
     const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));
     if (Math.random() < dropChance) {
