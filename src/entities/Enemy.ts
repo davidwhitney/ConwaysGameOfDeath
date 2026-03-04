@@ -41,6 +41,8 @@ export class Enemy {
   // Slow effect
   private slowFactor: number = 1;
   private slowUntil: number = 0;
+  // Knockback immunity
+  knockbackImmuneUntil: number = 0;
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -90,6 +92,8 @@ export class Enemy {
     this.sprite.setAlpha(1);
     this.sprite.setScale(boss ? BOSS_SIZE_MULTIPLIER : 1);
 
+    // Reset knockback immunity
+    this.knockbackImmuneUntil = 0;
     // Init behavior state
     this.orbitAngle = Math.random() * Math.PI * 2;
     this.teleportTimer = 2000 + Math.random() * 3000;

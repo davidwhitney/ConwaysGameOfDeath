@@ -8,6 +8,7 @@ import { GameEvents } from '../GameEvents';
 export abstract class BaseWeapon {
   protected ctx: WeaponContext;
   protected def: WeaponDef;
+  protected appliesKnockback = true;
 
   constructor(ctx: WeaponContext, def: WeaponDef) {
     this.ctx = ctx;
@@ -58,14 +59,17 @@ export abstract class BaseWeapon {
     }
 
     // Knockback: push enemy away from player (Death is pulled toward player)
+    // Skipped for AoE weapons and during knockback immunity
     const knockback = player.getEffectValue(EffectType.Knockback);
-    if (knockback > 0 && enemy.state.alive) {
+    const now = this.ctx.scene.time.now;
+    if (this.appliesKnockback && knockback > 0 && enemy.state.alive && now >= enemy.knockbackImmuneUntil) {
       const dx = enemy.state.x - player.state.x;
       const dy = enemy.state.y - player.state.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
       const mult = enemy.state.type === EnemyType.Death ? DEATH_KNOCKBACK_MULT : 1;
       enemy.state.x += (dx / dist) * knockback * mult;
       enemy.state.y += (dy / dist) * knockback * mult;
+      enemy.knockbackImmuneUntil = now + 500;
     }
 
     if (killed) {

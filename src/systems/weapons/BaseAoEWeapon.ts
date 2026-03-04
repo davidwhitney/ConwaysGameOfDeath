@@ -16,6 +16,7 @@ interface ActiveAoE {
 }
 
 export class BaseAoEWeapon extends BaseWeapon {
+  protected override appliesKnockback = false;
   protected aoes: ActiveAoE[] = [];
   private gfxPool: Phaser.GameObjects.Graphics[] = [];
 

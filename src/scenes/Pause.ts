@@ -3,6 +3,7 @@ import { applyUIZoom } from '../ui/uiScale';
 import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 export class PauseScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -60,6 +61,8 @@ export class PauseScene extends Phaser.Scene {
     // Gamepad navigation — B/Start → resume
     const actions = [() => this.resume(), () => this.openSettings(), () => this.quit()];
     this.gpNav = new GamepadNav(this, 3, (i) => actions[i](), () => this.resume());
+
+    onResizeRestart(this);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {

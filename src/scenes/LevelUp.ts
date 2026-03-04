@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { type LevelUpOption, WEAPON_DEFS, EFFECT_DEFS, WeaponType } from '../shared';
 import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 export class LevelUpScene extends Phaser.Scene {
   private options: LevelUpOption[] = [];
@@ -14,12 +15,14 @@ export class LevelUpScene extends Phaser.Scene {
   private gold = 0;
   private rerollCost = 0;
   private prevY = false;
+  private initData: { options: LevelUpOption[]; gold?: number; rerollCost?: number } = { options: [] };
 
   constructor() {
     super({ key: 'LevelUp' });
   }
 
   init(data: { options: LevelUpOption[]; gold?: number; rerollCost?: number }): void {
+    this.initData = data;
     this.options = data.options;
     this.gold = data.gold ?? 0;
     this.rerollCost = data.rerollCost ?? 10;
@@ -175,6 +178,8 @@ export class LevelUpScene extends Phaser.Scene {
     // Gamepad navigation
     const direction = this.isNarrow ? 'vertical' as const : 'horizontal' as const;
     this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), () => this.skip(), direction);
+
+    onResizeRestart(this, this.initData);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => this.shutdown());

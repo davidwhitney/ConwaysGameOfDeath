@@ -5,6 +5,7 @@ import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
 import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/preferences';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -21,12 +22,14 @@ export class SettingsScene extends Phaser.Scene {
   private clearConfirm = false;
   private settings!: Settings;
   private returnTo: string = 'MainMenu';
+  private initData?: { returnTo?: string };
 
   constructor() {
     super({ key: 'Settings' });
   }
 
   init(data?: { returnTo?: string }): void {
+    this.initData = data;
     this.returnTo = data?.returnTo ?? 'MainMenu';
   }
 
@@ -122,6 +125,8 @@ export class SettingsScene extends Phaser.Scene {
       () => this.goBack(),
     ];
     this.gpNav = new GamepadNav(this, 5, (i) => actions[i](), () => this.goBack());
+
+    onResizeRestart(this, this.initData);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {

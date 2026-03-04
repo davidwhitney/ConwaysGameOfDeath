@@ -6,6 +6,7 @@ import { monoStyle } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { loadSettings, saveSettings } from '../ui/preferences';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 interface BloodDrip {
   x: number;
@@ -29,6 +30,8 @@ export class MainMenuScene extends Phaser.Scene {
   private drips: BloodDrip[] = [];
   private dripGfx!: Phaser.GameObjects.Graphics;
   private gol!: BackgroundGameOfLife;
+  private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, scores: 0.72, settings: 0.82, hint: 0.92 };
+  private currentSeed = '';
 
   constructor() {
     super({ key: 'MainMenu' });
@@ -38,6 +41,10 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = applyUIZoom(this);
 
     applyCRT(this);
+
+    // Compute flow-based layout so elements never overlap on short screens
+    this.computeLayout(height);
+    const ly = this.layoutFracs;
 
     // Game of Life background
     this.gol = new BackgroundGameOfLife(this, width, height);
@@ -57,7 +64,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Play button
     const play = createButton(this, {
-      x: width / 2, y: height * 0.58, width: 220, height: 50,
+      x: width / 2, y: height * ly.play, width: 220, height: 50,
       label: 'PLAY', fontSize: '24px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.startGame(),
@@ -71,7 +78,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // High scores button
     const scores = createButton(this, {
-      x: width / 2, y: height * 0.72, width: 200, height: 45,
+      x: width / 2, y: height * ly.scores, width: 200, height: 45,
       label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
       fillColor: 0x333344, hoverColor: 0x444466,
       onClick: () => this.scene.start('HighScores'),
@@ -79,7 +86,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Settings button
     const settings = createButton(this, {
-      x: width / 2, y: height * 0.82, width: 200, height: 45,
+      x: width / 2, y: height * ly.settings, width: 200, height: 45,
       label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
       fillColor: 0x333344, hoverColor: 0x444466,
       onClick: () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
@@ -94,7 +101,7 @@ export class MainMenuScene extends Phaser.Scene {
     settings.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
 
     // Controls hint
-    this.add.text(width / 2, height * 0.92, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
+    this.add.text(width / 2, height * ly.hint, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
       monoStyle('12px', '#666688'),
     ).setOrigin(0.5);
 
@@ -114,6 +121,9 @@ export class MainMenuScene extends Phaser.Scene {
     ];
     this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
 
+    // Restart on resize so layout adapts
+    onResizeRestart(this);
+
     // Ensure seed input is removed on any scene transition
     this.events.once('shutdown', () => this.removeSeedInput());
   }
@@ -124,7 +134,8 @@ export class MainMenuScene extends Phaser.Scene {
 
     this.seedInput = document.createElement('input');
     this.seedInput.type = 'text';
-    this.seedInput.value = String(Date.now());
+    if (!this.currentSeed) this.currentSeed = String(Date.now());
+    this.seedInput.value = this.currentSeed;
     this.seedInput.maxLength = 20;
     this.seedInput.setAttribute('aria-label', 'Game seed');
     Object.assign(this.seedInput.style, {
@@ -153,6 +164,10 @@ export class MainMenuScene extends Phaser.Scene {
       this.seedInput.style.borderColor = '#333355';
       this.input.keyboard!.enabled = true;
     });
+    // Track seed changes
+    this.seedInput.addEventListener('input', () => {
+      this.currentSeed = this.seedInput.value;
+    });
     // Enter while focused → start game
     this.seedInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -163,9 +178,6 @@ export class MainMenuScene extends Phaser.Scene {
 
     canvas.parentElement!.appendChild(this.seedInput);
     this.positionSeedInput();
-
-    // Reposition on resize
-    this.scale.on('resize', () => this.positionSeedInput());
   }
 
   private createEndlessCheckbox(): void {
@@ -213,26 +225,45 @@ export class MainMenuScene extends Phaser.Scene {
     this.endlessContainer.appendChild(label);
     canvas.parentElement!.appendChild(this.endlessContainer);
     this.positionEndlessCheckbox();
-    this.scale.on('resize', () => this.positionEndlessCheckbox());
   }
 
   private positionEndlessCheckbox(): void {
     const rect = this.game.canvas.getBoundingClientRect();
     const x = rect.left + rect.width / 2 - 60;
-    const y = rect.top + rect.height * 0.63;
+    const y = rect.top + rect.height * this.layoutFracs.endless;
     this.endlessContainer.style.left = `${x}px`;
     this.endlessContainer.style.top = `${y}px`;
   }
 
   private positionSeedInput(): void {
-    const canvas = this.game.canvas;
-    const rect = canvas.getBoundingClientRect();
-    const cam = this.cameras.main;
-    // Place above play button at ~52% height
+    const rect = this.game.canvas.getBoundingClientRect();
     const x = rect.left + rect.width / 2 - 80;
-    const y = rect.top + rect.height * 0.52;
+    const y = rect.top + rect.height * this.layoutFracs.seed;
     this.seedInput.style.left = `${x}px`;
     this.seedInput.style.top = `${y}px`;
+  }
+
+  private computeLayout(height: number): void {
+    const startY = height * 0.45;
+    const endY = height * 0.97;
+    const avail = endY - startY;
+
+    const keys: (keyof typeof this.layoutFracs)[] = ['seed', 'play', 'endless', 'scores', 'settings', 'hint'];
+    const heights = [28, 50, 22, 45, 45, 16];
+
+    const totalItemH = heights.reduce((s, h) => s + h, 0);
+    const minGap = 4;
+    const totalMinGap = minGap * (keys.length - 1);
+    const extra = Math.max(0, avail - totalItemH - totalMinGap);
+    const gap = minGap + extra / (keys.length - 1);
+
+    let y = startY + heights[0] / 2;
+    for (let i = 0; i < keys.length; i++) {
+      this.layoutFracs[keys[i]] = y / height;
+      if (i < keys.length - 1) {
+        y += heights[i] / 2 + gap + heights[i + 1] / 2;
+      }
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -324,7 +355,6 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private removeSeedInput(): void {
-    this.scale.off('resize');
     this.seedInput?.remove();
     this.endlessContainer?.remove();
   }

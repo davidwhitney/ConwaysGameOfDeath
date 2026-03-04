@@ -4,6 +4,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { GameEvents } from '../systems/GameEvents';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 export class ReviveScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -14,12 +15,14 @@ export class ReviveScene extends Phaser.Scene {
   private kbSelected = 0;
   private gold = 0;
   private cost = 0;
+  private initData: { gold: number; cost: number } = { gold: 0, cost: 0 };
 
   constructor() {
     super({ key: 'Revive' });
   }
 
   init(data: { gold: number; cost: number }): void {
+    this.initData = data;
     this.gold = data.gold;
     this.cost = data.cost;
   }
@@ -103,6 +106,8 @@ export class ReviveScene extends Phaser.Scene {
       if (canAfford && i === 0) this.accept();
       else this.decline();
     }, () => this.decline());
+
+    onResizeRestart(this, this.initData);
 
     this.events.once('shutdown', () => this.shutdown());
   }

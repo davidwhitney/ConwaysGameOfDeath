@@ -159,7 +159,7 @@ export const EFFECT_DEFS: EffectDef[] = [
     description: 'Weapon hits push enemies away from you',
     color: 0x88bbdd,
     maxLevel: 5,
-    levelValues: [30, 50, 75, 100, 140],
+    levelValues: [10, 25, 50, 80, 120],
   },
   {
     type: EffectType.SlowAura,

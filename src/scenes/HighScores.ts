@@ -5,6 +5,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 export class HighScoresScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
@@ -76,6 +77,8 @@ export class HighScoresScene extends Phaser.Scene {
 
     // Gamepad navigation — A/B/Start all go back
     this.gpNav = new GamepadNav(this, 1, () => this.goBack(), () => this.goBack());
+
+    onResizeRestart(this);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {

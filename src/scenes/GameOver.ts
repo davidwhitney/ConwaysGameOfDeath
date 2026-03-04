@@ -5,6 +5,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
+import { onResizeRestart } from '../ui/resizeHandler';
 
 interface GameOverData {
   victory: boolean;
@@ -19,24 +20,33 @@ export class GameOverScene extends Phaser.Scene {
   private buttons: Phaser.GameObjects.Rectangle[] = [];
   private readonly defaultFills = [0x333366, 0x333344, 0x333344];
   private readonly hoverFills = [0x444488, 0x444466, 0x444466];
+  private initData: GameOverData | null = null;
+  private rank = 0;
 
   constructor() {
     super({ key: 'GameOver' });
   }
 
-  create(data: GameOverData): void {
+  init(data: GameOverData): void {
+    // Only save score on fresh scene start, not resize-restart (same ref)
+    if (this.initData !== data) {
+      this.rank = addScore({
+        kills: data.kills,
+        level: data.level,
+        time: data.time,
+        victory: data.victory,
+        date: Date.now(),
+        seed: data.seed,
+      });
+      this.initData = data;
+    }
+  }
+
+  create(): void {
+    const data = this.initData!;
+    const rank = this.rank;
     const { width, height } = applyUIZoom(this);
     applyCRT(this);
-
-    // Save score
-    const rank = addScore({
-      kills: data.kills,
-      level: data.level,
-      time: data.time,
-      victory: data.victory,
-      date: Date.now(),
-      seed: data.seed,
-    });
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8);
@@ -110,6 +120,8 @@ export class GameOverScene extends Phaser.Scene {
       () => this.goToMenu(),
     ];
     this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
+
+    onResizeRestart(this, this.initData!);
 
     // Cleanup on shutdown
     this.events.once('shutdown', () => {
