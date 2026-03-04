@@ -157,9 +157,9 @@ export class GameScene extends Phaser.Scene {
 
   private handleReviveAccept(): void {
     this.player.state.gold -= this.getReviveCost();
-    this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.5);
+    this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.75);
     this.player.state.alive = true;
-    this.player.state.invincibleUntil = this.gameTimeMs + 2000;
+    this.player.state.invincibleUntil = this.gameTimeMs + 4000;
     this.reviveCount++;
     this.awaitingRevive = false;
     this.scene.stop('Revive');
