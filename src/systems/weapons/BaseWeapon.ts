@@ -3,6 +3,7 @@ import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../shared/const
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
 import type { WeaponContext } from './WeaponContext';
+import { GameEvents } from '../GameEvents';
 
 export abstract class BaseWeapon {
   protected ctx: WeaponContext;
@@ -45,7 +46,7 @@ export abstract class BaseWeapon {
       finalDamage = Math.floor(damage * (CRIT_DAMAGE_MULTIPLIER + critChance));
     }
     const killed = enemy.takeDamage(finalDamage);
-    this.ctx.scene.events.emit('show-damage', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+    GameEvents.emit(this.ctx.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
 
     // Lifesteal: heal player for % of damage dealt
     const lifesteal = player.getEffectValue(EffectType.Lifesteal);
@@ -68,7 +69,7 @@ export abstract class BaseWeapon {
     }
 
     if (killed) {
-      this.ctx.scene.events.emit('enemy-killed', enemy, weaponType);
+      GameEvents.emit(this.ctx.scene.events, 'enemy-killed', enemy, weaponType);
     }
   }
 

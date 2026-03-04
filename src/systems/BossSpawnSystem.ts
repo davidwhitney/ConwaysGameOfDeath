@@ -8,11 +8,14 @@ import {
 } from '../shared/constants';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
+import { GameEvents } from './GameEvents';
 
 export class BossSpawnSystem implements GameSystem {
   private scene: Phaser.Scene;
   private rng: SeededRandom;
   private timer: number = 0;
+  private cachedProgress: number = -1;
+  private cachedAvailableTypes: typeof ENEMY_DEFS = [];
 
   constructor(scene: Phaser.Scene, rng: SeededRandom) {
     this.scene = scene;
@@ -37,10 +40,15 @@ export class BossSpawnSystem implements GameSystem {
   private spawnBoss(ctx: UpdateContext, luckValue: number, gameTimeMs: number): void {
     const { player, enemyPool } = ctx;
     const progress = gameTimeMs / GAME_DURATION_MS;
-    const availableTypes = ENEMY_DEFS.filter(d => progress >= d.unlockAt);
-    if (availableTypes.length === 0) return;
 
-    const type = availableTypes[Math.floor(this.rng.next() * availableTypes.length)].type;
+    if (progress !== this.cachedProgress) {
+      this.cachedAvailableTypes = ENEMY_DEFS.filter(d => progress >= d.unlockAt);
+      this.cachedProgress = progress;
+    }
+
+    if (this.cachedAvailableTypes.length === 0) return;
+
+    const type = this.cachedAvailableTypes[Math.floor(this.rng.next() * this.cachedAvailableTypes.length)].type;
     const angle = this.rng.next() * Math.PI * 2;
     const bx = player.state.x + Math.cos(angle) * BOSS_SPAWN_DISTANCE;
     const by = player.state.y + Math.sin(angle) * BOSS_SPAWN_DISTANCE;
@@ -51,7 +59,7 @@ export class BossSpawnSystem implements GameSystem {
       boss.state.hp = Math.max(1, Math.floor(boss.state.hp * hpReduction));
       boss.state.maxHp = boss.state.hp;
     }
-    this.scene.events.emit('screen-shake', 200, 0.008);
+    GameEvents.emit(this.scene.events, 'screen-shake', 200, 0.008);
   }
 
   reset(): void {

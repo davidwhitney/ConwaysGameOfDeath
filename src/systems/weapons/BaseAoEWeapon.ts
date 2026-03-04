@@ -17,6 +17,20 @@ interface ActiveAoE {
 
 export class BaseAoEWeapon extends BaseWeapon {
   protected aoes: ActiveAoE[] = [];
+  private gfxPool: Phaser.GameObjects.Graphics[] = [];
+
+  private acquireGfx(): Phaser.GameObjects.Graphics {
+    const gfx = this.gfxPool.pop() ?? this.ctx.scene.add.graphics();
+    gfx.setVisible(true);
+    gfx.setDepth(6);
+    return gfx;
+  }
+
+  private releaseGfx(gfx: Phaser.GameObjects.Graphics): void {
+    gfx.clear();
+    gfx.setVisible(false);
+    this.gfxPool.push(gfx);
+  }
 
   protected pickTarget(player: Player): { x: number; y: number } {
     const angle = Math.random() * Math.PI * 2;
@@ -38,8 +52,7 @@ export class BaseAoEWeapon extends BaseWeapon {
 
     for (let i = 0; i < stats.amount; i++) {
       const target = this.pickTarget(player);
-      const gfx = this.ctx.scene.add.graphics();
-      gfx.setDepth(6);
+      const gfx = this.acquireGfx();
 
       this.aoes.push({
         weaponType: this.def.type,
@@ -61,7 +74,7 @@ export class BaseAoEWeapon extends BaseWeapon {
       a.age += dt * 1000;
 
       if (a.age >= a.duration) {
-        a.gfx.destroy();
+        this.releaseGfx(a.gfx);
         this.aoes.splice(i, 1);
         continue;
       }
@@ -88,6 +101,8 @@ export class BaseAoEWeapon extends BaseWeapon {
 
   destroy(): void {
     for (const a of this.aoes) a.gfx.destroy();
+    for (const gfx of this.gfxPool) gfx.destroy();
     this.aoes.length = 0;
+    this.gfxPool.length = 0;
   }
 }

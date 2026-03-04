@@ -11,6 +11,7 @@ import {
 import type { Player } from '../entities/Player';
 import type { UpdateContext } from '../systems/UpdateContext';
 import type { GameSystem } from '../systems/GameSystem';
+import { GameEvents } from '../systems/GameEvents';
 
 export class LevelUpSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -26,9 +27,9 @@ export class LevelUpSystem implements GameSystem {
     this.player = player;
     this.rng = rng;
 
-    this.scene.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
-    this.scene.events.on('levelup-reroll', () => this.handleReroll());
-    this.scene.events.on('levelup-skip', () => this.handleLevelUpSkip());
+    GameEvents.on(this.scene.events, 'levelup-choice', (index) => this.handleLevelUpChoice(index));
+    GameEvents.on(this.scene.events, 'levelup-reroll', () => this.handleReroll());
+    GameEvents.on(this.scene.events, 'levelup-skip', () => this.handleLevelUpSkip());
   }
 
   public update(_ctx: UpdateContext): void {
@@ -46,7 +47,7 @@ export class LevelUpSystem implements GameSystem {
         const healPct = LEVELUP_LUCK_BASE_HEAL_PCT + luckVal * LEVELUP_LUCK_HEAL_SCALING;
         const healAmt = Math.floor(this.player.state.maxHp * healPct);
         this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmt);
-        this.scene.events.emit('show-damage', this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
+        GameEvents.emit(this.scene.events, 'show-damage', this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
       }
     }
 
@@ -92,9 +93,9 @@ export class LevelUpSystem implements GameSystem {
   }
 
   destroy(): void {
-    this.scene.events.off('levelup-choice');
-    this.scene.events.off('levelup-reroll');
-    this.scene.events.off('levelup-skip');
+    GameEvents.off(this.scene.events, 'levelup-choice');
+    GameEvents.off(this.scene.events, 'levelup-reroll');
+    GameEvents.off(this.scene.events, 'levelup-skip');
   }
 
   private handleLevelUpChoice(index: number): void {
@@ -102,6 +103,7 @@ export class LevelUpSystem implements GameSystem {
     if (!options || index >= options.length) return;
 
     applyLevelUpChoice(this.player.state, options[index]);
+    this.player.invalidateEffectCache();
 
     if (this.pendingLevelUps > 0) {
       this.processLevelUp();

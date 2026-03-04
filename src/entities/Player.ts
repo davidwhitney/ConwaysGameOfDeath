@@ -16,6 +16,11 @@ export class Player {
   facingY: number = 0;
   private baseMaxHp: number = PLAYER_BASE_HP;
 
+  private effectValueCache: Map<EffectType, number> = new Map();
+  private effectCacheRef: EffectInstance[] | null = null;
+  private effectCacheLength: number = -1;
+  private effectCacheDirty: boolean = true;
+
   constructor(scene: Phaser.Scene, x: number, y: number, id: string = 'local') {
     this.scene = scene;
     this.sprite = scene.add.sprite(x, y, 'player');
@@ -39,10 +44,27 @@ export class Player {
   }
 
   getEffectValue(type: EffectType): number {
-    const eff = this.state.effects.find(e => e.type === type);
-    if (!eff) return 0;
-    const def = EFFECT_DEFS[type];
-    return def.levelValues[eff.level - 1];
+    if (this.effectCacheDirty
+      || this.effectCacheRef !== this.state.effects
+      || this.effectCacheLength !== this.state.effects.length) {
+      this.rebuildEffectCache();
+    }
+    return this.effectValueCache.get(type) ?? 0;
+  }
+
+  invalidateEffectCache(): void {
+    this.effectCacheDirty = true;
+  }
+
+  private rebuildEffectCache(): void {
+    this.effectValueCache.clear();
+    for (const eff of this.state.effects) {
+      const def = EFFECT_DEFS[eff.type];
+      this.effectValueCache.set(eff.type, def.levelValues[eff.level - 1]);
+    }
+    this.effectCacheDirty = false;
+    this.effectCacheRef = this.state.effects;
+    this.effectCacheLength = this.state.effects.length;
   }
 
   getSpeed(): number {

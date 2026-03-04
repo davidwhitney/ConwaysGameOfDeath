@@ -3,6 +3,7 @@ import { PLAYER_SIZE, circlesOverlap, EffectType } from '../shared';
 import { InputManager } from './InputManager';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
+import { GameEvents } from './GameEvents';
 
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -40,15 +41,15 @@ export class PlayerPhysicsSystem implements GameSystem {
       if (circlesOverlap(px, py, pr, enemy.state.x, enemy.state.y, enemy.effectiveSize)) {
         const dmg = player.takeDamage(enemy.state.damage, now);
         if (dmg > 0) {
-          this.scene.events.emit('show-damage', px, py - 20, dmg, '#ff4444');
-          this.scene.events.emit('screen-shake', 80, 0.003);
+          GameEvents.emit(this.scene.events, 'show-damage', px, py - 20, dmg, '#ff4444');
+          GameEvents.emit(this.scene.events, 'screen-shake', 80, 0.003);
 
           const thorns = player.getEffectValue(EffectType.Thorns);
           if (thorns > 0) {
             const reflected = Math.floor(dmg * thorns);
             if (reflected > 0) {
               enemy.takeDamage(reflected);
-              this.scene.events.emit('show-damage', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
+              GameEvents.emit(this.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
             }
           }
         }

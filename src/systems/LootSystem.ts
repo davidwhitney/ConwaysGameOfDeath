@@ -9,6 +9,7 @@ import type { Player } from '../entities/Player';
 import { XPGemPool } from '../entities/XPGem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
+import { GameEvents } from './GameEvents';
 
 export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -21,22 +22,19 @@ export class LootSystem implements GameSystem {
     this.player = player;
     this.xpGemPool = new XPGemPool(scene);
 
-    this.scene.events.on('enemy-killed',
-      (e: { state: { x: number; y: number; xpValue: number; boss: boolean }; def?: { color: number } }, w?: WeaponType) =>
-        this.handleEnemyKilled(e, w),
-    );
+    GameEvents.on(this.scene.events, 'enemy-killed', (e, w) => this.handleEnemyKilled(e, w));
 
-    this.scene.events.on('scatter-health-gems', (positions: { x: number; y: number }[]) => {
+    GameEvents.on(this.scene.events, 'scatter-health-gems', (positions) => {
       for (const p of positions) {
         this.xpGemPool.spawnGolden(p.x, p.y);
       }
     });
 
-    this.scene.events.on('scatter-vortex-gem', (pos: { x: number; y: number }) => {
+    GameEvents.on(this.scene.events, 'scatter-vortex-gem', (pos) => {
       this.xpGemPool.spawnVortex(pos.x, pos.y);
     });
 
-    this.scene.events.on('clear-gems', () => {
+    GameEvents.on(this.scene.events, 'clear-gems', () => {
       this.xpGemPool.clearAll();
     });
   }
@@ -54,7 +52,7 @@ export class LootSystem implements GameSystem {
     if (gemResult.heals > 0) {
       const healTotal = this.player.state.maxHp * HEAL_GEM_PCT * gemResult.heals;
       this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healTotal);
-      this.scene.events.emit('show-damage',
+      GameEvents.emit(this.scene.events, 'show-damage',
         this.player.state.x, this.player.state.y - 30,
         Math.floor(healTotal), '#ff4444',
       );
@@ -74,19 +72,19 @@ export class LootSystem implements GameSystem {
   }
 
   destroy(): void {
-    this.scene.events.off('enemy-killed');
-    this.scene.events.off('scatter-health-gems');
-    this.scene.events.off('scatter-vortex-gem');
-    this.scene.events.off('clear-gems');
+    GameEvents.off(this.scene.events, 'enemy-killed');
+    GameEvents.off(this.scene.events, 'scatter-health-gems');
+    GameEvents.off(this.scene.events, 'scatter-vortex-gem');
+    GameEvents.off(this.scene.events, 'clear-gems');
     this.xpGemPool.destroy();
   }
 
   private handleEnemyKilled(
-    enemy: { state: { x: number; y: number; xpValue: number; boss: boolean }; def?: { color: number } },
+    enemy: import('../entities/Enemy').Enemy,
     weaponType?: WeaponType,
   ): void {
     this.kills++;
-    this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def?.color ?? 0xffffff, enemy.state.boss);
+    this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def.color, enemy.state.boss);
 
     const luckValue = this.player.getEffectValue(EffectType.Luck);
     const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));
@@ -106,19 +104,19 @@ export class LootSystem implements GameSystem {
       const weapon = this.player.state.weapons.find(w => w.type === weaponType);
       if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
         weapon.level++;
-        this.scene.events.emit('show-damage',
+        GameEvents.emit(this.scene.events, 'show-damage',
           this.player.state.x, this.player.state.y - 40,
           weapon.level, '#ffcc00',
         );
       } else {
         const healAmount = Math.floor(this.player.state.maxHp * BOSS_KILL_HEAL_PCT);
         this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmount);
-        this.scene.events.emit('show-damage',
+        GameEvents.emit(this.scene.events, 'show-damage',
           this.player.state.x, this.player.state.y - 40,
           healAmount, '#ff4444',
         );
       }
-      this.scene.events.emit('screen-shake', 300, 0.015);
+      GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.015);
     }
   }
 

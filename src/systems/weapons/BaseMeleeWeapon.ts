@@ -16,6 +16,20 @@ interface ActiveMelee {
 
 export class BaseMeleeWeapon extends BaseWeapon {
   protected melees: ActiveMelee[] = [];
+  private gfxPool: Phaser.GameObjects.Graphics[] = [];
+
+  private acquireGfx(): Phaser.GameObjects.Graphics {
+    const gfx = this.gfxPool.pop() ?? this.ctx.scene.add.graphics();
+    gfx.setVisible(true);
+    gfx.setDepth(9);
+    return gfx;
+  }
+
+  private releaseGfx(gfx: Phaser.GameObjects.Graphics): void {
+    gfx.clear();
+    gfx.setVisible(false);
+    this.gfxPool.push(gfx);
+  }
 
   protected getCooldown(weapon: WeaponInstance, player: Player): number {
     return super.getCooldown(weapon, player) * (1 - player.getFuryReduction());
@@ -27,8 +41,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
 
     for (let i = 0; i < stats.amount; i++) {
       const angle = Math.atan2(player.facingY, player.facingX) + (i - (stats.amount - 1) / 2) * 0.5;
-      const gfx = this.ctx.scene.add.graphics();
-      gfx.setDepth(9);
+      const gfx = this.acquireGfx();
 
       this.melees.push({
         weaponType: this.def.type,
@@ -50,7 +63,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
       m.age += dt * 1000;
 
       if (m.age >= m.duration) {
-        m.gfx.destroy();
+        this.releaseGfx(m.gfx);
         this.melees.splice(i, 1);
         continue;
       }
@@ -73,6 +86,8 @@ export class BaseMeleeWeapon extends BaseWeapon {
 
   destroy(): void {
     for (const m of this.melees) m.gfx.destroy();
+    for (const gfx of this.gfxPool) gfx.destroy();
     this.melees.length = 0;
+    this.gfxPool.length = 0;
   }
 }

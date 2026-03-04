@@ -18,6 +18,7 @@ import type { UpdateContext } from '../systems/UpdateContext';
 import type { HUDScene } from './HUD';
 import { applyCRT } from '../ui/crtEffect';
 import { GameSystem } from '../systems/GameSystem';
+import { GameEvents } from '../systems/GameEvents';
 
 interface GameInitData {
   seed: number;
@@ -39,6 +40,10 @@ export class GameScene extends Phaser.Scene {
   private hudScene!: HUDScene;
   private visibilityHandler: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
+  private gameWorldSystem!: GameWorldSystem;
+  private lootSystem!: LootSystem;
+  private reviveCount: number = 0;
+  private awaitingRevive: boolean = false;
 
   public constructor() {
     super({ key: 'Game' });
@@ -49,6 +54,8 @@ export class GameScene extends Phaser.Scene {
     this.endless = data.endless ?? false;
     this.gameTimeMs = 0;
     this.gameOver = false;
+    this.reviveCount = 0;
+    this.awaitingRevive = false;
   }
 
   public create(): void {
@@ -64,28 +71,27 @@ export class GameScene extends Phaser.Scene {
     const deathSpawnSystem = new DeathSpawnSystem(this, this.rng);
     deathSpawnSystem.setEnabled(!this.endless);
 
+    this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map);
+    this.lootSystem = new LootSystem(this, this.player);
+
     this.subsystems = [
       new PlayerPhysicsSystem(this),
-      new GameWorldSystem(this, this.rng, this.map),
+      this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
       deathSpawnSystem,
       new WeaponSystem(this),
-      new LootSystem(this, this.player),
+      this.lootSystem,
       new LevelUpSystem(this, this.rng, this.player),
     ];
 
     // Events
-    this.events.on('show-damage', (x: number, y: number, amount: number, color?: string, crit?: boolean) => {
-      this.damageNumbersUi.show(x, y, amount, color, crit);
-    });
-
-    this.events.on('screen-shake', (duration: number, intensity: number) => {
-      this.subsystems.filter(s => s instanceof GameWorldSystem)[0].cameraShake(duration, intensity);
-    });
-
-    this.events.on('blood-aura-heal', (heal: number) => {
+    GameEvents.on(this.events, 'show-damage', (x, y, amount, color, crit) => this.damageNumbersUi.show(x, y, amount, color, crit));
+    GameEvents.on(this.events, 'screen-shake', (duration, intensity) => this.gameWorldSystem.cameraShake(duration, intensity));
+    GameEvents.on(this.events, 'blood-aura-heal', (heal) => {
       this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + heal);
     });
+    GameEvents.on(this.events, 'revive-accept', () => this.handleReviveAccept());
+    GameEvents.on(this.events, 'revive-decline', () => this.handleReviveDecline());
 
     // UI Events
     this.visibilityHandler = () => {
@@ -111,13 +117,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.gameTimeMs += delta;
-    const gameWorldSystem = this.subsystems.filter(s => s instanceof GameWorldSystem)[0] as GameWorldSystem;
-    const lootSystem = this.subsystems.filter(s => s instanceof LootSystem)[0] as LootSystem;
 
     const ctx: UpdateContext = {
       time: { delta: delta / 1000, deltaMs: delta, now: time, elapsed: this.gameTimeMs },
       player: this.player,
-      enemyPool: gameWorldSystem.getEnemyPool(),
+      enemyPool: this.gameWorldSystem.getEnemyPool(),
       map: this.map,
     };
 
@@ -129,13 +133,43 @@ export class GameScene extends Phaser.Scene {
     this.hudScene.updateHUD?.(
       this.player.state,
       this.gameTimeMs,
-      lootSystem.getKills(),
-      gameWorldSystem.getActiveEnemyCount(),
+      this.lootSystem.getKills(),
+      this.gameWorldSystem.getActiveEnemyCount(),
     );
 
-    if (!this.player.state.alive) {
-      this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
+    if (!this.player.state.alive && !this.awaitingRevive) {
+      if (this.gameTimeMs >= GAME_DURATION_MS) {
+        this.endGame(true);
+      } else {
+        this.awaitingRevive = true;
+        this.scene.pause();
+        this.scene.launch('Revive', {
+          gold: this.player.state.gold,
+          cost: this.getReviveCost(),
+        });
+      }
     }
+  }
+
+  private getReviveCost(): number {
+    return 100 * Math.pow(2, this.reviveCount);
+  }
+
+  private handleReviveAccept(): void {
+    this.player.state.gold -= this.getReviveCost();
+    this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.5);
+    this.player.state.alive = true;
+    this.player.state.invincibleUntil = this.gameTimeMs + 2000;
+    this.reviveCount++;
+    this.awaitingRevive = false;
+    this.scene.stop('Revive');
+    this.scene.resume();
+  }
+
+  private handleReviveDecline(): void {
+    this.awaitingRevive = false;
+    this.scene.stop('Revive');
+    this.endGame(false);
   }
 
   private endGame(victory: boolean): void {
@@ -143,9 +177,10 @@ export class GameScene extends Phaser.Scene {
     this.scene.stop('HUD');
     this.scene.stop('LevelUp');
     this.scene.stop('Pause');
+    this.scene.stop('Revive');
     this.scene.start('GameOver', {
       victory,
-      kills: this.subsystems.filter(s => s instanceof LootSystem)[0].getKills(),
+      kills: this.lootSystem.getKills(),
       level: this.player.state.level,
       time: this.gameTimeMs,
       seed: this.seed,
@@ -168,5 +203,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('show-damage');
     this.events.off('screen-shake');
     this.events.off('blood-aura-heal');
+    this.events.off('revive-accept');
+    this.events.off('revive-decline');
   }
 }

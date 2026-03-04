@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { type LevelUpOption, WEAPON_DEFS, EFFECT_DEFS, WeaponType } from '../shared';
 import { GamepadNav } from '../ui/gamepadNav';
+import { GameEvents } from '../systems/GameEvents';
 
 export class LevelUpScene extends Phaser.Scene {
   private options: LevelUpOption[] = [];
@@ -291,19 +292,19 @@ export class LevelUpScene extends Phaser.Scene {
   private skip(): void {
     this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
-    gameScene.events.emit('levelup-skip');
+    GameEvents.emit(gameScene.events, 'levelup-skip');
   }
 
   private reroll(): void {
     this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
-    gameScene.events.emit('levelup-reroll');
+    GameEvents.emit(gameScene.events, 'levelup-reroll');
   }
 
   private selectOption(index: number): void {
     this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
-    gameScene.events.emit('levelup-choice', index);
+    GameEvents.emit(gameScene.events, 'levelup-choice', index);
   }
 
   private cleanupKeyHandler(): void {

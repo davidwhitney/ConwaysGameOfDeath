@@ -14,6 +14,7 @@ import { MapRenderer } from './MapRenderer';
 import { SpawnController } from './SpawnController';
 import { EnemyPool } from './EnemyPool';
 import { CameraManager } from './CameraManager';
+import { GameEvents } from './GameEvents';
 
 const SCATTER_INTERVAL_MS = 60_000; // scatter heal gems every 60s
 
@@ -97,7 +98,7 @@ export class GameWorldSystem implements GameSystem {
     player.sprite.setPosition(safe.x, safe.y);
 
     this.mapRenderer.invalidate();
-    this.scene.events.emit('screen-shake', 300, 0.01);
+    GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.01);
 
     // Housekeeping: chance to clear enemies on map evolution
     const hkValue = player.getEffectValue(EffectType.Housekeeping);
@@ -112,7 +113,7 @@ export class GameWorldSystem implements GameSystem {
       else if (hkLevel >= 4) clearGems = Math.random() < 0.75;
 
       if (clearGems) {
-        this.scene.events.emit('clear-gems');
+        GameEvents.emit(this.scene.events, 'clear-gems');
       }
     }
   }
@@ -149,7 +150,7 @@ export class GameWorldSystem implements GameSystem {
       const ty = Math.floor(gy / TILE_SIZE);
       if (!isWalkable(this.map, tx, ty)) continue;
 
-      this.scene.events.emit('scatter-vortex-gem', { x: gx, y: gy });
+      GameEvents.emit(this.scene.events, 'scatter-vortex-gem', { x: gx, y: gy });
       break;
     }
   }
@@ -188,7 +189,7 @@ export class GameWorldSystem implements GameSystem {
     }
 
     if (positions.length > 0) {
-      this.scene.events.emit('scatter-health-gems', positions);
+      GameEvents.emit(this.scene.events, 'scatter-health-gems', positions);
     }
   }
 }

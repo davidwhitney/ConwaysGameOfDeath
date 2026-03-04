@@ -8,6 +8,7 @@ import {
 } from '../shared/constants';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
+import { GameEvents } from './GameEvents';
 
 export class DeathSpawnSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -48,7 +49,7 @@ export class DeathSpawnSystem implements GameSystem {
       death.effectiveSize = death.def.size * DEATH_SIZE_MULTIPLIER;
       death.sprite.setScale(DEATH_SIZE_MULTIPLIER);
     }
-    this.scene.events.emit('screen-shake', 400, 0.02);
+    GameEvents.emit(this.scene.events, 'screen-shake', 400, 0.02);
   }
 
   reset(): void {

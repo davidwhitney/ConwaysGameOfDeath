@@ -51,7 +51,7 @@ export class EnemyPool {
     }
   }
 
-  getActive(): Enemy[] {
+  getActive(): readonly Enemy[] {
     return this.active;
   }
 
