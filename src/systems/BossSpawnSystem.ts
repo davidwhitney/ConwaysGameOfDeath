@@ -9,19 +9,14 @@ import {
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 
-export interface BossSpawnDeps {
-  scene: Phaser.Scene;
-  rng: SeededRandom;
-}
-
 export class BossSpawnSystem implements GameSystem {
   private scene: Phaser.Scene;
   private rng: SeededRandom;
   private timer: number = 0;
 
-  constructor(deps: BossSpawnDeps) {
-    this.scene = deps.scene;
-    this.rng = deps.rng;
+  constructor(scene: Phaser.Scene, rng: SeededRandom) {
+    this.scene = scene;
+    this.rng = rng;
   }
 
   update(ctx: UpdateContext): void {

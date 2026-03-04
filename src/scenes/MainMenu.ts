@@ -5,6 +5,7 @@ import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
+import { loadSettings, saveSettings } from '../ui/preferences';
 
 interface BloodDrip {
   x: number;
@@ -23,6 +24,8 @@ export class MainMenuScene extends Phaser.Scene {
   private readonly defaultFills = [0x333366, 0x333344, 0x333344];
   private readonly hoverFills = [0x444488, 0x444466, 0x444466];
   private seedInput!: HTMLInputElement;
+  private endlessContainer!: HTMLDivElement;
+  private endlessCheckbox!: HTMLInputElement;
   private drips: BloodDrip[] = [];
   private dripGfx!: Phaser.GameObjects.Graphics;
   private gol!: BackgroundGameOfLife;
@@ -63,9 +66,12 @@ export class MainMenuScene extends Phaser.Scene {
     // Seed input (HTML element for editable text)
     this.createSeedInput();
 
+    // Endless mode checkbox
+    this.createEndlessCheckbox();
+
     // High scores button
     const scores = createButton(this, {
-      x: width / 2, y: height * 0.70, width: 200, height: 45,
+      x: width / 2, y: height * 0.72, width: 200, height: 45,
       label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
       fillColor: 0x333344, hoverColor: 0x444466,
       onClick: () => this.scene.start('HighScores'),
@@ -73,7 +79,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Settings button
     const settings = createButton(this, {
-      x: width / 2, y: height * 0.80, width: 200, height: 45,
+      x: width / 2, y: height * 0.82, width: 200, height: 45,
       label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
       fillColor: 0x333344, hoverColor: 0x444466,
       onClick: () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
@@ -160,6 +166,62 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Reposition on resize
     this.scale.on('resize', () => this.positionSeedInput());
+  }
+
+  private createEndlessCheckbox(): void {
+    const canvas = this.game.canvas;
+    const settings = loadSettings();
+
+    this.endlessContainer = document.createElement('div');
+    Object.assign(this.endlessContainer.style, {
+      position: 'absolute',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      zIndex: '10',
+      cursor: 'pointer',
+    });
+
+    this.endlessCheckbox = document.createElement('input');
+    this.endlessCheckbox.type = 'checkbox';
+    this.endlessCheckbox.checked = settings.endlessMode;
+    Object.assign(this.endlessCheckbox.style, {
+      cursor: 'pointer',
+      accentColor: '#666688',
+    });
+
+    const label = document.createElement('label');
+    label.textContent = 'Endless Mode';
+    Object.assign(label.style, {
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      color: '#666688',
+      cursor: 'pointer',
+    });
+    label.addEventListener('click', () => {
+      this.endlessCheckbox.checked = !this.endlessCheckbox.checked;
+      this.endlessCheckbox.dispatchEvent(new Event('change'));
+    });
+
+    this.endlessCheckbox.addEventListener('change', () => {
+      const s = loadSettings();
+      s.endlessMode = this.endlessCheckbox.checked;
+      saveSettings(s);
+    });
+
+    this.endlessContainer.appendChild(this.endlessCheckbox);
+    this.endlessContainer.appendChild(label);
+    canvas.parentElement!.appendChild(this.endlessContainer);
+    this.positionEndlessCheckbox();
+    this.scale.on('resize', () => this.positionEndlessCheckbox());
+  }
+
+  private positionEndlessCheckbox(): void {
+    const rect = this.game.canvas.getBoundingClientRect();
+    const x = rect.left + rect.width / 2 - 60;
+    const y = rect.top + rect.height * 0.63;
+    this.endlessContainer.style.left = `${x}px`;
+    this.endlessContainer.style.top = `${y}px`;
   }
 
   private positionSeedInput(): void {
@@ -256,13 +318,15 @@ export class MainMenuScene extends Phaser.Scene {
 
   private startGame(): void {
     const seed = this.getSeed();
+    const settings = loadSettings();
     this.removeSeedInput();
-    this.scene.start('Game', { seed });
+    this.scene.start('Game', { seed, endless: settings.endlessMode });
   }
 
   private removeSeedInput(): void {
     this.scale.off('resize');
     this.seedInput?.remove();
+    this.endlessContainer?.remove();
   }
 
   shutdown(): void {

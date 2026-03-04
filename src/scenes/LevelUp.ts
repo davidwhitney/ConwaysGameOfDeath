@@ -292,7 +292,6 @@ export class LevelUpScene extends Phaser.Scene {
     this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
     gameScene.events.emit('levelup-skip');
-    this.scene.stop();
   }
 
   private reroll(): void {
@@ -305,7 +304,6 @@ export class LevelUpScene extends Phaser.Scene {
     this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
     gameScene.events.emit('levelup-choice', index);
-    this.scene.stop();
   }
 
   private cleanupKeyHandler(): void {

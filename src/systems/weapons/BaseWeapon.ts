@@ -1,5 +1,5 @@
-import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType } from '../../shared';
-import { CRIT_DAMAGE_MULTIPLIER } from '../../shared/constants';
+import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType } from '../../shared';
+import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../shared/constants';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
 import type { WeaponContext } from './WeaponContext';
@@ -56,14 +56,15 @@ export abstract class BaseWeapon {
       }
     }
 
-    // Knockback: push enemy away from player
+    // Knockback: push enemy away from player (Death is pulled toward player)
     const knockback = player.getEffectValue(EffectType.Knockback);
     if (knockback > 0 && enemy.state.alive) {
       const dx = enemy.state.x - player.state.x;
       const dy = enemy.state.y - player.state.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      enemy.state.x += (dx / dist) * knockback;
-      enemy.state.y += (dy / dist) * knockback;
+      const mult = enemy.state.type === EnemyType.Death ? DEATH_KNOCKBACK_MULT : 1;
+      enemy.state.x += (dx / dist) * knockback * mult;
+      enemy.state.y += (dy / dist) * knockback * mult;
     }
 
     if (killed) {

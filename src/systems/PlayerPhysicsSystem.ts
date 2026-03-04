@@ -4,17 +4,13 @@ import { InputManager } from './InputManager';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 
-export interface PlayerPhysicsDeps {
-  scene: Phaser.Scene;
-}
-
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
   private inputManager: InputManager;
 
-  constructor(deps: PlayerPhysicsDeps) {
-    this.scene = deps.scene;
-    this.inputManager = new InputManager(deps.scene);
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
+    this.inputManager = new InputManager(scene);
   }
 
   update(ctx: UpdateContext): void {

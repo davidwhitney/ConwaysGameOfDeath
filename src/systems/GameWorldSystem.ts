@@ -17,12 +17,6 @@ import { CameraManager } from './CameraManager';
 
 const SCATTER_INTERVAL_MS = 60_000; // scatter heal gems every 60s
 
-export interface GameWorldDeps {
-  scene: Phaser.Scene;
-  rng: SeededRandom;
-  map: TileMap;
-}
-
 export class GameWorldSystem implements GameSystem {
   private scene: Phaser.Scene;
   private rng: SeededRandom;
@@ -35,16 +29,16 @@ export class GameWorldSystem implements GameSystem {
   private scatterTimer: number = SCATTER_INTERVAL_MS;
   private followInitialised: boolean = false;
 
-  constructor(deps: GameWorldDeps) {
-    this.scene = deps.scene;
-    this.rng = deps.rng;
-    this.mapRenderer = new MapRenderer(deps.scene, deps.map);
-    this.cameraManager = new CameraManager(deps.scene);
-    this.map = deps.map;
-    this.enemyPool = new EnemyPool(deps.scene, deps.map);
+  constructor(scene: Phaser.Scene, rng: SeededRandom, map: TileMap) {
+    this.scene = scene;
+    this.rng = rng;
+    this.mapRenderer = new MapRenderer(scene, map);
+    this.cameraManager = new CameraManager(scene);
+    this.map = map;
+    this.enemyPool = new EnemyPool(scene, map);
 
     const spawnSeed = this.rng.state + 1;
-    this.spawnController = new SpawnController(deps.scene, spawnSeed, this.enemyPool, deps.map);
+    this.spawnController = new SpawnController(scene, spawnSeed, this.enemyPool, map);
   }
 
   update(ctx: UpdateContext): void {
@@ -104,6 +98,23 @@ export class GameWorldSystem implements GameSystem {
 
     this.mapRenderer.invalidate();
     this.scene.events.emit('screen-shake', 300, 0.01);
+
+    // Housekeeping: chance to clear enemies on map evolution
+    const hkValue = player.getEffectValue(EffectType.Housekeeping);
+    if (hkValue > 0 && Math.random() < hkValue) {
+      this.enemyPool.clearNonDeath();
+
+      // Determine gem clearing based on Housekeeping level
+      const hkEffect = player.state.effects.find(e => e.type === EffectType.Housekeeping);
+      const hkLevel = hkEffect?.level ?? 0;
+      let clearGems = true;
+      if (hkLevel >= 5) clearGems = Math.random() < 0.50;
+      else if (hkLevel >= 4) clearGems = Math.random() < 0.75;
+
+      if (clearGems) {
+        this.scene.events.emit('clear-gems');
+      }
+    }
   }
 
   private updateScatter(ctx: UpdateContext): void {
@@ -111,6 +122,35 @@ export class GameWorldSystem implements GameSystem {
     if (this.scatterTimer <= 0) {
       this.scatterTimer += SCATTER_INTERVAL_MS;
       this.scatterHealthGems(ctx.player);
+
+      // 10% chance to scatter a vortex gem
+      if (this.rng.next() < 0.1) {
+        this.scatterVortexGem(ctx.player);
+      }
+    }
+  }
+
+  private scatterVortexGem(player: Player): void {
+    const cam = this.scene.cameras.main;
+    const viewHalfW = cam.worldView.width / 2;
+    const viewHalfH = cam.worldView.height / 2;
+    const px = player.state.x;
+    const py = player.state.y;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const angle = this.rng.next() * Math.PI * 2;
+      const dist = 200 + this.rng.next() * 2000;
+      const gx = px + Math.cos(angle) * dist;
+      const gy = py + Math.sin(angle) * dist;
+
+      if (Math.abs(gx - px) < viewHalfW + 32 && Math.abs(gy - py) < viewHalfH + 32) continue;
+
+      const tx = Math.floor(gx / TILE_SIZE);
+      const ty = Math.floor(gy / TILE_SIZE);
+      if (!isWalkable(this.map, tx, ty)) continue;
+
+      this.scene.events.emit('scatter-vortex-gem', { x: gx, y: gy });
+      break;
     }
   }
 

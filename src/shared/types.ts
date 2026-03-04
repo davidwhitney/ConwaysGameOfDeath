@@ -149,6 +149,7 @@ export enum EnemyType {
   Lich,
   Dragon,
   Reaper,
+  Death,
 }
 
 export enum WeaponType {
@@ -220,6 +221,7 @@ export enum EffectType {
   Duration,
   Growth,
   Vitality,
+  Housekeeping,
 }
 
 // ─── Map Types ───

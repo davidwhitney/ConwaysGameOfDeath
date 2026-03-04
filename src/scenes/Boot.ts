@@ -30,6 +30,18 @@ export class BootScene extends Phaser.Scene {
     this.createCircleTexture('enemy-dragon', 24, 0xff4500, 0xff6347);
     this.createCircleTexture('enemy-reaper', 18, 0x1a1a2e, 0x3a3a5e);
 
+    // Death boss - concentric red rings
+    const deathR = 28;
+    const deathSize = deathR * 2;
+    const deathGfx = this.make.graphics({ x: 0, y: 0 });
+    for (let r = deathR; r > 4; r -= 7) {
+      const alpha = 0.9 - (deathR - r) * 0.15;
+      deathGfx.lineStyle(2, 0xff0000, Math.max(0.2, alpha));
+      deathGfx.strokeCircle(deathR, deathR, r);
+    }
+    deathGfx.generateTexture('enemy-death', deathSize, deathSize);
+    deathGfx.destroy();
+
     // XP Gem - small green diamond
     const gemGfx = this.make.graphics({ x: 0, y: 0 });
     gemGfx.fillStyle(0x00ff88, 1);
@@ -59,6 +71,17 @@ export class BootScene extends Phaser.Scene {
     coinGfx.strokeTriangle(7, 0, 0, 7, 7, 14);
     coinGfx.generateTexture('gold-gem', 14, 14);
     coinGfx.destroy();
+
+    // Vortex Gem - blue diamond
+    const vortexGfx = this.make.graphics({ x: 0, y: 0 });
+    vortexGfx.fillStyle(0x4488ff, 1);
+    vortexGfx.fillTriangle(8, 0, 16, 8, 8, 16);
+    vortexGfx.fillTriangle(8, 0, 0, 8, 8, 16);
+    vortexGfx.lineStyle(1, 0x66aaff, 1);
+    vortexGfx.strokeTriangle(8, 0, 16, 8, 8, 16);
+    vortexGfx.strokeTriangle(8, 0, 0, 8, 8, 16);
+    vortexGfx.generateTexture('vortex-gem', 16, 16);
+    vortexGfx.destroy();
 
     // Projectile - small white circle
     this.createCircleTexture('projectile', 6, 0xffffff, 0xcccccc);

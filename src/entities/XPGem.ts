@@ -6,7 +6,7 @@ const SPAWN_DELAY = 0.4;
 /** Speed gems scatter outward during spawn delay */
 const SCATTER_SPEED = 120;
 
-export type GemKind = 'xp' | 'heal' | 'gold';
+export type GemKind = 'xp' | 'heal' | 'gold' | 'vortex';
 
 export interface GemData {
   sprite: Phaser.GameObjects.Sprite;
@@ -21,12 +21,14 @@ export interface GemData {
   scatterDx: number;
   scatterDy: number;
   kind: GemKind;
+  vortexed: boolean;
 }
 
 const TEX_MAP: Record<GemKind, string> = {
   xp: 'xp-gem',
   heal: 'golden-gem',
   gold: 'gold-gem',
+  vortex: 'vortex-gem',
 };
 
 export class XPGemPool {
@@ -61,6 +63,10 @@ export class XPGemPool {
     this.spawnGem(x, y, value, 'gold');
   }
 
+  spawnVortex(x: number, y: number): void {
+    this.spawnGem(x, y, 0, 'vortex');
+  }
+
   private spawnGem(x: number, y: number, value: number, kind: GemKind): void {
     const texKey = TEX_MAP[kind];
     let sprite: Phaser.GameObjects.Sprite;
@@ -74,7 +80,7 @@ export class XPGemPool {
 
     sprite.setPosition(x, y);
     sprite.setVisible(true);
-    const scale = kind === 'xp' ? Math.min(2, 0.8 + value * 0.1) : 1.4;
+    const scale = kind === 'vortex' ? 1.8 : kind === 'xp' ? Math.min(2, 0.8 + value * 0.1) : 1.4;
     sprite.setScale(scale);
 
     // Random scatter direction so gems pop outward from the kill site
@@ -88,13 +94,15 @@ export class XPGemPool {
       scatterDx: Math.cos(angle),
       scatterDy: Math.sin(angle),
       kind,
+      vortexed: false,
     });
   }
 
-  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number; gold: number } {
+  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number; gold: number; vortex: number } {
     let totalXp = 0;
     let heals = 0;
     let gold = 0;
+    let vortex = 0;
     const magnetRange = pickupRange * 3;
 
     for (let i = this.active.length - 1; i >= 0; i--) {
@@ -124,7 +132,7 @@ export class XPGemPool {
 
       // Move magnetized gems toward player
       if (gem.magnetized) {
-        const speed = 400;
+        const speed = gem.vortexed ? 1200 : 400;
         const dx = playerX - gem.x;
         const dy = playerY - gem.y;
         const len = Math.sqrt(dx * dx + dy * dy);
@@ -137,7 +145,10 @@ export class XPGemPool {
 
       // Pickup
       if (dist < pickupRange) {
-        if (gem.kind === 'heal') {
+        if (gem.kind === 'vortex') {
+          vortex++;
+          this.triggerVortex();
+        } else if (gem.kind === 'heal') {
           heals++;
         } else if (gem.kind === 'gold') {
           gold += gem.value;
@@ -152,7 +163,28 @@ export class XPGemPool {
       }
     }
 
-    return { xp: totalXp, heals, gold };
+    return { xp: totalXp, heals, gold, vortex };
+  }
+
+  /** Magnetize all active gems and rush them to the player */
+  private triggerVortex(): void {
+    for (const gem of this.active) {
+      if (!gem.alive || gem.kind === 'vortex') continue;
+      gem.magnetized = true;
+      gem.vortexed = true;
+      gem.age = Math.max(gem.age, SPAWN_DELAY);
+    }
+  }
+
+  /** Remove all active gems (for Housekeeping effect) */
+  clearAll(): void {
+    for (const gem of this.active) {
+      gem.alive = false;
+      gem.sprite.setVisible(false);
+      gem.sprite.setPosition(-1000, -1000);
+      this.pool.push(gem.sprite);
+    }
+    this.active.length = 0;
   }
 
   getActive(): GemData[] {

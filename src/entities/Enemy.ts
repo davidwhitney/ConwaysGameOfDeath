@@ -21,6 +21,7 @@ const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Lich]: 'enemy-lich',
   [EnemyType.Dragon]: 'enemy-dragon',
   [EnemyType.Reaper]: 'enemy-reaper',
+  [EnemyType.Death]: 'enemy-death',
 };
 
 export class Enemy {
@@ -63,8 +64,8 @@ export class Enemy {
   /** Activate this pooled enemy with given type and position */
   activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): void {
     this.def = ENEMY_DEFS[type];
-    // Scale HP and damage with game progress (0–1)
-    const progress = gameTimeMs / GAME_DURATION_MS;
+    // Scale HP and damage with game progress (0–1, clamped)
+    const progress = Math.min(1, gameTimeMs / GAME_DURATION_MS);
     const hpScale = 1 + progress * ENEMY_HP_SCALING;
     const dmgScale = 1 + progress * ENEMY_DMG_SCALING;
 
@@ -197,7 +198,7 @@ export class Enemy {
    */
   private tryMove(dx: number, dy: number): void {
     // Ghosts and cross-movers ignore walls
-    if (this.def.behavior === 'cross' || this.def.type === EnemyType.Ghost) {
+    if (this.def.behavior === 'cross' || this.def.type === EnemyType.Ghost || this.def.type === EnemyType.Death) {
       this.state.x += dx;
       this.state.y += dy;
       return;

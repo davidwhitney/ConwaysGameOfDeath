@@ -1,0 +1,61 @@
+import Phaser from 'phaser';
+import {
+  SeededRandom, EnemyType, GAME_DURATION_MS,
+} from '../shared';
+import {
+  BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
+  DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL,
+} from '../shared/constants';
+import type { UpdateContext } from './UpdateContext';
+import type { GameSystem } from './GameSystem';
+
+export class DeathSpawnSystem implements GameSystem {
+  private scene: Phaser.Scene;
+  private rng: SeededRandom;
+  private timer: number = 0;
+  private enabled: boolean = true;
+
+  constructor(scene: Phaser.Scene, rng: SeededRandom) {
+    this.scene = scene;
+    this.rng = rng;
+  }
+
+  setEnabled(val: boolean): void {
+    this.enabled = val;
+  }
+
+  update(ctx: UpdateContext): void {
+    if (!this.enabled) return;
+    if (ctx.time.elapsed < GAME_DURATION_MS) return;
+
+    this.timer -= ctx.time.deltaMs;
+    if (this.timer <= 0) {
+      this.timer = DEATH_SPAWN_INTERVAL;
+      this.spawnDeath(ctx);
+    }
+  }
+
+  private spawnDeath(ctx: UpdateContext): void {
+    const { player, enemyPool } = ctx;
+    const angle = this.rng.next() * Math.PI * 2;
+    const bx = player.state.x + Math.cos(angle) * BOSS_SPAWN_DISTANCE;
+    const by = player.state.y + Math.sin(angle) * BOSS_SPAWN_DISTANCE;
+
+    const death = enemyPool.spawn(EnemyType.Death, bx, by, ctx.time.elapsed, true);
+    if (death) {
+      death.state.hp = DEATH_BASE_HP * player.state.level;
+      death.state.maxHp = death.state.hp;
+      death.effectiveSize = death.def.size * DEATH_SIZE_MULTIPLIER;
+      death.sprite.setScale(DEATH_SIZE_MULTIPLIER);
+    }
+    this.scene.events.emit('screen-shake', 400, 0.02);
+  }
+
+  reset(): void {
+    this.timer = 0;
+  }
+
+  destroy(): void {
+    // No listeners to clean up
+  }
+}

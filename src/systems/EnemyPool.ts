@@ -81,6 +81,20 @@ export class EnemyPool {
     this.pool.length = 0;
   }
 
+  /** Deactivate all enemies except Death, return count cleared */
+  clearNonDeath(): number {
+    let cleared = 0;
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const enemy = this.active[i];
+      if (enemy.state.type === EnemyType.Death) continue;
+      enemy.deactivate();
+      this.active.splice(i, 1);
+      this.pool.push(enemy);
+      cleared++;
+    }
+    return cleared;
+  }
+
   /** Get enemies near a point (brute force, use SpatialHash for better perf) */
   getEnemiesInRadius(x: number, y: number, radius: number): Enemy[] {
     const r2 = radius * radius;

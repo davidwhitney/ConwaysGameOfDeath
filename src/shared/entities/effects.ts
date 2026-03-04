@@ -201,4 +201,12 @@ export const EFFECT_DEFS: EffectDef[] = [
     maxLevel: 5,
     levelValues: [0.20, 0.40, 0.70, 1.05, 1.50],
   },
+  {
+    type: EffectType.Housekeeping,
+    name: 'Housekeeping',
+    description: 'Chance to clear enemies when the map evolves',
+    color: 0x88ccaa,
+    maxLevel: 5,
+    levelValues: [0.10, 0.25, 0.40, 0.60, 0.80],
+  },
 ];

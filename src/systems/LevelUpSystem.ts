@@ -12,12 +12,6 @@ import type { Player } from '../entities/Player';
 import type { UpdateContext } from '../systems/UpdateContext';
 import type { GameSystem } from '../systems/GameSystem';
 
-export interface LevelUpDeps {
-  scene: Phaser.Scene;
-  player: Player;
-  rng: SeededRandom;
-}
-
 export class LevelUpSystem implements GameSystem {
   private scene: Phaser.Scene;
   private player: Player;
@@ -27,10 +21,10 @@ export class LevelUpSystem implements GameSystem {
   private rerollCount: number = 0;
   private currentLevelUpOptions: LevelUpOption[] = [];
 
-  constructor(deps: LevelUpDeps) {
-    this.scene = deps.scene;
-    this.player = deps.player;
-    this.rng = deps.rng;
+  constructor(scene: Phaser.Scene, rng: SeededRandom, player: Player) {
+    this.scene = scene;
+    this.player = player;
+    this.rng = rng;
 
     this.scene.events.on('levelup-choice', (index: number) => this.handleLevelUpChoice(index));
     this.scene.events.on('levelup-reroll', () => this.handleReroll());
@@ -66,16 +60,25 @@ export class LevelUpSystem implements GameSystem {
     this.pendingLevelUps--;
 
     const options = this.generateOptions();
-    if (options.length === 0) return;
+    if (options.length === 0) {
+      this.closeLevelUp();
+      return;
+    }
 
     this.currentLevelUpOptions = options;
 
     this.scene.scene.pause();
-    this.scene.scene.launch('LevelUp', {
+    const data = {
       options,
       gold: this.player.state.gold,
       rerollCost: this.getRerollCost(),
-    });
+    };
+    if (this.scene.scene.isActive('LevelUp')) {
+      const levelUp = this.scene.scene.get('LevelUp');
+      levelUp.scene.restart(data);
+    } else {
+      this.scene.scene.launch('LevelUp', data);
+    }
   }
 
   getRerollCost(): number {
@@ -103,7 +106,7 @@ export class LevelUpSystem implements GameSystem {
     if (this.pendingLevelUps > 0) {
       this.processLevelUp();
     } else {
-      this.scene.scene.resume();
+      this.closeLevelUp();
     }
   }
 
@@ -111,8 +114,13 @@ export class LevelUpSystem implements GameSystem {
     if (this.pendingLevelUps > 0) {
       this.processLevelUp();
     } else {
-      this.scene.scene.resume();
+      this.closeLevelUp();
     }
+  }
+
+  private closeLevelUp(): void {
+    this.scene.scene.stop('LevelUp');
+    this.scene.scene.resume();
   }
 
   private handleReroll(): void {

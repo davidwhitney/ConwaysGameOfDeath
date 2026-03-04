@@ -9,6 +9,7 @@ import { Player } from '../entities/Player';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { DamageNumbersUiComponent } from '../ui/DamageNumbersUiComponent';
 import { BossSpawnSystem } from '../systems/BossSpawnSystem';
+import { DeathSpawnSystem } from '../systems/DeathSpawnSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { LevelUpSystem } from '../systems/LevelUpSystem';
 import { PlayerPhysicsSystem } from '../systems/PlayerPhysicsSystem';
@@ -20,6 +21,7 @@ import { GameSystem } from '../systems/GameSystem';
 
 interface GameInitData {
   seed: number;
+  endless?: boolean;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -29,6 +31,7 @@ export class GameScene extends Phaser.Scene {
   private subsystems: GameSystem[] = [];
 
   private seed: number = 0;
+  private endless: boolean = false;
   private rng!: SeededRandom;
   private map!: TileMap;
   private gameTimeMs: number = 0;
@@ -43,6 +46,7 @@ export class GameScene extends Phaser.Scene {
 
   public init(data: GameInitData): void {
     this.seed = data.seed || Date.now();
+    this.endless = data.endless ?? false;
     this.gameTimeMs = 0;
     this.gameOver = false;
   }
@@ -57,13 +61,17 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, centerX, centerY);
     this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
 
+    const deathSpawnSystem = new DeathSpawnSystem(this, this.rng);
+    deathSpawnSystem.setEnabled(!this.endless);
+
     this.subsystems = [
-      new PlayerPhysicsSystem({ scene: this }),
-      new GameWorldSystem({ scene: this, rng: this.rng, map: this.map }),
-      new BossSpawnSystem({ scene: this, rng: this.rng }),
+      new PlayerPhysicsSystem(this),
+      new GameWorldSystem(this, this.rng, this.map),
+      new BossSpawnSystem(this, this.rng),
+      deathSpawnSystem,
       new WeaponSystem(this),
-      new LootSystem({ scene: this, player: this.player }),
-      new LevelUpSystem({ scene: this, rng: this.rng, player: this.player })
+      new LootSystem(this, this.player),
+      new LevelUpSystem(this, this.rng, this.player),
     ];
 
     // Events

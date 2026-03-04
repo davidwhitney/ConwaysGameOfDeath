@@ -10,21 +10,16 @@ import { XPGemPool } from '../entities/XPGem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 
-export interface LootDeps {
-  scene: Phaser.Scene;
-  player: Player;
-}
-
 export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
   private player: Player;
   private xpGemPool: XPGemPool;
   private kills: number = 0;
 
-  constructor(deps: LootDeps) {
-    this.scene = deps.scene;
-    this.player = deps.player;
-    this.xpGemPool = new XPGemPool(deps.scene);
+  constructor(scene: Phaser.Scene, player: Player) {
+    this.scene = scene;
+    this.player = player;
+    this.xpGemPool = new XPGemPool(scene);
 
     this.scene.events.on('enemy-killed',
       (e: { state: { x: number; y: number; xpValue: number; boss: boolean }; def?: { color: number } }, w?: WeaponType) =>
@@ -35,6 +30,14 @@ export class LootSystem implements GameSystem {
       for (const p of positions) {
         this.xpGemPool.spawnGolden(p.x, p.y);
       }
+    });
+
+    this.scene.events.on('scatter-vortex-gem', (pos: { x: number; y: number }) => {
+      this.xpGemPool.spawnVortex(pos.x, pos.y);
+    });
+
+    this.scene.events.on('clear-gems', () => {
+      this.xpGemPool.clearAll();
     });
   }
 
@@ -73,6 +76,8 @@ export class LootSystem implements GameSystem {
   destroy(): void {
     this.scene.events.off('enemy-killed');
     this.scene.events.off('scatter-health-gems');
+    this.scene.events.off('scatter-vortex-gem');
+    this.scene.events.off('clear-gems');
     this.xpGemPool.destroy();
   }
 

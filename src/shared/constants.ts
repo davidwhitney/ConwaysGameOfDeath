@@ -1,3 +1,6 @@
+// ─── Game ───
+export const GAME_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
 // ─── World ───
 export const TILE_SIZE = 32;
 export const MAP_WIDTH = 2000;
@@ -54,12 +57,15 @@ export const MAP_EVOLUTION_INTERVAL_MS = 90000; // 90s base interval
 // ─── Physics ───
 export const SPATIAL_CELL_SIZE = 64;
 
-// ─── Game ───
-export const GAME_DURATION_MS = 30 * 60 * 1000; // 30 minutes
-
 // ─── XP ───
 export const XP_BASE = 5;
 export const XP_GROWTH = 0.2; // quadratic coefficient
+
+// ─── Death Boss ───
+export const DEATH_BASE_HP = 655350;
+export const DEATH_SIZE_MULTIPLIER = 5;
+export const DEATH_KNOCKBACK_MULT = -0.5;
+export const DEATH_SPAWN_INTERVAL = 60000; // 60s between Death spawns
 
 // ─── Boss ───
 export const BOSS_HP_MULTIPLIER = 25;
