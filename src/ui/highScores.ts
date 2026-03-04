@@ -1,37 +1,21 @@
-const STORAGE_KEY = 'cgod-highscores';
+import { loadSave, writeSave } from './saveData';
+export type { ScoreEntry } from './saveData';
+import type { ScoreEntry } from './saveData';
+
 const MAX_ENTRIES = 10;
 
-export interface ScoreEntry {
-  kills: number;
-  level: number;
-  time: number; // ms
-  victory: boolean;
-  date: number; // timestamp
-  seed?: number;
-}
-
 export function loadScores(): ScoreEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as ScoreEntry[];
-  } catch {
-    return [];
-  }
-}
-
-function saveScores(scores: ScoreEntry[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  return loadSave().highScores;
 }
 
 /** Save a score and return the 1-based rank (or 0 if it didn't make top 10). */
 export function addScore(entry: ScoreEntry): number {
-  const scores = loadScores();
-  scores.push(entry);
-  scores.sort((a, b) => b.kills - a.kills || b.level - a.level || b.time - a.time);
-  const rank = scores.indexOf(entry) + 1;
-  const trimmed = scores.slice(0, MAX_ENTRIES);
-  saveScores(trimmed);
+  const data = loadSave();
+  data.highScores.push(entry);
+  data.highScores.sort((a, b) => b.kills - a.kills || b.level - a.level || b.time - a.time);
+  const rank = data.highScores.indexOf(entry) + 1;
+  data.highScores = data.highScores.slice(0, MAX_ENTRIES);
+  writeSave(data);
   return rank <= MAX_ENTRIES ? rank : 0;
 }
 
