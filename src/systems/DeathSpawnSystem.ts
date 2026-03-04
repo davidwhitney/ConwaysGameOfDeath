@@ -48,6 +48,14 @@ export class DeathSpawnSystem implements GameSystem {
       death.state.maxHp = death.state.hp;
       death.effectiveSize = death.def.size * DEATH_SIZE_MULTIPLIER;
       death.sprite.setScale(DEATH_SIZE_MULTIPLIER);
+      // Spin the black hole continuously
+      this.scene.tweens.add({
+        targets: death.sprite,
+        angle: 360,
+        duration: 3000,
+        repeat: -1,
+        ease: 'Linear',
+      });
     }
     GameEvents.emit(this.scene.events, 'screen-shake', 400, 0.02);
   }

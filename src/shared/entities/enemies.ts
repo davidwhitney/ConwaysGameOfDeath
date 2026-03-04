@@ -127,7 +127,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     type: EnemyType.Death,
     name: 'Death',
-    color: 0xff0000,
+    color: 0x6622aa,
     size: 14,
     baseHp: 1,        // overridden at spawn
     baseDamage: 100,

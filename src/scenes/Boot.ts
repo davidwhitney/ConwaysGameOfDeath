@@ -30,15 +30,38 @@ export class BootScene extends Phaser.Scene {
     this.createCircleTexture('enemy-dragon', 24, 0xff4500, 0xff6347);
     this.createCircleTexture('enemy-reaper', 18, 0x1a1a2e, 0x3a3a5e);
 
-    // Death boss - concentric red rings
+    // Death boss - black hole with accretion disk
     const deathR = 28;
     const deathSize = deathR * 2;
     const deathGfx = this.make.graphics({ x: 0, y: 0 });
-    for (let r = deathR; r > 4; r -= 7) {
-      const alpha = 0.9 - (deathR - r) * 0.15;
-      deathGfx.lineStyle(2, 0xff0000, Math.max(0.2, alpha));
-      deathGfx.strokeCircle(deathR, deathR, r);
+    const cx = deathR, cy = deathR;
+    // Outer accretion glow — faint purple haze
+    for (let r = deathR; r > deathR * 0.5; r -= 2) {
+      const t = (r - deathR * 0.5) / (deathR * 0.5);
+      deathGfx.fillStyle(0x6622aa, t * 0.15);
+      deathGfx.fillCircle(cx, cy, r);
     }
+    // Spiral arms — draw arcs that suggest rotation
+    for (let arm = 0; arm < 4; arm++) {
+      const baseAngle = (arm / 4) * Math.PI * 2;
+      for (let s = 0; s < 20; s++) {
+        const t = s / 20;
+        const angle = baseAngle + t * Math.PI * 1.2;
+        const dist = deathR * 0.3 + t * deathR * 0.6;
+        const px = cx + Math.cos(angle) * dist;
+        const py = cy + Math.sin(angle) * dist;
+        const size = 2 + t * 3;
+        const alpha = (1 - t) * 0.5;
+        deathGfx.fillStyle(0x8844cc, alpha);
+        deathGfx.fillCircle(px, py, size);
+      }
+    }
+    // Dark core
+    deathGfx.fillStyle(0x000000, 1);
+    deathGfx.fillCircle(cx, cy, deathR * 0.3);
+    // Core edge glow
+    deathGfx.lineStyle(2, 0x4400aa, 0.8);
+    deathGfx.strokeCircle(cx, cy, deathR * 0.32);
     deathGfx.generateTexture('enemy-death', deathSize, deathSize);
     deathGfx.destroy();
 
