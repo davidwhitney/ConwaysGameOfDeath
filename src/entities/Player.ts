@@ -217,7 +217,7 @@ export class Player {
   updateVisuals(): void {
     this.sprite.setFlipX(this.facingX < 0);
     // Flash when invincible
-    const now = Date.now();
+    const now = performance.now();
     if (now < this.state.invincibleUntil) {
       this.sprite.setAlpha(Math.sin(now * 0.02) * 0.3 + 0.7);
     } else {

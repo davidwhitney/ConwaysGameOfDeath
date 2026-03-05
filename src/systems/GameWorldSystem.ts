@@ -99,6 +99,7 @@ export class GameWorldSystem implements GameSystem {
 
     this.mapRenderer.invalidate();
     GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.01);
+    document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'map-evolve' }));
 
     // Housekeeping: chance to clear enemies on map evolution
     const hkValue = player.getEffectValue(EffectType.Housekeeping);

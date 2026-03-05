@@ -102,8 +102,13 @@ export class LevelUpSystem implements GameSystem {
     const options = this.currentLevelUpOptions;
     if (!options || index >= options.length) return;
 
-    applyLevelUpChoice(this.player.state, options[index]);
+    const choice = options[index];
+    applyLevelUpChoice(this.player.state, choice);
     this.player.invalidateEffectCache();
+
+    if (choice.kind === 'weapon' && choice.newLevel === 5) {
+      document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'weapon-max' }));
+    }
 
     if (this.pendingLevelUps > 0) {
       this.processLevelUp();

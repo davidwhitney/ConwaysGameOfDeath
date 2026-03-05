@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
   generateMap,
   TILE_SIZE, MAP_WIDTH, MAP_HEIGHT,
-  GAME_DURATION_MS, WeaponType,
+  GAME_DURATION_MS, ENEMY_MAX_ACTIVE, WeaponType,
   SeededRandom, type TileMap,
 } from '../shared';
 import { Player } from '../entities/Player';
@@ -19,6 +19,8 @@ import type { HUDScene } from './HUD';
 import { applyCRT } from '../ui/crtEffect';
 import { GameSystem } from '../systems/GameSystem';
 import { GameEvents } from '../systems/GameEvents';
+import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
+import { loadSettings } from '../ui/preferences';
 
 interface GameInitData {
   seed: number;
@@ -102,6 +104,13 @@ export class GameScene extends Phaser.Scene {
     window.addEventListener('blur', this.visibilityHandler);
     this.events.once('shutdown', () => this.shutdown());
 
+    // Switch music style for gameplay
+    const musicSetting = loadSettings().musicStyle;
+    const gameStyle = musicSetting === 'random'
+      ? STYLE_NAMES[Math.floor(Math.random() * STYLE_NAMES.length)]
+      : musicSetting;
+    LofiMusicSystem.instance.setStyle(gameStyle);
+
     // Start HUD
     this.scene.launch('HUD', { seed: this.seed });
     this.hudScene = this.scene.get('HUD') as HUDScene;
@@ -134,6 +143,10 @@ export class GameScene extends Phaser.Scene {
       this.gameWorldSystem.getActiveEnemyCount(),
     );
 
+    document.dispatchEvent(new CustomEvent('game-intensity', {
+      detail: Math.min(1, this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
+    }));
+
     if (!this.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
       this.scene.pause();
@@ -152,7 +165,7 @@ export class GameScene extends Phaser.Scene {
     this.player.state.gold -= this.getReviveCost();
     this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.75);
     this.player.state.alive = true;
-    this.player.state.invincibleUntil = this.gameTimeMs + 4000;
+    this.player.state.invincibleUntil = performance.now() + 4000;
     this.reviveCount++;
     this.awaitingRevive = false;
     this.scene.stop('Revive');

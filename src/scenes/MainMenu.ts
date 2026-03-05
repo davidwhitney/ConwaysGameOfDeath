@@ -76,8 +76,10 @@ export class MainMenuScene extends Phaser.Scene {
     onResizeRestart(this);
 
     // Start music (uses Phaser's AudioContext + unlock mechanism)
+    // Menu always plays trip-hop regardless of the saved style setting
     const music = LofiMusicSystem.instance;
     music.init((this.sound as Phaser.Sound.WebAudioSoundManager).context);
+    music.setStyle('triphop');
     music.start();
 
     // Ensure seed input is removed on any scene transition

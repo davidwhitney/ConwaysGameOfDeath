@@ -1,14 +1,23 @@
 import type { MusicStyle, MusicStyleFactory } from './MusicStyle';
 import { LofiStyle } from './lofi/LofiStyle';
 import { TripHopStyle } from './triphop/TripHopStyle';
+import { DjentStyle } from './djent/DjentStyle';
+import { IndustrialStyle } from './industrial/IndustrialStyle';
+import { TechnoStyle } from './techno/TechnoStyle';
+import { EightBitStyle } from './eightbit/EightBitStyle';
 import { loadSettings } from '../../ui/preferences';
 
 export const MUSIC_STYLES: Record<string, MusicStyleFactory> = {
   lofi: (ctx, out) => new LofiStyle(ctx, out),
   triphop: (ctx, out) => new TripHopStyle(ctx, out),
+  djent: (ctx, out) => new DjentStyle(ctx, out),
+  industrial: (ctx, out) => new IndustrialStyle(ctx, out),
+  techno: (ctx, out) => new TechnoStyle(ctx, out),
+  '8bit-metal': (ctx, out) => new EightBitStyle(ctx, out),
 };
 
 export const STYLE_NAMES = Object.keys(MUSIC_STYLES);
+export const ALL_STYLE_NAMES = ['random', ...STYLE_NAMES];
 
 export class LofiMusicSystem {
   private static _instance: LofiMusicSystem | null = null;
@@ -24,11 +33,23 @@ export class LofiMusicSystem {
   private playing = false;
   private enabled: boolean;
   private styleName: string;
+  private volume: number;
+
+  private intensityHandler = (e: Event) => {
+    this.currentStyle?.setIntensity?.((e as CustomEvent).detail);
+  };
+
+  private highlightHandler = (e: Event) => {
+    this.currentStyle?.highlight?.((e as CustomEvent).detail);
+  };
 
   private constructor() {
     const settings = loadSettings();
     this.enabled = settings.musicEnabled ?? true;
     this.styleName = settings.musicStyle ?? 'triphop';
+    this.volume = settings.musicVolume ?? 0.5;
+    document.addEventListener('game-intensity', this.intensityHandler);
+    document.addEventListener('game-highlight', this.highlightHandler);
   }
 
   /** Provide Phaser's AudioContext. Safe to call multiple times. */
@@ -36,8 +57,17 @@ export class LofiMusicSystem {
     if (this.audioCtx === ctx) return;
     this.audioCtx = ctx;
     this.masterGain = ctx.createGain();
-    this.masterGain.gain.value = 0.5;
+    this.masterGain.gain.value = this.volume;
     this.masterGain.connect(ctx.destination);
+
+    // When browser unlocks the AudioContext after user gesture, auto-start music
+    if (ctx.state === 'suspended') {
+      const onUnlock = () => {
+        ctx.removeEventListener('statechange', onUnlock);
+        if (this.enabled && !this.playing) this.start();
+      };
+      ctx.addEventListener('statechange', onUnlock);
+    }
   }
 
   start(): void {
@@ -74,13 +104,18 @@ export class LofiMusicSystem {
   }
 
   setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
     if (this.masterGain && this.audioCtx) {
       this.masterGain.gain.setTargetAtTime(
-        Math.max(0, Math.min(1, v)),
+        this.volume,
         this.audioCtx.currentTime,
         0.05,
       );
     }
+  }
+
+  setIntensity(v: number): void {
+    this.currentStyle?.setIntensity?.(v);
   }
 
   get isPlaying(): boolean {
