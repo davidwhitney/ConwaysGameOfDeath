@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SpawnManager, type TileMap, isWalkable, TILE_SIZE } from '../shared';
 import { EnemyPool } from './EnemyPool';
+import { CameraManager } from './CameraManager';
 
 /**
  * Client-side spawn controller wrapping the shared SpawnManager.
@@ -21,12 +22,7 @@ export class SpawnController {
   }
 
   update(deltaMs: number, playerX: number, playerY: number): void {
-    // Calculate spawn range from viewport size
-    const cam = this.scene.cameras.main;
-    const halfW = cam.worldView.width / 2;
-    const halfH = cam.worldView.height / 2;
-    // Diagonal half-extent = distance from center to corner
-    const viewRadius = Math.sqrt(halfW * halfW + halfH * halfH);
+    const viewRadius = CameraManager.viewDiagonalRadius(this.scene.cameras.main);
     const spawnMin = viewRadius + 32;  // just outside screen edge
     const spawnMax = viewRadius + 300; // spread zone beyond edge
 

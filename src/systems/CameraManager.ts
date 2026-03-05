@@ -20,15 +20,17 @@ export class CameraManager {
     this.camera.shake(duration, intensity);
   }
 
-  flash(duration: number = 100, r: number = 255, g: number = 0, b: number = 0): void {
-    this.camera.flash(duration, r, g, b, false, undefined, undefined);
-  }
-
   getCamera(): Phaser.Cameras.Scene2D.Camera {
     return this.camera;
   }
 
   getWorldView(): Phaser.Geom.Rectangle {
     return this.camera.worldView;
+  }
+
+  static viewDiagonalRadius(cam: Phaser.Cameras.Scene2D.Camera): number {
+    const halfW = cam.worldView.width / 2;
+    const halfH = cam.worldView.height / 2;
+    return Math.sqrt(halfW * halfW + halfH * halfH);
   }
 }

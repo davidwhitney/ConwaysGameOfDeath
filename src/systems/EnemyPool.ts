@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Enemy } from '../entities/Enemy';
 import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE, type TileMap, EnemyType, distanceSq } from '../shared';
+import { CameraManager } from './CameraManager';
 
 export class EnemyPool {
   private pool: Enemy[] = [];
@@ -35,11 +36,7 @@ export class EnemyPool {
   }
 
   update(dt: number, playerX: number, playerY: number): void {
-    // Calculate despawn range from viewport
-    const cam = this.scene.cameras.main;
-    const halfW = cam.worldView.width / 2;
-    const halfH = cam.worldView.height / 2;
-    const despawnRange = Math.sqrt(halfW * halfW + halfH * halfH) + 400;
+    const despawnRange = CameraManager.viewDiagonalRadius(this.scene.cameras.main) + 400;
 
     for (let i = this.active.length - 1; i >= 0; i--) {
       const enemy = this.active[i];

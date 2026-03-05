@@ -16,4 +16,4 @@ export { SpatialHash, type SpatialEntity } from './systems/physics';
 
 // Utils
 export { SeededRandom } from './utils/seeded-random';
-export { distance, distanceSq, normalize, directionTo, clamp, lerp, lerpVec2, angleToVec2, vec2ToAngle, circlesOverlap, pointInRect } from './utils/math';
+export { distance, distanceSq, normalize, directionTo, clamp, lerp, lerpVec2, angleToVec2, vec2ToAngle, circlesOverlap } from './utils/math';
