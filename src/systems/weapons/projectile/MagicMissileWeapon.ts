@@ -1,5 +1,6 @@
 import type { Player } from '../../../entities/Player';
-import { BaseProjectileWeapon, type ActiveProjectile } from '../BaseProjectileWeapon';
+import { BaseProjectileWeapon, type TrailConfig } from '../BaseProjectileWeapon';
+import { Colors } from '../../../colors';
 
 export class MagicMissileWeapon extends BaseProjectileWeapon {
   protected getTexture(): string {
@@ -10,23 +11,13 @@ export class MagicMissileWeapon extends BaseProjectileWeapon {
     return this.angleToNearest(player);
   }
 
-  protected drawTrail(gfx: Phaser.GameObjects.Graphics, p: ActiveProjectile): void {
-    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
-    const nx = -p.vx / speed;
-    const ny = -p.vy / speed;
-    // Purple sparkle trail
-    for (let i = 1; i <= 4; i++) {
-      const t = i / 4;
-      const ox = p.x + nx * i * 5;
-      const oy = p.y + ny * i * 5;
-      const jx = (Math.random() - 0.5) * 5;
-      const jy = (Math.random() - 0.5) * 5;
-      // Purple glow
-      gfx.fillStyle(0xcc44ff, (1 - t) * 0.4);
-      gfx.fillCircle(ox + jx, oy + jy, p.radius * (0.8 - t * 0.4));
-      // White sparkle
-      gfx.fillStyle(0xffffff, (1 - t) * 0.3);
-      gfx.fillCircle(ox + jx, oy + jy, p.radius * (0.2));
-    }
+  protected getTrailConfig(): TrailConfig {
+    return {
+      count: 4, spacing: 5, jitter: 5,
+      layers: [
+        { color: Colors.trails.magic[0], alpha: 0.4, radiusScale: 0.8, radiusTaper: 0.4 },
+        { color: Colors.trails.magic[1], alpha: 0.3, radiusScale: 0.2 },
+      ],
+    };
   }
 }

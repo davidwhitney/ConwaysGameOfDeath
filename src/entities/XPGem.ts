@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { distance } from '../utils/math';
+import { Colors } from '../colors';
+import { drawGlowCircle } from '../systems/weapons/GfxPool';
 
 /** Time in seconds before a gem can be collected (scatter animation window) */
 const SPAWN_DELAY = 0.4;
@@ -32,10 +34,10 @@ const TEX_MAP: Record<GemKind, string> = {
 };
 
 const GEM_TRAIL_COLORS: Record<GemKind, number> = {
-  xp: 0x00ff66,
-  heal: 0xff2222,
-  gold: 0xffcc00,
-  vortex: 0x2288ff,
+  xp: Colors.gems.xp.trail,
+  heal: Colors.gems.heal.trail,
+  gold: Colors.gems.gold.trail,
+  vortex: Colors.gems.vortex.trail,
 };
 
 export class XPGemPool {
@@ -159,8 +161,12 @@ export class XPGemPool {
           const ny = -dy / len;
           for (let ti = 1; ti <= 3; ti++) {
             const tt = ti / 3;
-            this.trailGfx.fillStyle(trailColor, (1 - tt) * 0.35);
-            this.trailGfx.fillCircle(gem.x + nx * ti * 6, gem.y + ny * ti * 6, 3 * (1 - tt * 0.5));
+            drawGlowCircle(
+              this.trailGfx,
+              gem.x + nx * ti * 6, gem.y + ny * ti * 6,
+              3 * (1 - tt * 0.5), trailColor, (1 - tt) * 0.35,
+              2.0, 0.3, false,
+            );
           }
         }
       }

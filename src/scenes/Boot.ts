@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { loadSettings } from '../ui/saveData';
+import { Colors } from '../colors';
 
 /**
  * BootScene - Generate all placeholder sprites using Graphics API.
@@ -17,19 +18,19 @@ export class BootScene extends Phaser.Scene {
 
   private generateTextures(): void {
     // Player - blazing electric blue
-    this.createCircleTexture('player', 16, 0x22aaff, 0xaaeeff);
+    this.createCircleTexture('player', 16, Colors.player.main, Colors.player.inner);
 
     // Enemies — full-brightness neon
-    this.createCircleTexture('enemy-bat', 10, 0xff8800, 0xffcc44);
-    this.createCircleTexture('enemy-skeleton', 12, 0xffdd44, 0xffff88);
-    this.createCircleTexture('enemy-zombie', 14, 0x44ff00, 0x88ff44);
-    this.createCircleTexture('enemy-ghost', 12, 0xaaaaff, 0xddddff);
-    this.createCircleTexture('enemy-werewolf', 16, 0xcccccc, 0xffffff);
-    this.createCircleTexture('enemy-mummy', 14, 0xffee44, 0xffff99);
-    this.createCircleTexture('enemy-vampire', 14, 0xff0000, 0xff6644);
-    this.createCircleTexture('enemy-lich', 16, 0xaa00ff, 0xdd66ff);
-    this.createCircleTexture('enemy-dragon', 24, 0xff6600, 0xffbb44);
-    this.createCircleTexture('enemy-reaper', 18, 0x8800cc, 0xcc44ff);
+    this.createCircleTexture('enemy-bat', 10, Colors.enemies.bat.main, Colors.enemies.bat.inner);
+    this.createCircleTexture('enemy-skeleton', 12, Colors.enemies.skeleton.main, Colors.enemies.skeleton.inner);
+    this.createCircleTexture('enemy-zombie', 14, Colors.enemies.zombie.main, Colors.enemies.zombie.inner);
+    this.createCircleTexture('enemy-ghost', 12, Colors.enemies.ghost.main, Colors.enemies.ghost.inner);
+    this.createCircleTexture('enemy-werewolf', 16, Colors.enemies.werewolf.main, Colors.enemies.werewolf.inner);
+    this.createCircleTexture('enemy-mummy', 14, Colors.enemies.mummy.main, Colors.enemies.mummy.inner);
+    this.createCircleTexture('enemy-vampire', 14, Colors.enemies.vampire.main, Colors.enemies.vampire.inner);
+    this.createCircleTexture('enemy-lich', 16, Colors.enemies.lich.main, Colors.enemies.lich.inner);
+    this.createCircleTexture('enemy-dragon', 24, Colors.enemies.dragon.main, Colors.enemies.dragon.inner);
+    this.createCircleTexture('enemy-reaper', 18, Colors.enemies.reaper.main, Colors.enemies.reaper.inner);
 
     // Death boss - black hole with blazing accretion disk
     const deathR = 28;
@@ -38,9 +39,10 @@ export class BootScene extends Phaser.Scene {
     const deathGfx = this.make.graphics({ x: 0, y: 0 });
     const cx = deathR + deathPad, cy = deathR + deathPad;
     // Wide outer glow halo
+    const d = Colors.enemies.death;
     for (let r = deathR + deathPad; r > deathR * 0.4; r -= 2) {
       const t = (r - deathR * 0.4) / (deathR + deathPad - deathR * 0.4);
-      deathGfx.fillStyle(0x8833dd, t * 0.3);
+      deathGfx.fillStyle(d.halo, t * 0.3);
       deathGfx.fillCircle(cx, cy, r);
     }
     // Spiral arms — brighter, more visible
@@ -54,50 +56,50 @@ export class BootScene extends Phaser.Scene {
         const py = cy + Math.sin(angle) * dist;
         const size = 2 + t * 4;
         const alpha = (1 - t) * 0.8;
-        deathGfx.fillStyle(0xbb66ff, alpha);
+        deathGfx.fillStyle(d.spiral, alpha);
         deathGfx.fillCircle(px, py, size);
       }
     }
     // Dark core
-    deathGfx.fillStyle(0x000000, 1);
+    deathGfx.fillStyle(d.core, 1);
     deathGfx.fillCircle(cx, cy, deathR * 0.3);
     // Blazing core edge
-    deathGfx.lineStyle(3, 0x9900ff, 1);
+    deathGfx.lineStyle(3, d.coreEdge, 1);
     deathGfx.strokeCircle(cx, cy, deathR * 0.32);
-    deathGfx.lineStyle(1, 0xcc66ff, 0.5);
+    deathGfx.lineStyle(1, d.coreOutline, 0.5);
     deathGfx.strokeCircle(cx, cy, deathR * 0.38);
     deathGfx.generateTexture('enemy-death', deathSize, deathSize);
     deathGfx.destroy();
 
     // XP Gem - blazing green diamond
-    this.createGemTexture('xp-gem', 10, 0x00ff66, 0xaaffcc);
+    this.createGemTexture('xp-gem', 10, Colors.gems.xp.main, Colors.gems.xp.bright);
 
     // Golden Gem - blazing red diamond (heal pickup)
-    this.createGemTexture('golden-gem', 12, 0xff2222, 0xffaaaa);
+    this.createGemTexture('golden-gem', 12, Colors.gems.heal.main, Colors.gems.heal.bright);
 
     // Gold Gem - blazing gold diamond (currency)
-    this.createGemTexture('gold-gem', 11, 0xffcc00, 0xffee88);
+    this.createGemTexture('gold-gem', 11, Colors.gems.gold.main, Colors.gems.gold.bright);
 
     // Vortex Gem - blazing blue diamond
-    this.createGemTexture('vortex-gem', 12, 0x2288ff, 0xaaccff);
+    this.createGemTexture('vortex-gem', 12, Colors.gems.vortex.main, Colors.gems.vortex.bright);
 
     // Projectile - white hot
-    this.createCircleTexture('projectile', 6, 0xffffff, 0xffffff);
+    this.createCircleTexture('projectile', 6, Colors.projectiles.base.main, Colors.projectiles.base.inner);
 
     // Weapon-specific projectile colors — max brightness neon
-    this.createCircleTexture('proj-magic', 6, 0xee66ff, 0xffbbff);
-    this.createCircleTexture('proj-fire', 8, 0xff6600, 0xffcc44);
-    this.createCircleTexture('proj-ice', 5, 0x00eeff, 0x88ffff);
-    this.createCircleTexture('proj-boomerang', 8, 0xffcc00, 0xffee66);
-    this.createCircleTexture('proj-scythe', 8, 0xaaaaaa, 0xeeeeee);
+    this.createCircleTexture('proj-magic', 6, Colors.projectiles.magic.main, Colors.projectiles.magic.inner);
+    this.createCircleTexture('proj-fire', 8, Colors.projectiles.fire.main, Colors.projectiles.fire.inner);
+    this.createCircleTexture('proj-ice', 5, Colors.projectiles.ice.main, Colors.projectiles.ice.inner);
+    this.createCircleTexture('proj-boomerang', 8, Colors.projectiles.boomerang.main, Colors.projectiles.boomerang.inner);
+    this.createCircleTexture('proj-scythe', 8, Colors.projectiles.scythe.main, Colors.projectiles.scythe.inner);
 
     // Tile textures — neon wireframe grid
     this.createGridTileTexture('tile-floor', 32, 32);
     this.createNeonWallTexture('tile-wall', 32, 32);
 
     // UI elements
-    this.createRectTexture('white', 4, 4, 0xffffff);
-    this.createRectTexture('button', 200, 50, 0x333366, 0x444477);
+    this.createRectTexture('white', 4, 4, Colors.ui.white);
+    this.createRectTexture('button', 200, 50, Colors.ui.button, Colors.ui.buttonBorder);
 
     // AoE circle indicators
     for (const size of [40, 50, 55, 60, 70, 80, 90, 100, 120]) {
@@ -117,7 +119,7 @@ export class BootScene extends Phaser.Scene {
       gfx.fillStyle(innerColor, 1);
       gfx.fillCircle(cx, cy, radius * 0.6);
       // White-hot core
-      gfx.fillStyle(0xffffff, 0.6);
+      gfx.fillStyle(Colors.effects.hotCenter, 0.6);
       gfx.fillCircle(cx, cy, radius * 0.25);
     }
     // Bright neon edge — camera bloom turns this into glow
@@ -164,7 +166,7 @@ export class BootScene extends Phaser.Scene {
     gfx.fillTriangle(c, c - ih, c + ih, c, c, c + ih);
     gfx.fillTriangle(c, c - ih, c - ih, c, c, c + ih);
     // White-hot center dot
-    gfx.fillStyle(0xffffff, 0.7);
+    gfx.fillStyle(Colors.effects.hotCenter, 0.7);
     gfx.fillCircle(c, c, half * 0.2);
     // Neon outline
     gfx.lineStyle(1, brightColor, 1);
@@ -177,13 +179,13 @@ export class BootScene extends Phaser.Scene {
   private createGridTileTexture(key: string, w: number, h: number): void {
     const gfx = this.make.graphics({ x: 0, y: 0 });
     // Black background
-    gfx.fillStyle(0x000000, 1);
+    gfx.fillStyle(Colors.tiles.floorBg, 1);
     gfx.fillRect(0, 0, w, h);
     // Soft glow around grid lines
-    gfx.lineStyle(3, 0x003355, 0.15);
+    gfx.lineStyle(3, Colors.tiles.gridGlow, 0.15);
     gfx.strokeRect(0, 0, w, h);
     // Neon cyan grid lines
-    gfx.lineStyle(1, 0x0077aa, 0.5);
+    gfx.lineStyle(1, Colors.tiles.gridLine, 0.5);
     gfx.strokeRect(0, 0, w, h);
     gfx.generateTexture(key, w, h);
     gfx.destroy();
@@ -192,16 +194,16 @@ export class BootScene extends Phaser.Scene {
   private createNeonWallTexture(key: string, w: number, h: number): void {
     const gfx = this.make.graphics({ x: 0, y: 0 });
     // Dark fill with slight blue tint
-    gfx.fillStyle(0x001122, 1);
+    gfx.fillStyle(Colors.tiles.wallFill, 1);
     gfx.fillRect(0, 0, w, h);
     // Outer glow
-    gfx.lineStyle(3, 0x0066aa, 0.4);
+    gfx.lineStyle(3, Colors.tiles.wallGlow, 0.4);
     gfx.strokeRect(0, 0, w, h);
     // Bright neon outline
-    gfx.lineStyle(2, 0x00aaff, 0.9);
+    gfx.lineStyle(2, Colors.tiles.wallOutline, 0.9);
     gfx.strokeRect(1, 1, w - 2, h - 2);
     // Inner bright highlight
-    gfx.lineStyle(1, 0x00ddff, 0.4);
+    gfx.lineStyle(1, Colors.tiles.wallHighlight, 0.4);
     gfx.strokeRect(3, 3, w - 6, h - 6);
     gfx.generateTexture(key, w, h);
     gfx.destroy();

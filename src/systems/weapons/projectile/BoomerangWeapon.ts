@@ -1,6 +1,7 @@
 import { directionTo } from '../../../utils/math';
 import type { Player } from '../../../entities/Player';
-import { BaseProjectileWeapon, type ActiveProjectile } from '../BaseProjectileWeapon';
+import { BaseProjectileWeapon, type ActiveProjectile, type TrailConfig } from '../BaseProjectileWeapon';
+import { Colors } from '../../../colors';
 
 export class BoomerangWeapon extends BaseProjectileWeapon {
   protected getTexture(): string {
@@ -30,17 +31,12 @@ export class BoomerangWeapon extends BaseProjectileWeapon {
     return true;
   }
 
-  protected drawTrail(gfx: Phaser.GameObjects.Graphics, p: ActiveProjectile): void {
-    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
-    const nx = -p.vx / speed;
-    const ny = -p.vy / speed;
-    // Golden arc trail
-    for (let i = 1; i <= 4; i++) {
-      const t = i / 4;
-      const ox = p.x + nx * i * 5;
-      const oy = p.y + ny * i * 5;
-      gfx.fillStyle(0xffcc00, (1 - t) * 0.35);
-      gfx.fillCircle(ox, oy, p.radius * (0.7 - t * 0.3));
-    }
+  protected getTrailConfig(): TrailConfig {
+    return {
+      count: 4, spacing: 5, jitter: 0,
+      layers: [
+        { color: Colors.trails.boomerang, alpha: 0.35, radiusScale: 0.7, radiusTaper: 0.3 },
+      ],
+    };
   }
 }

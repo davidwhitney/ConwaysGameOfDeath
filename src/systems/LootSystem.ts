@@ -10,6 +10,8 @@ import { XPGemPool } from '../entities/XPGem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
+import { Colors } from '../colors';
+import { drawGlowCircle } from './weapons/GfxPool';
 
 export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -130,10 +132,7 @@ export class LootSystem implements GameSystem {
     }
   }
 
-  private static readonly BURST_PALETTE = [
-    0xff2266, 0xff6600, 0xffcc00, 0x00ff66,
-    0x00ccff, 0x8844ff, 0xff44cc, 0xffffff,
-  ];
+  private static readonly BURST_PALETTE = Colors.effects.burstPalette;
 
   private spawnDeathBurst(x: number, y: number, _color: number, boss: boolean): void {
     const count = boss ? 28 : 14;
@@ -170,11 +169,12 @@ export class LootSystem implements GameSystem {
       // Central flash — big multicolour burst
       if (t < 0.35) {
         const flashAlpha = (1 - t / 0.35);
-        gfx.fillStyle(0xffffff, flashAlpha * 0.8);
+        const bf = Colors.effects.burstFlash;
+        gfx.fillStyle(bf.white, flashAlpha * 0.8);
         gfx.fillCircle(x, y, radius * 4 * (1 - t));
-        gfx.fillStyle(0xff44cc, flashAlpha * 0.4);
+        gfx.fillStyle(bf.pink, flashAlpha * 0.4);
         gfx.fillCircle(x, y, radius * 7 * (1 - t));
-        gfx.fillStyle(0x00ccff, flashAlpha * 0.25);
+        gfx.fillStyle(bf.cyan, flashAlpha * 0.25);
         gfx.fillCircle(x, y, radius * 10 * (1 - t));
       }
 
@@ -182,15 +182,7 @@ export class LootSystem implements GameSystem {
         const px = p.ax + (p.dx - p.ax) * ease;
         const py = p.ay + (p.dy - p.ay) * ease;
         const pSize = p.size * s;
-        // Outer glow in particle color
-        gfx.fillStyle(p.color, alpha * 0.3);
-        gfx.fillCircle(px, py, pSize * 2.5);
-        // Core particle
-        gfx.fillStyle(p.color, alpha);
-        gfx.fillCircle(px, py, pSize);
-        // White-hot center
-        gfx.fillStyle(0xffffff, alpha * 0.6);
-        gfx.fillCircle(px, py, pSize * 0.35);
+        drawGlowCircle(gfx, px, py, pSize, p.color, alpha, 2.5);
       }
 
       if (t >= 1) {

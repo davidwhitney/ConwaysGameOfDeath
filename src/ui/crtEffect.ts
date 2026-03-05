@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import { loadSettings } from './saveData';
+import { Colors } from '../colors';
 
 function isWebGL(scene: Phaser.Scene): boolean {
   return scene.game.renderer.type === Phaser.WEBGL;
 }
 
 function addBloom(cam: Phaser.Cameras.Scene2D.Camera): void {
-  cam.postFX.addBloom(0x222222, 2, 2, 2.5, 2.5);
+  cam.postFX.addBloom(Colors.effects.bloomThreshold, 2, 2, 2.5, 2.5);
 }
 
 function addCRTExtras(cam: Phaser.Cameras.Scene2D.Camera): void {

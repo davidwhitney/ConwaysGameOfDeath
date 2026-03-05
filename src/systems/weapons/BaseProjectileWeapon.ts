@@ -3,6 +3,20 @@ import { circlesOverlap } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 
+export interface TrailLayer {
+  color: number;
+  alpha: number;
+  radiusScale: number;
+  radiusTaper?: number;
+}
+
+export interface TrailConfig {
+  count: number;
+  spacing: number;
+  jitter: number;
+  layers: TrailLayer[];
+}
+
 export interface ActiveProjectile {
   id: number;
   sprite: Phaser.GameObjects.Sprite;
@@ -34,9 +48,31 @@ export class BaseProjectileWeapon extends BaseWeapon {
     return 'projectile';
   }
 
-  /** Override in subclasses to draw a trail behind the projectile. */
-  protected drawTrail(_gfx: Phaser.GameObjects.Graphics, _p: ActiveProjectile): void {
-    // Default: no trail
+  /** Override to return a trail config for data-driven trail rendering. */
+  protected getTrailConfig(): TrailConfig | null {
+    return null;
+  }
+
+  /** Override for custom trail rendering (e.g. ScytheWeapon's angle-based trail). */
+  protected drawTrail(gfx: Phaser.GameObjects.Graphics, p: ActiveProjectile): void {
+    const config = this.getTrailConfig();
+    if (!config) return;
+    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
+    const nx = -p.vx / speed;
+    const ny = -p.vy / speed;
+    for (let i = 1; i <= config.count; i++) {
+      const t = i / config.count;
+      const ox = p.x + nx * i * config.spacing;
+      const oy = p.y + ny * i * config.spacing;
+      const jx = config.jitter ? (Math.random() - 0.5) * config.jitter : 0;
+      const jy = config.jitter ? (Math.random() - 0.5) * config.jitter : 0;
+      for (const layer of config.layers) {
+        const taper = layer.radiusTaper ?? 0;
+        const radius = p.radius * (layer.radiusScale - t * taper);
+        gfx.fillStyle(layer.color, (1 - t) * layer.alpha);
+        gfx.fillCircle(ox + jx, oy + jy, radius);
+      }
+    }
   }
 
   private ensureTrailGfx(): Phaser.GameObjects.Graphics {

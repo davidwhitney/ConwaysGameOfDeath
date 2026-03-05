@@ -1,5 +1,6 @@
 import type { Player } from '../../../entities/Player';
 import { BaseProjectileWeapon, type ActiveProjectile } from '../BaseProjectileWeapon';
+import { Colors } from '../../../colors';
 
 export class ScytheWeapon extends BaseProjectileWeapon {
   protected getTexture(): string {
@@ -19,15 +20,13 @@ export class ScytheWeapon extends BaseProjectileWeapon {
   }
 
   protected drawTrail(gfx: Phaser.GameObjects.Graphics, p: ActiveProjectile): void {
-    // Ghostly sweeping arc behind scythe
-    const prevAngle = p.angle - 0.5;
+    // Ghostly sweeping arc behind scythe — angle-based, not velocity-based
     for (let i = 1; i <= 4; i++) {
       const t = i / 4;
       const a = p.angle - t * 0.5;
-      const d = p.spiralDist - t * 8;
       const ox = p.x + Math.cos(a) * t * 6 - Math.cos(p.angle) * t * 6;
       const oy = p.y + Math.sin(a) * t * 6 - Math.sin(p.angle) * t * 6;
-      gfx.fillStyle(0xbbbbbb, (1 - t) * 0.3);
+      gfx.fillStyle(Colors.trails.scythe, (1 - t) * 0.3);
       gfx.fillCircle(p.x + (ox - p.x), p.y + (oy - p.y), p.radius * (0.6 - t * 0.2));
     }
   }

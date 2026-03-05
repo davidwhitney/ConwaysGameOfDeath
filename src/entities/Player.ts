@@ -11,6 +11,7 @@ import { EFFECT_DEFS } from './effects';
 import { isWalkable } from '../systems/map-generator';
 import { clamp } from '../utils/math';
 import { GameEvents } from '../systems/GameEvents';
+import { Colors } from '../colors';
 
 export class Player {
   sprite: Phaser.GameObjects.Sprite;
@@ -38,7 +39,7 @@ export class Player {
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
     if (scene.game.renderer.type === Phaser.WEBGL) {
-      this.sprite.preFX?.addGlow(0x4488ff, 8, 0, false, 0.15, 24);
+      this.sprite.preFX?.addGlow(Colors.player.glow, 8, 0, false, 0.15, 24);
     }
 
     this.state = {
@@ -179,7 +180,7 @@ export class Player {
     GameEvents.sfx('player-hit');
 
     // Flash the player sprite to show damage / i-frames
-    this.sprite.setTintFill(0xffffff);
+    this.sprite.setTintFill(Colors.player.hitFlash);
     this.scene.time.delayedCall(80, () => {
       if (this.state.alive) this.sprite.clearTint();
     });
@@ -267,11 +268,11 @@ export class Player {
       const t = (i + 1) / len;
       const pos = this.trailPositions[i];
       // Match the full visual size of player sprite + preFX glow halo
-      this.trailGfx.fillStyle(0x2288ff, t * 0.25);
+      this.trailGfx.fillStyle(Colors.player.trail[0], t * 0.25);
       this.trailGfx.fillCircle(pos.x, pos.y, 28);
-      this.trailGfx.fillStyle(0x44aaff, t * 0.35);
+      this.trailGfx.fillStyle(Colors.player.trail[1], t * 0.35);
       this.trailGfx.fillCircle(pos.x, pos.y, 18);
-      this.trailGfx.fillStyle(0x66ccff, t * 0.5);
+      this.trailGfx.fillStyle(Colors.player.trail[2], t * 0.5);
       this.trailGfx.fillCircle(pos.x, pos.y, 10);
     }
   }
