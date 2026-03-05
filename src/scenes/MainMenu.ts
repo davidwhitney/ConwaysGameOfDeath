@@ -1,34 +1,19 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
-import { GamepadNav } from '../ui/gamepadNav';
-import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
+import { BloodDripEffect } from '../ui/BloodDripEffect';
+import { MenuNav } from '../ui/MenuNav';
 import { loadSettings, saveSettings } from '../ui/preferences';
 import { onResizeRestart } from '../ui/resizeHandler';
 
-interface BloodDrip {
-  x: number;
-  y: number;
-  startY: number;
-  speed: number;
-  length: number;
-  alpha: number;
-  delay: number;
-  maxDist: number;
-}
-
 export class MainMenuScene extends Phaser.Scene {
-  private gpNav!: GamepadNav;
-  private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333344, 0x333344];
-  private readonly hoverFills = [0x444488, 0x444466, 0x444466];
+  private menuNav!: MenuNav;
   private seedInput!: HTMLInputElement;
   private endlessContainer!: HTMLDivElement;
   private endlessCheckbox!: HTMLInputElement;
-  private drips: BloodDrip[] = [];
-  private dripGfx!: Phaser.GameObjects.Graphics;
+  private bloodDrips!: BloodDripEffect;
   private gol!: BackgroundGameOfLife;
   private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, scores: 0.72, settings: 0.82, hint: 0.92 };
   private currentSeed = '';
@@ -55,20 +40,11 @@ export class MainMenuScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     // Blood drip effect
-    this.dripGfx = this.add.graphics().setDepth(title.depth - 1);
-    this.initBloodDrips(title);
+    this.bloodDrips = new BloodDripEffect(this, title, { count: 18, delayRange: 5, fromLine1: true });
 
     this.add.text(width / 2, height * 0.40, 'Survive the Automaton',
       monoStyle('20px', '#aaaacc'),
     ).setOrigin(0.5);
-
-    // Play button
-    const play = createButton(this, {
-      x: width / 2, y: height * ly.play, width: 220, height: 50,
-      label: 'PLAY', fontSize: '24px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.startGame(),
-    });
 
     // Seed input (HTML element for editable text)
     this.createSeedInput();
@@ -76,29 +52,11 @@ export class MainMenuScene extends Phaser.Scene {
     // Endless mode checkbox
     this.createEndlessCheckbox();
 
-    // High scores button
-    const scores = createButton(this, {
-      x: width / 2, y: height * ly.scores, width: 200, height: 45,
-      label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
-      fillColor: 0x333344, hoverColor: 0x444466,
-      onClick: () => this.scene.start('HighScores'),
-    });
-
-    // Settings button
-    const settings = createButton(this, {
-      x: width / 2, y: height * ly.settings, width: 200, height: 45,
-      label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00',
-      fillColor: 0x333344, hoverColor: 0x444466,
-      onClick: () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
-    });
-
-    this.buttons = [play.bg, scores.bg, settings.bg];
-
-    // Restore unhighlight behavior (buttonFactory sets pointerout to fillColor, but
-    // gamepad nav also changes fills, so we override pointerout here)
-    play.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
-    scores.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
-    settings.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
+    this.menuNav = new MenuNav(this, [
+      { x: width / 2, y: height * ly.play, width: 220, height: 50, label: 'PLAY', fontSize: '24px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.startGame() },
+      { x: width / 2, y: height * ly.scores, width: 200, height: 45, label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('HighScores') },
+      { x: width / 2, y: height * ly.settings, width: 200, height: 45, label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
+    ]);
 
     // Controls hint
     this.add.text(width / 2, height * ly.hint, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
@@ -113,14 +71,6 @@ export class MainMenuScene extends Phaser.Scene {
       if (document.activeElement !== this.seedInput) this.startGame();
     });
 
-    // Gamepad navigation
-    const actions = [
-      () => this.startGame(),
-      () => this.scene.start('HighScores'),
-      () => this.scene.start('Settings', { returnTo: 'MainMenu' }),
-    ];
-    this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
-
     // Restart on resize so layout adapts
     onResizeRestart(this);
 
@@ -130,7 +80,6 @@ export class MainMenuScene extends Phaser.Scene {
 
   private createSeedInput(): void {
     const canvas = this.game.canvas;
-    const canvasRect = canvas.getBoundingClientRect();
 
     this.seedInput = document.createElement('input');
     this.seedInput.type = 'text';
@@ -267,78 +216,9 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    this.gpNav.update(_time);
-    const sel = this.gpNav.getSelected();
-    for (let i = 0; i < this.buttons.length; i++) {
-      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
-    }
-    this.updateBloodDrips(delta / 1000);
+    this.menuNav.update(_time);
+    this.bloodDrips.update(delta / 1000);
     this.gol.update(delta);
-  }
-
-  private initBloodDrips(title: Phaser.GameObjects.Text): void {
-    this.drips = [];
-    const bounds = title.getBounds();
-    // Bottom of line 1 ("CONWAY'S GAME") sits roughly at the midpoint
-    const line1Bottom = bounds.top + bounds.height * 0.48;
-    const line2Bottom = bounds.bottom;
-    const dripCount = 18;
-
-    for (let i = 0; i < dripCount; i++) {
-      const fromLine1 = Math.random() < 0.4;
-      const startY = fromLine1 ? line1Bottom : line2Bottom;
-      const x = bounds.left + Math.random() * bounds.width;
-      this.drips.push({
-        x,
-        y: startY,
-        startY,
-        speed: 10 + Math.random() * 20,
-        length: 4 + Math.random() * 14,
-        alpha: 0.5 + Math.random() * 0.5,
-        delay: Math.random() * 5,
-        maxDist: 25 + Math.random() * 55,
-      });
-    }
-  }
-
-  private updateBloodDrips(dt: number): void {
-    this.dripGfx.clear();
-
-    for (const drip of this.drips) {
-      if (drip.delay > 0) {
-        drip.delay -= dt;
-        continue;
-      }
-
-      drip.y += drip.speed * dt;
-      const dist = drip.y - drip.startY;
-      const progress = dist / drip.maxDist;
-      const fadeAlpha = drip.alpha * Math.max(0, 1 - progress);
-
-      // Drip trail from text bottom
-      const trailTop = Math.max(drip.startY, drip.y - drip.length);
-      const w = 2;
-      this.dripGfx.fillStyle(0xcc0000, fadeAlpha * 0.7);
-      this.dripGfx.fillRect(drip.x - w / 2, trailTop, w, drip.y - trailTop);
-
-      // Rounded drop at tip
-      this.dripGfx.fillStyle(0xaa0000, fadeAlpha);
-      this.dripGfx.fillCircle(drip.x, drip.y, 1.5);
-
-      // Reset when fully fallen
-      if (dist >= drip.maxDist) {
-        drip.y = drip.startY;
-        drip.delay = 2 + Math.random() * 6;
-        drip.speed = 10 + Math.random() * 20;
-        drip.length = 4 + Math.random() * 14;
-        drip.alpha = 0.5 + Math.random() * 0.5;
-        drip.maxDist = 25 + Math.random() * 55;
-      }
-    }
-  }
-
-  private unhighlightBtn(index: number): void {
-    this.buttons[index]?.setFillStyle(this.defaultFills[index]);
   }
 
   private getSeed(): number {

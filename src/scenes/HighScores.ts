@@ -1,15 +1,13 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { loadScores, formatTime } from '../ui/highScores';
-import { GamepadNav } from '../ui/gamepadNav';
-import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
+import { MenuNav } from '../ui/MenuNav';
 import { onResizeRestart } from '../ui/resizeHandler';
 
 export class HighScoresScene extends Phaser.Scene {
-  private gpNav!: GamepadNav;
-  private backBtn!: Phaser.GameObjects.Rectangle;
+  private menuNav!: MenuNav;
 
   constructor() {
     super({ key: 'HighScores' });
@@ -63,34 +61,22 @@ export class HighScoresScene extends Phaser.Scene {
       });
     }
 
-    // Back button
-    const back = createButton(this, {
-      x: width / 2, y: height * 0.9, width: 200, height: 45,
-      label: 'BACK', fontSize: '18px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.goBack(),
-    });
-    this.backBtn = back.bg;
+    this.menuNav = new MenuNav(this, [
+      { x: width / 2, y: height * 0.9, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
+    ], () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
     this.input.keyboard!.on('keydown-ENTER', () => this.goBack());
 
-    // Gamepad navigation — A/B/Start all go back
-    this.gpNav = new GamepadNav(this, 1, () => this.goBack(), () => this.goBack());
-
     onResizeRestart(this);
 
-    // Cleanup on shutdown
     this.events.once('shutdown', () => {
       this.input.keyboard!.removeAllListeners();
     });
   }
 
   update(_time: number): void {
-    this.gpNav.update(_time);
-    // Single button — always highlighted when gamepad is connected
-    const pad = this.input.gamepad?.pad1;
-    this.backBtn.setFillStyle(pad ? 0x444488 : 0x333366);
+    this.menuNav.update(_time);
   }
 
   private goBack(): void {

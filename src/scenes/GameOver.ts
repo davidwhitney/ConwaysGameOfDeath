@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
 import { addScore, formatTime } from '../ui/highScores';
-import { GamepadNav } from '../ui/gamepadNav';
-import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
+import { MenuNav } from '../ui/MenuNav';
 import { onResizeRestart } from '../ui/resizeHandler';
 
 interface GameOverData {
@@ -16,10 +15,7 @@ interface GameOverData {
 }
 
 export class GameOverScene extends Phaser.Scene {
-  private gpNav!: GamepadNav;
-  private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333344, 0x333344];
-  private readonly hoverFills = [0x444488, 0x444466, 0x444466];
+  private menuNav!: MenuNav;
   private initData: GameOverData | null = null;
   private rank = 0;
 
@@ -81,64 +77,23 @@ export class GameOverScene extends Phaser.Scene {
       ).setOrigin(0.5);
     }
 
-    // Play again button
-    const play = createButton(this, {
-      x: width / 2, y: height * 0.62, width: 220, height: 50,
-      label: 'PLAY AGAIN', fontSize: '20px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.playAgain(),
-    });
+    this.menuNav = new MenuNav(this, [
+      { x: width / 2, y: height * 0.62, width: 220, height: 50, label: 'PLAY AGAIN', fontSize: '20px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.playAgain() },
+      { x: width / 2, y: height * 0.74, width: 220, height: 45, label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.showHighScores() },
+      { x: width / 2, y: height * 0.85, width: 220, height: 45, label: 'MAIN MENU', fontSize: '16px', textColor: '#aaaaaa', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.goToMenu() },
+    ]);
 
-    // High scores button
-    const scores = createButton(this, {
-      x: width / 2, y: height * 0.74, width: 220, height: 45,
-      label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00',
-      fillColor: 0x333344, hoverColor: 0x444466,
-      onClick: () => this.showHighScores(),
-    });
-
-    // Menu button
-    const menu = createButton(this, {
-      x: width / 2, y: height * 0.85, width: 220, height: 45,
-      label: 'MAIN MENU', fontSize: '16px', textColor: '#aaaaaa',
-      fillColor: 0x333344, hoverColor: 0x444466,
-      onClick: () => this.goToMenu(),
-    });
-
-    this.buttons = [play.bg, scores.bg, menu.bg];
-    play.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(0));
-    scores.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(1));
-    menu.bg.off('pointerout').on('pointerout', () => this.unhighlightBtn(2));
-
-    // Enter/Space to play again
     this.input.keyboard!.on('keydown-ENTER', () => this.playAgain());
-
-    // Gamepad navigation
-    const actions = [
-      () => this.playAgain(),
-      () => this.showHighScores(),
-      () => this.goToMenu(),
-    ];
-    this.gpNav = new GamepadNav(this, 3, (i) => actions[i]());
 
     onResizeRestart(this, this.initData!);
 
-    // Cleanup on shutdown
     this.events.once('shutdown', () => {
       this.input.keyboard!.removeAllListeners();
     });
   }
 
   update(_time: number): void {
-    this.gpNav.update(_time);
-    const sel = this.gpNav.getSelected();
-    for (let i = 0; i < this.buttons.length; i++) {
-      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
-    }
-  }
-
-  private unhighlightBtn(index: number): void {
-    this.buttons[index]?.setFillStyle(this.defaultFills[index]);
+    this.menuNav.update(_time);
   }
 
   private playAgain(): void {

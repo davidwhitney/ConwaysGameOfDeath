@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
-import { GamepadNav } from '../ui/gamepadNav';
-import { createButton } from '../ui/buttonFactory';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
+import { MenuNav } from '../ui/MenuNav';
 import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/preferences';
 import { onResizeRestart } from '../ui/resizeHandler';
 
@@ -12,14 +11,8 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.25;
 
 export class SettingsScene extends Phaser.Scene {
-  private gpNav!: GamepadNav;
-  private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x333366, 0x443333, 0x333366];
-  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x444488, 0x664444, 0x444488];
-  private crtBtnText!: Phaser.GameObjects.Text;
-  private skipIntroBtnText!: Phaser.GameObjects.Text;
+  private menuNav!: MenuNav;
   private zoomValueText!: Phaser.GameObjects.Text;
-  private clearBtnText!: Phaser.GameObjects.Text;
   private clearConfirm = false;
   private settings!: Settings;
   private returnTo: string = 'MainMenu';
@@ -35,9 +28,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Ensure we render on top of all other scenes (e.g. paused Game)
     this.scene.bringToTop();
-
     const { width, height } = applyUIZoom(this);
     applyCRT(this);
 
@@ -49,127 +40,51 @@ export class SettingsScene extends Phaser.Scene {
       monoStyle('36px', '#ffcc00', { fontStyle: 'bold' }),
     ).setOrigin(0.5);
 
-    // Load current settings
     this.settings = loadSettings();
 
-    // ── CRT toggle row ──
-    this.add.text(width / 2 - 100, height * 0.35, 'CRT Effect',
-      monoStyle('18px', '#aaaacc'),
-    ).setOrigin(0, 0.5);
-
-    const crtToggle = createButton(this, {
-      x: width / 2 + 80, y: height * 0.35, width: 80, height: 40,
-      label: this.settings.crtEnabled ? 'ON' : 'OFF',
-      fontSize: '18px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.toggleCRT(),
-    });
-    this.crtBtnText = crtToggle.text;
-
-    // ── Skip Intro toggle row ──
-    this.add.text(width / 2 - 100, height * 0.42, 'Skip Intro',
-      monoStyle('18px', '#aaaacc'),
-    ).setOrigin(0, 0.5);
-
-    const skipIntroToggle = createButton(this, {
-      x: width / 2 + 80, y: height * 0.42, width: 80, height: 40,
-      label: this.settings.skipIntro ? 'ON' : 'OFF',
-      fontSize: '18px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.toggleSkipIntro(),
-    });
-    this.skipIntroBtnText = skipIntroToggle.text;
-
-    // ── Zoom slider row ──
-    this.add.text(width / 2 - 100, height * 0.52, 'Zoom',
-      monoStyle('18px', '#aaaacc'),
-    ).setOrigin(0, 0.5);
-
-    const zoomDown = createButton(this, {
-      x: width / 2 + 45, y: height * 0.52, width: 36, height: 36,
-      label: '-', fontSize: '22px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.adjustZoom(-ZOOM_STEP),
-    });
+    // Row labels
+    this.add.text(width / 2 - 100, height * 0.35, 'CRT Effect', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
+    this.add.text(width / 2 - 100, height * 0.42, 'Skip Intro', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
+    this.add.text(width / 2 - 100, height * 0.52, 'Zoom', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
 
     this.zoomValueText = this.add.text(width / 2 + 80, height * 0.52,
       this.formatZoom(this.settings.gameZoom),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
-    const zoomUp = createButton(this, {
-      x: width / 2 + 115, y: height * 0.52, width: 36, height: 36,
-      label: '+', fontSize: '22px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.adjustZoom(ZOOM_STEP),
-    });
+    this.menuNav = new MenuNav(this, [
+      { x: width / 2 + 80, y: height * 0.35, width: 80, height: 40, label: this.settings.crtEnabled ? 'ON' : 'OFF', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.toggleCRT() },
+      { x: width / 2 + 80, y: height * 0.42, width: 80, height: 40, label: this.settings.skipIntro ? 'ON' : 'OFF', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.toggleSkipIntro() },
+      { x: width / 2 + 45, y: height * 0.52, width: 36, height: 36, label: '-', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustZoom(-ZOOM_STEP) },
+      { x: width / 2 + 115, y: height * 0.52, width: 36, height: 36, label: '+', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustZoom(ZOOM_STEP) },
+      { x: width / 2, y: height * 0.67, width: 200, height: 40, label: 'CLEAR DATA', fontSize: '14px', textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444, action: () => this.clearData() },
+      { x: width / 2, y: height * 0.82, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
+    ], () => this.goBack());
 
-    // ── Clear data button ──
-    const clear = createButton(this, {
-      x: width / 2, y: height * 0.67, width: 200, height: 40,
-      label: 'CLEAR DATA', fontSize: '14px', textColor: '#ff8888',
-      fillColor: 0x443333, hoverColor: 0x664444,
-      onClick: () => this.clearData(),
-    });
-    this.clearBtnText = clear.text;
-
-    // ── Back button ──
-    const back = createButton(this, {
-      x: width / 2, y: height * 0.82, width: 200, height: 45,
-      label: 'BACK', fontSize: '18px', textColor: '#ffffff',
-      fillColor: 0x333366, hoverColor: 0x444488,
-      onClick: () => this.goBack(),
-    });
-
-    this.buttons = [crtToggle.bg, skipIntroToggle.bg, zoomDown.bg, zoomUp.bg, clear.bg, back.bg];
-
-    // Restore unhighlight behavior
-    this.buttons.forEach((btn, i) => {
-      btn.off('pointerout').on('pointerout', () => this.unhighlightBtn(i));
-    });
-
-    // Keyboard
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
-
-    // Gamepad navigation — 6 items, B goes back
-    const actions = [
-      () => this.toggleCRT(),
-      () => this.toggleSkipIntro(),
-      () => this.adjustZoom(-ZOOM_STEP),
-      () => this.adjustZoom(ZOOM_STEP),
-      () => this.clearData(),
-      () => this.goBack(),
-    ];
-    this.gpNav = new GamepadNav(this, 6, (i) => actions[i](), () => this.goBack());
 
     onResizeRestart(this, this.initData);
 
-    // Cleanup on shutdown
     this.events.once('shutdown', () => {
       this.input.keyboard!.removeAllListeners();
     });
   }
 
   update(_time: number): void {
-    this.gpNav.update(_time);
-    const sel = this.gpNav.getSelected();
-    for (let i = 0; i < this.buttons.length; i++) {
-      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
-    }
+    this.menuNav.update(_time);
   }
 
   private toggleCRT(): void {
     this.settings.crtEnabled = !this.settings.crtEnabled;
     saveSettings(this.settings);
-    this.crtBtnText.setText(this.settings.crtEnabled ? 'ON' : 'OFF');
-    // Restart scene to apply/remove CRT effects
+    this.menuNav.getText(0).setText(this.settings.crtEnabled ? 'ON' : 'OFF');
     this.scene.restart({ returnTo: this.returnTo });
   }
 
   private toggleSkipIntro(): void {
     this.settings.skipIntro = !this.settings.skipIntro;
     saveSettings(this.settings);
-    this.skipIntroBtnText.setText(this.settings.skipIntro ? 'ON' : 'OFF');
+    this.menuNav.getText(1).setText(this.settings.skipIntro ? 'ON' : 'OFF');
   }
 
   private adjustZoom(delta: number): void {
@@ -186,7 +101,7 @@ export class SettingsScene extends Phaser.Scene {
   private clearData(): void {
     if (!this.clearConfirm) {
       this.clearConfirm = true;
-      this.clearBtnText.setText('ARE YOU SURE?');
+      this.menuNav.getText(4).setText('ARE YOU SURE?');
       return;
     }
     clearAllData();
@@ -195,15 +110,10 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private goBack(): void {
-    // Only return to Pause if there's actually a paused game behind it
     if (this.returnTo === 'Pause' && !this.scene.isPaused('Game')) {
       this.scene.start('MainMenu');
     } else {
       this.scene.start(this.returnTo);
     }
-  }
-
-  private unhighlightBtn(index: number): void {
-    this.buttons[index]?.setFillStyle(this.defaultFills[index]);
   }
 }
