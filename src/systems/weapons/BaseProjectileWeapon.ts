@@ -28,9 +28,23 @@ let nextProjectileId = 1;
 
 export class BaseProjectileWeapon extends BaseWeapon {
   protected projectiles: ActiveProjectile[] = [];
+  protected trailGfx: Phaser.GameObjects.Graphics | null = null;
 
   protected getTexture(): string {
     return 'projectile';
+  }
+
+  /** Override in subclasses to draw a trail behind the projectile. */
+  protected drawTrail(_gfx: Phaser.GameObjects.Graphics, _p: ActiveProjectile): void {
+    // Default: no trail
+  }
+
+  private ensureTrailGfx(): Phaser.GameObjects.Graphics {
+    if (!this.trailGfx) {
+      this.trailGfx = this.ctx.scene.add.graphics();
+      this.trailGfx.setDepth(6); // behind projectile sprites (depth 7)
+    }
+    return this.trailGfx;
   }
 
   protected computeAngle(index: number, total: number, player: Player): number {
@@ -87,6 +101,9 @@ export class BaseProjectileWeapon extends BaseWeapon {
   }
 
   protected updateActive(dt: number, player: Player): void {
+    const gfx = this.ensureTrailGfx();
+    gfx.clear();
+
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.age += dt * 1000;
@@ -106,6 +123,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
 
       p.sprite.setPosition(p.x, p.y);
       p.sprite.setRotation(Math.atan2(p.vy, p.vx));
+      this.drawTrail(gfx, p);
 
       const enemies = this.ctx.enemyPool.getEnemiesInRadius(p.x, p.y, p.radius + 20);
       for (const enemy of enemies) {
@@ -127,5 +145,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
   destroy(): void {
     for (const p of this.projectiles) this.returnSprite(p);
     this.projectiles.length = 0;
+    this.trailGfx?.destroy();
+    this.trailGfx = null;
   }
 }

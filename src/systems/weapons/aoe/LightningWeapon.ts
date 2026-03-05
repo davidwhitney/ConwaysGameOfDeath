@@ -89,6 +89,14 @@ export class LightningWeapon extends BaseAoEWeapon {
       for (let j = 0; j < bolt.points.length - 1; j++) {
         this.drawBoltSegment(bolt.gfx, bolt.points[j], bolt.points[j + 1], alpha);
       }
+      // Glow at each strike point
+      for (let j = 1; j < bolt.points.length; j++) {
+        const pt = bolt.points[j];
+        bolt.gfx.fillStyle(0xffff88, alpha * 0.2);
+        bolt.gfx.fillCircle(pt.x, pt.y, 12);
+        bolt.gfx.fillStyle(0xffffff, alpha * 0.4);
+        bolt.gfx.fillCircle(pt.x, pt.y, 5);
+      }
     }
   }
 
