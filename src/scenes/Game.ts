@@ -20,6 +20,7 @@ import { GameEvents } from '../systems/GameEvents';
 import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
 import { loadSettings } from '../ui/saveData';
 import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
+import { ParallaxSystem } from '../systems/ParallaxSystem';
 
 interface GameInitData {
   seed: number;
@@ -70,6 +71,7 @@ export class GameScene extends Phaser.Scene {
     this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
 
     this.subsystems = [
+      new ParallaxSystem(this),
       new PlayerPhysicsSystem(this),
       new GameWorldSystem(this, this.rng, this.map),
       new BossSpawnSystem(this, this.rng),

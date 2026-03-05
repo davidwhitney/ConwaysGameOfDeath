@@ -67,6 +67,12 @@ export const Colors = {
     wallHighlight: 0x00ddff,
   },
 
+  parallax: {
+    bgStar: 0x115588,
+    bgStarBright: 0x2299cc,
+    fgDust: 0xffffff,
+  },
+
   effects: {
     danger: 0xff0000,
     bloomThreshold: 0x222222,

@@ -28,6 +28,8 @@ export class GameWorldSystem implements GameSystem {
   private evolutionTimer: number = 0;
   private scatterTimer: number = SCATTER_INTERVAL_MS;
   private followInitialised: boolean = false;
+  private prevPlayerX: number = 0;
+  private prevPlayerY: number = 0;
 
   constructor(scene: Phaser.Scene, rng: SeededRandom, map: TileMap) {
     this.scene = scene;
@@ -51,6 +53,12 @@ export class GameWorldSystem implements GameSystem {
 
     const deltaMs = ctx.time.deltaMs;
     this.mapRenderer.update(this.cameraManager.getCamera());
+    const dx = player.state.x - this.prevPlayerX;
+    const dy = player.state.y - this.prevPlayerY;
+    const isMoving = dx * dx + dy * dy > 1;
+    this.prevPlayerX = player.state.x;
+    this.prevPlayerY = player.state.y;
+    this.cameraManager.updateTilt(player.facingX, player.facingY, isMoving);
     this.spawnController.update(deltaMs, player.state.x, player.state.y);
     this.enemyPool.update(ctx.time.delta, player.state.x, player.state.y);
     this.updateEvolution(ctx);
