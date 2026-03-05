@@ -68,21 +68,18 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, centerX, centerY);
     this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
 
-    const deathSpawnSystem = new DeathSpawnSystem(this, this.rng);
-    deathSpawnSystem.setEnabled(!this.endless);
-
-    this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map);
-    this.lootSystem = new LootSystem(this, this.player);
-
     this.subsystems = [
       new PlayerPhysicsSystem(this),
-      this.gameWorldSystem,
+      new GameWorldSystem(this, this.rng, this.map),
       new BossSpawnSystem(this, this.rng),
-      deathSpawnSystem,
+      new DeathSpawnSystem(this, this.rng, !this.endless),
       new WeaponSystem(this),
-      this.lootSystem,
+      new LootSystem(this, this.player),
       new LevelUpSystem(this, this.rng, this.player),
     ];
+
+    this.gameWorldSystem = this.subsystems.find(s => s instanceof GameWorldSystem) as GameWorldSystem;
+    this.lootSystem = this.subsystems.find(s => s instanceof LootSystem) as LootSystem;
 
     // Events
     GameEvents.on(this.events, 'show-damage', (x, y, amount, color, crit) => this.damageNumbersUi.show(x, y, amount, color, crit));
