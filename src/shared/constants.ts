@@ -96,6 +96,9 @@ export const ENEMY_DMG_SCALING = 3.6;
 // ─── Combat ───
 export const CRIT_DAMAGE_MULTIPLIER = 2.0;
 
+// ─── Intro ───
+export const INTRO_DURATION_MS = 3000;
+
 // ─── Network ───
 export const NET_INTERPOLATION_BUFFER_MS = 100;
 export const MAX_PLAYERS_PER_ROOM = 4;

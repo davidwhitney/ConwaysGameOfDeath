@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { loadSettings } from '../ui/preferences';
 
 /**
  * BootScene - Generate all placeholder sprites using Graphics API.
@@ -11,7 +12,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.generateTextures();
-    this.scene.start('MainMenu');
+    this.scene.start(loadSettings().skipIntro ? 'MainMenu' : 'Intro');
   }
 
   private generateTextures(): void {

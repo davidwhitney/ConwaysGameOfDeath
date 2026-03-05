@@ -4,6 +4,7 @@ export interface Settings {
   crtEnabled: boolean;
   gameZoom: number;
   endlessMode: boolean;
+  skipIntro: boolean;
 }
 
 export interface ScoreEntry {
@@ -20,7 +21,7 @@ export interface SaveData {
   highScores: ScoreEntry[];
 }
 
-const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false };
+const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false };
 
 export function loadSave(): SaveData {
   try {

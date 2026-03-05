@@ -14,9 +14,10 @@ const ZOOM_STEP = 0.25;
 export class SettingsScene extends Phaser.Scene {
   private gpNav!: GamepadNav;
   private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x443333, 0x333366];
-  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x664444, 0x444488];
+  private readonly defaultFills = [0x333366, 0x333366, 0x333366, 0x333366, 0x443333, 0x333366];
+  private readonly hoverFills = [0x444488, 0x444488, 0x444488, 0x444488, 0x664444, 0x444488];
   private crtBtnText!: Phaser.GameObjects.Text;
+  private skipIntroBtnText!: Phaser.GameObjects.Text;
   private zoomValueText!: Phaser.GameObjects.Text;
   private clearBtnText!: Phaser.GameObjects.Text;
   private clearConfirm = false;
@@ -65,25 +66,39 @@ export class SettingsScene extends Phaser.Scene {
     });
     this.crtBtnText = crtToggle.text;
 
+    // ── Skip Intro toggle row ──
+    this.add.text(width / 2 - 100, height * 0.42, 'Skip Intro',
+      monoStyle('18px', '#aaaacc'),
+    ).setOrigin(0, 0.5);
+
+    const skipIntroToggle = createButton(this, {
+      x: width / 2 + 80, y: height * 0.42, width: 80, height: 40,
+      label: this.settings.skipIntro ? 'ON' : 'OFF',
+      fontSize: '18px', textColor: '#ffffff',
+      fillColor: 0x333366, hoverColor: 0x444488,
+      onClick: () => this.toggleSkipIntro(),
+    });
+    this.skipIntroBtnText = skipIntroToggle.text;
+
     // ── Zoom slider row ──
-    this.add.text(width / 2 - 100, height * 0.50, 'Zoom',
+    this.add.text(width / 2 - 100, height * 0.52, 'Zoom',
       monoStyle('18px', '#aaaacc'),
     ).setOrigin(0, 0.5);
 
     const zoomDown = createButton(this, {
-      x: width / 2 + 45, y: height * 0.50, width: 36, height: 36,
+      x: width / 2 + 45, y: height * 0.52, width: 36, height: 36,
       label: '-', fontSize: '22px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.adjustZoom(-ZOOM_STEP),
     });
 
-    this.zoomValueText = this.add.text(width / 2 + 80, height * 0.50,
+    this.zoomValueText = this.add.text(width / 2 + 80, height * 0.52,
       this.formatZoom(this.settings.gameZoom),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
     const zoomUp = createButton(this, {
-      x: width / 2 + 115, y: height * 0.50, width: 36, height: 36,
+      x: width / 2 + 115, y: height * 0.52, width: 36, height: 36,
       label: '+', fontSize: '22px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.adjustZoom(ZOOM_STEP),
@@ -91,7 +106,7 @@ export class SettingsScene extends Phaser.Scene {
 
     // ── Clear data button ──
     const clear = createButton(this, {
-      x: width / 2, y: height * 0.65, width: 200, height: 40,
+      x: width / 2, y: height * 0.67, width: 200, height: 40,
       label: 'CLEAR DATA', fontSize: '14px', textColor: '#ff8888',
       fillColor: 0x443333, hoverColor: 0x664444,
       onClick: () => this.clearData(),
@@ -100,13 +115,13 @@ export class SettingsScene extends Phaser.Scene {
 
     // ── Back button ──
     const back = createButton(this, {
-      x: width / 2, y: height * 0.80, width: 200, height: 45,
+      x: width / 2, y: height * 0.82, width: 200, height: 45,
       label: 'BACK', fontSize: '18px', textColor: '#ffffff',
       fillColor: 0x333366, hoverColor: 0x444488,
       onClick: () => this.goBack(),
     });
 
-    this.buttons = [crtToggle.bg, zoomDown.bg, zoomUp.bg, clear.bg, back.bg];
+    this.buttons = [crtToggle.bg, skipIntroToggle.bg, zoomDown.bg, zoomUp.bg, clear.bg, back.bg];
 
     // Restore unhighlight behavior
     this.buttons.forEach((btn, i) => {
@@ -116,15 +131,16 @@ export class SettingsScene extends Phaser.Scene {
     // Keyboard
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
 
-    // Gamepad navigation — 5 items, B goes back
+    // Gamepad navigation — 6 items, B goes back
     const actions = [
       () => this.toggleCRT(),
+      () => this.toggleSkipIntro(),
       () => this.adjustZoom(-ZOOM_STEP),
       () => this.adjustZoom(ZOOM_STEP),
       () => this.clearData(),
       () => this.goBack(),
     ];
-    this.gpNav = new GamepadNav(this, 5, (i) => actions[i](), () => this.goBack());
+    this.gpNav = new GamepadNav(this, 6, (i) => actions[i](), () => this.goBack());
 
     onResizeRestart(this, this.initData);
 
@@ -148,6 +164,12 @@ export class SettingsScene extends Phaser.Scene {
     this.crtBtnText.setText(this.settings.crtEnabled ? 'ON' : 'OFF');
     // Restart scene to apply/remove CRT effects
     this.scene.restart({ returnTo: this.returnTo });
+  }
+
+  private toggleSkipIntro(): void {
+    this.settings.skipIntro = !this.settings.skipIntro;
+    saveSettings(this.settings);
+    this.skipIntroBtnText.setText(this.settings.skipIntro ? 'ON' : 'OFF');
   }
 
   private adjustZoom(delta: number): void {

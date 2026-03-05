@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/Boot';
+import { IntroScene } from './scenes/Intro';
 import { MainMenuScene } from './scenes/MainMenu';
 import { GameScene } from './scenes/Game';
 import { HUDScene } from './scenes/HUD';
@@ -27,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, MainMenuScene, SettingsScene, GameScene, HUDScene, LevelUpScene, PauseScene, ReviveScene, GameOverScene, HighScoresScene],
+  scene: [BootScene, IntroScene, MainMenuScene, SettingsScene, GameScene, HUDScene, LevelUpScene, PauseScene, ReviveScene, GameOverScene, HighScoresScene],
   render: {
     pixelArt: false,
     antialias: true,
