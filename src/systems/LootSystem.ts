@@ -130,43 +130,67 @@ export class LootSystem implements GameSystem {
     }
   }
 
-  private spawnDeathBurst(x: number, y: number, color: number, boss: boolean): void {
-    const count = boss ? 12 : 6;
-    const dist = boss ? 50 : 28;
-    const radius = boss ? 5 : 3;
+  private static readonly BURST_PALETTE = [
+    0xff2266, 0xff6600, 0xffcc00, 0x00ff66,
+    0x00ccff, 0x8844ff, 0xff44cc, 0xffffff,
+  ];
+
+  private spawnDeathBurst(x: number, y: number, _color: number, boss: boolean): void {
+    const count = boss ? 28 : 14;
+    const dist = boss ? 90 : 55;
+    const radius = boss ? 8 : 5;
+    const palette = LootSystem.BURST_PALETTE;
 
     const gfx = this.scene.add.graphics().setDepth(15);
-    gfx.fillStyle(color, 1);
-    for (let i = 0; i < count; i++) {
-      gfx.fillCircle(0, 0, radius);
-    }
 
-    const particles: { ax: number; ay: number; dx: number; dy: number }[] = [];
+    const particles: { ax: number; ay: number; dx: number; dy: number; size: number; color: number }[] = [];
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
-      const r = dist * (0.5 + Math.random() * 0.5);
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 1.0;
+      const rDist = dist * (0.3 + Math.random() * 0.7);
       particles.push({
         ax: x, ay: y,
-        dx: x + Math.cos(angle) * r,
-        dy: y + Math.sin(angle) * r,
+        dx: x + Math.cos(angle) * rDist,
+        dy: y + Math.sin(angle) * rDist,
+        size: radius * (0.5 + Math.random() * 1.0),
+        color: palette[Math.floor(Math.random() * palette.length)],
       });
     }
 
     let elapsed = 0;
-    const duration = 350;
+    const duration = 500;
     const onUpdate = (_time: number, delta: number) => {
       elapsed += delta;
       const t = Math.min(elapsed / duration, 1);
       const ease = 1 - (1 - t) * (1 - t);
       const alpha = 1 - t;
-      const s = 1 - t * 0.6;
+      const s = 1 - t * 0.4;
 
       gfx.clear();
-      gfx.fillStyle(color, alpha);
+
+      // Central flash — big multicolour burst
+      if (t < 0.35) {
+        const flashAlpha = (1 - t / 0.35);
+        gfx.fillStyle(0xffffff, flashAlpha * 0.8);
+        gfx.fillCircle(x, y, radius * 4 * (1 - t));
+        gfx.fillStyle(0xff44cc, flashAlpha * 0.4);
+        gfx.fillCircle(x, y, radius * 7 * (1 - t));
+        gfx.fillStyle(0x00ccff, flashAlpha * 0.25);
+        gfx.fillCircle(x, y, radius * 10 * (1 - t));
+      }
+
       for (const p of particles) {
         const px = p.ax + (p.dx - p.ax) * ease;
         const py = p.ay + (p.dy - p.ay) * ease;
-        gfx.fillCircle(px, py, radius * s);
+        const pSize = p.size * s;
+        // Outer glow in particle color
+        gfx.fillStyle(p.color, alpha * 0.3);
+        gfx.fillCircle(px, py, pSize * 2.5);
+        // Core particle
+        gfx.fillStyle(p.color, alpha);
+        gfx.fillCircle(px, py, pSize);
+        // White-hot center
+        gfx.fillStyle(0xffffff, alpha * 0.6);
+        gfx.fillCircle(px, py, pSize * 0.35);
       }
 
       if (t >= 1) {

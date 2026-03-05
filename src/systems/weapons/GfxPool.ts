@@ -35,8 +35,13 @@ export function drawEffectCircle(
   color: number, fillAlpha: number, strokeAlpha: number,
   strokeWidth: number = 2,
 ): void {
+  // Outer glow halo
+  gfx.fillStyle(color, fillAlpha * 0.3);
+  gfx.fillCircle(x, y, radius * 1.15);
+  // Main fill — always translucent
   gfx.fillStyle(color, fillAlpha);
   gfx.fillCircle(x, y, radius);
+  // Bright edge stroke
   gfx.lineStyle(strokeWidth, color, strokeAlpha);
   gfx.strokeCircle(x, y, radius);
 }

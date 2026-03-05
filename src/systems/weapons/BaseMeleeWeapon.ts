@@ -42,7 +42,7 @@ export class BaseMeleeWeapon extends BaseEffectWeapon<ActiveMelee> {
   protected updateEffect(m: ActiveMelee, _dt: number, player: Player): void {
     const alpha = 1 - m.age / m.duration;
     m.gfx.clear();
-    drawEffectCircle(m.gfx, m.x, m.y, m.radius * alpha, this.def.color, alpha * 0.4, alpha * 0.8);
+    drawEffectCircle(m.gfx, m.x, m.y, m.radius * alpha, this.def.color, alpha * 0.4, alpha * 0.7);
 
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(m.x, m.y, m.radius);
     for (const enemy of enemies) {

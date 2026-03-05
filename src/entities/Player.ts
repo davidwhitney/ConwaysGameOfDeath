@@ -29,6 +29,9 @@ export class Player {
     this.scene = scene;
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
+    if (scene.game.renderer.type === Phaser.WEBGL) {
+      this.sprite.preFX?.addGlow(0x4488ff, 8, 0, false, 0.15, 24);
+    }
 
     this.state = {
       id,

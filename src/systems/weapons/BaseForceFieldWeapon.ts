@@ -43,7 +43,7 @@ export class BaseForceFieldWeapon extends BaseWeapon {
     const area = stats.area * player.getAuraMultiplier();
     const dmgMul = player.getDamageMultiplier();
 
-    drawEffectCircle(this.gfx, player.state.x, player.state.y, area, this.def.color, 0.1, 0.3, 1);
+    drawEffectCircle(this.gfx, player.state.x, player.state.y, area, this.def.color, 0.2, 0.5, 2);
 
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(player.state.x, player.state.y, area);
 

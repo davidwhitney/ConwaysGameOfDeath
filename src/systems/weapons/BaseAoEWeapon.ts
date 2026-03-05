@@ -57,7 +57,7 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
     const progress = a.age / a.duration;
     const alpha = progress < 0.1 ? progress * 10 : (progress > 0.8 ? (1 - progress) * 5 : 1);
     a.gfx.clear();
-    drawEffectCircle(a.gfx, a.x, a.y, a.radius, this.def.color, alpha * 0.3, alpha * 0.6);
+    drawEffectCircle(a.gfx, a.x, a.y, a.radius, this.def.color, alpha * 0.35, alpha * 0.6);
 
     a.tickTimer += dt * 1000;
     if (a.tickTimer >= WEAPON_TICK_INTERVAL_MS) {

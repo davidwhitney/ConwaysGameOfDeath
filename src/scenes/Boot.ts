@@ -16,110 +16,84 @@ export class BootScene extends Phaser.Scene {
   }
 
   private generateTextures(): void {
-    // Player - blue square with lighter center
-    this.createCircleTexture('player', 16, 0x4488ff, 0x66aaff);
+    // Player - blazing electric blue
+    this.createCircleTexture('player', 16, 0x22aaff, 0xaaeeff);
 
-    // Enemies
-    this.createCircleTexture('enemy-bat', 10, 0x8b4513, 0xa0522d);
-    this.createCircleTexture('enemy-skeleton', 12, 0xd2b48c, 0xdeb887);
-    this.createCircleTexture('enemy-zombie', 14, 0x556b2f, 0x6b8e23);
-    this.createCircleTexture('enemy-ghost', 12, 0xc0c0ff, 0xd0d0ff);
-    this.createCircleTexture('enemy-werewolf', 16, 0x808080, 0xa0a0a0);
-    this.createCircleTexture('enemy-mummy', 14, 0xf5deb3, 0xfaebd7);
-    this.createCircleTexture('enemy-vampire', 14, 0x8b0000, 0xb22222);
-    this.createCircleTexture('enemy-lich', 16, 0x4b0082, 0x6a0dad);
-    this.createCircleTexture('enemy-dragon', 24, 0xff4500, 0xff6347);
-    this.createCircleTexture('enemy-reaper', 18, 0x1a1a2e, 0x3a3a5e);
+    // Enemies — full-brightness neon
+    this.createCircleTexture('enemy-bat', 10, 0xff8800, 0xffcc44);
+    this.createCircleTexture('enemy-skeleton', 12, 0xffdd44, 0xffff88);
+    this.createCircleTexture('enemy-zombie', 14, 0x44ff00, 0x88ff44);
+    this.createCircleTexture('enemy-ghost', 12, 0xaaaaff, 0xddddff);
+    this.createCircleTexture('enemy-werewolf', 16, 0xcccccc, 0xffffff);
+    this.createCircleTexture('enemy-mummy', 14, 0xffee44, 0xffff99);
+    this.createCircleTexture('enemy-vampire', 14, 0xff0000, 0xff6644);
+    this.createCircleTexture('enemy-lich', 16, 0xaa00ff, 0xdd66ff);
+    this.createCircleTexture('enemy-dragon', 24, 0xff6600, 0xffbb44);
+    this.createCircleTexture('enemy-reaper', 18, 0x8800cc, 0xcc44ff);
 
-    // Death boss - black hole with accretion disk
+    // Death boss - black hole with blazing accretion disk
     const deathR = 28;
-    const deathSize = deathR * 2;
+    const deathPad = 8;
+    const deathSize = (deathR + deathPad) * 2;
     const deathGfx = this.make.graphics({ x: 0, y: 0 });
-    const cx = deathR, cy = deathR;
-    // Outer accretion glow — faint purple haze
-    for (let r = deathR; r > deathR * 0.5; r -= 2) {
-      const t = (r - deathR * 0.5) / (deathR * 0.5);
-      deathGfx.fillStyle(0x6622aa, t * 0.15);
+    const cx = deathR + deathPad, cy = deathR + deathPad;
+    // Wide outer glow halo
+    for (let r = deathR + deathPad; r > deathR * 0.4; r -= 2) {
+      const t = (r - deathR * 0.4) / (deathR + deathPad - deathR * 0.4);
+      deathGfx.fillStyle(0x8833dd, t * 0.3);
       deathGfx.fillCircle(cx, cy, r);
     }
-    // Spiral arms — draw arcs that suggest rotation
-    for (let arm = 0; arm < 4; arm++) {
-      const baseAngle = (arm / 4) * Math.PI * 2;
-      for (let s = 0; s < 20; s++) {
-        const t = s / 20;
-        const angle = baseAngle + t * Math.PI * 1.2;
-        const dist = deathR * 0.3 + t * deathR * 0.6;
+    // Spiral arms — brighter, more visible
+    for (let arm = 0; arm < 6; arm++) {
+      const baseAngle = (arm / 6) * Math.PI * 2;
+      for (let s = 0; s < 24; s++) {
+        const t = s / 24;
+        const angle = baseAngle + t * Math.PI * 1.5;
+        const dist = deathR * 0.25 + t * deathR * 0.7;
         const px = cx + Math.cos(angle) * dist;
         const py = cy + Math.sin(angle) * dist;
-        const size = 2 + t * 3;
-        const alpha = (1 - t) * 0.5;
-        deathGfx.fillStyle(0x8844cc, alpha);
+        const size = 2 + t * 4;
+        const alpha = (1 - t) * 0.8;
+        deathGfx.fillStyle(0xbb66ff, alpha);
         deathGfx.fillCircle(px, py, size);
       }
     }
     // Dark core
     deathGfx.fillStyle(0x000000, 1);
     deathGfx.fillCircle(cx, cy, deathR * 0.3);
-    // Core edge glow
-    deathGfx.lineStyle(2, 0x4400aa, 0.8);
+    // Blazing core edge
+    deathGfx.lineStyle(3, 0x9900ff, 1);
     deathGfx.strokeCircle(cx, cy, deathR * 0.32);
+    deathGfx.lineStyle(1, 0xcc66ff, 0.5);
+    deathGfx.strokeCircle(cx, cy, deathR * 0.38);
     deathGfx.generateTexture('enemy-death', deathSize, deathSize);
     deathGfx.destroy();
 
-    // XP Gem - small green diamond
-    const gemGfx = this.make.graphics({ x: 0, y: 0 });
-    gemGfx.fillStyle(0x00ff88, 1);
-    gemGfx.fillTriangle(6, 0, 12, 6, 6, 12);
-    gemGfx.fillTriangle(6, 0, 0, 6, 6, 12);
-    gemGfx.generateTexture('xp-gem', 12, 12);
-    gemGfx.destroy();
+    // XP Gem - blazing green diamond
+    this.createGemTexture('xp-gem', 10, 0x00ff66, 0xaaffcc);
 
-    // Golden Gem - gold diamond (heal pickup)
-    const goldGemGfx = this.make.graphics({ x: 0, y: 0 });
-    goldGemGfx.fillStyle(0xff4444, 1);
-    goldGemGfx.fillTriangle(8, 0, 16, 8, 8, 16);
-    goldGemGfx.fillTriangle(8, 0, 0, 8, 8, 16);
-    goldGemGfx.lineStyle(1, 0xff8888, 1);
-    goldGemGfx.strokeTriangle(8, 0, 16, 8, 8, 16);
-    goldGemGfx.strokeTriangle(8, 0, 0, 8, 8, 16);
-    goldGemGfx.generateTexture('golden-gem', 16, 16);
-    goldGemGfx.destroy();
+    // Golden Gem - blazing red diamond (heal pickup)
+    this.createGemTexture('golden-gem', 12, 0xff2222, 0xffaaaa);
 
-    // Gold Gem - gold diamond (currency pickup)
-    const coinGfx = this.make.graphics({ x: 0, y: 0 });
-    coinGfx.fillStyle(0xffd700, 1);
-    coinGfx.fillTriangle(7, 0, 14, 7, 7, 14);
-    coinGfx.fillTriangle(7, 0, 0, 7, 7, 14);
-    coinGfx.lineStyle(1, 0xffec80, 1);
-    coinGfx.strokeTriangle(7, 0, 14, 7, 7, 14);
-    coinGfx.strokeTriangle(7, 0, 0, 7, 7, 14);
-    coinGfx.generateTexture('gold-gem', 14, 14);
-    coinGfx.destroy();
+    // Gold Gem - blazing gold diamond (currency)
+    this.createGemTexture('gold-gem', 11, 0xffcc00, 0xffee88);
 
-    // Vortex Gem - blue diamond
-    const vortexGfx = this.make.graphics({ x: 0, y: 0 });
-    vortexGfx.fillStyle(0x4488ff, 1);
-    vortexGfx.fillTriangle(8, 0, 16, 8, 8, 16);
-    vortexGfx.fillTriangle(8, 0, 0, 8, 8, 16);
-    vortexGfx.lineStyle(1, 0x66aaff, 1);
-    vortexGfx.strokeTriangle(8, 0, 16, 8, 8, 16);
-    vortexGfx.strokeTriangle(8, 0, 0, 8, 8, 16);
-    vortexGfx.generateTexture('vortex-gem', 16, 16);
-    vortexGfx.destroy();
+    // Vortex Gem - blazing blue diamond
+    this.createGemTexture('vortex-gem', 12, 0x2288ff, 0xaaccff);
 
-    // Projectile - small white circle
-    this.createCircleTexture('projectile', 6, 0xffffff, 0xcccccc);
+    // Projectile - white hot
+    this.createCircleTexture('projectile', 6, 0xffffff, 0xffffff);
 
-    // Weapon-specific projectile colors
-    this.createCircleTexture('proj-magic', 6, 0xcc66ff, 0xdd88ff);
-    this.createCircleTexture('proj-fire', 8, 0xff4400, 0xff6633);
-    this.createCircleTexture('proj-ice', 5, 0x00ccff, 0x44ddff);
-    this.createCircleTexture('proj-boomerang', 8, 0xcc9933, 0xddaa44);
-    this.createCircleTexture('proj-scythe', 8, 0x666666, 0x888888);
+    // Weapon-specific projectile colors — max brightness neon
+    this.createCircleTexture('proj-magic', 6, 0xee66ff, 0xffbbff);
+    this.createCircleTexture('proj-fire', 8, 0xff6600, 0xffcc44);
+    this.createCircleTexture('proj-ice', 5, 0x00eeff, 0x88ffff);
+    this.createCircleTexture('proj-boomerang', 8, 0xffcc00, 0xffee66);
+    this.createCircleTexture('proj-scythe', 8, 0xaaaaaa, 0xeeeeee);
 
-    // Tile textures
-    this.createRectTexture('tile-floor', 32, 32, 0x2a2a3e, 0x252538);
-    this.createRectTexture('tile-wall', 32, 32, 0x555577, 0x444466);
+    // Tile textures — neon wireframe grid
+    this.createGridTileTexture('tile-floor', 32, 32);
+    this.createNeonWallTexture('tile-wall', 32, 32);
 
     // UI elements
     this.createRectTexture('white', 4, 4, 0xffffff);
@@ -134,12 +108,21 @@ export class BootScene extends Phaser.Scene {
   private createCircleTexture(key: string, radius: number, color: number, innerColor?: number): void {
     const gfx = this.make.graphics({ x: 0, y: 0 });
     const size = radius * 2;
+    const cx = radius, cy = radius;
+    // Crisp main fill — full brightness, no padding
     gfx.fillStyle(color, 1);
-    gfx.fillCircle(radius, radius, radius);
+    gfx.fillCircle(cx, cy, radius);
+    // Bright inner zone
     if (innerColor) {
       gfx.fillStyle(innerColor, 1);
-      gfx.fillCircle(radius, radius, radius * 0.5);
+      gfx.fillCircle(cx, cy, radius * 0.6);
+      // White-hot core
+      gfx.fillStyle(0xffffff, 0.6);
+      gfx.fillCircle(cx, cy, radius * 0.25);
     }
+    // Bright neon edge — camera bloom turns this into glow
+    gfx.lineStyle(2, innerColor ?? color, 1);
+    gfx.strokeCircle(cx, cy, radius - 1);
     gfx.generateTexture(key, size, size);
     gfx.destroy();
   }
@@ -159,13 +142,85 @@ export class BootScene extends Phaser.Scene {
     gfx.destroy();
   }
 
+  private createGemTexture(key: string, half: number, color: number, brightColor: number): void {
+    const gfx = this.make.graphics({ x: 0, y: 0 });
+    const pad = 6;
+    const size = (half + pad) * 2;
+    const c = half + pad;
+    // Wide soft glow layers
+    gfx.fillStyle(color, 0.15);
+    gfx.fillCircle(c, c, half + pad);
+    gfx.fillStyle(color, 0.25);
+    gfx.fillCircle(c, c, half + 3);
+    gfx.fillStyle(color, 0.4);
+    gfx.fillCircle(c, c, half);
+    // Diamond shape
+    gfx.fillStyle(color, 1);
+    gfx.fillTriangle(c, c - half + 1, c + half - 1, c, c, c + half - 1);
+    gfx.fillTriangle(c, c - half + 1, c - half + 1, c, c, c + half - 1);
+    // Bright inner diamond
+    const ih = half * 0.5;
+    gfx.fillStyle(brightColor, 0.8);
+    gfx.fillTriangle(c, c - ih, c + ih, c, c, c + ih);
+    gfx.fillTriangle(c, c - ih, c - ih, c, c, c + ih);
+    // White-hot center dot
+    gfx.fillStyle(0xffffff, 0.7);
+    gfx.fillCircle(c, c, half * 0.2);
+    // Neon outline
+    gfx.lineStyle(1, brightColor, 1);
+    gfx.strokeTriangle(c, c - half + 1, c + half - 1, c, c, c + half - 1);
+    gfx.strokeTriangle(c, c - half + 1, c - half + 1, c, c, c + half - 1);
+    gfx.generateTexture(key, size, size);
+    gfx.destroy();
+  }
+
+  private createGridTileTexture(key: string, w: number, h: number): void {
+    const gfx = this.make.graphics({ x: 0, y: 0 });
+    // Black background
+    gfx.fillStyle(0x000000, 1);
+    gfx.fillRect(0, 0, w, h);
+    // Soft glow around grid lines
+    gfx.lineStyle(3, 0x003355, 0.15);
+    gfx.strokeRect(0, 0, w, h);
+    // Neon cyan grid lines
+    gfx.lineStyle(1, 0x0077aa, 0.5);
+    gfx.strokeRect(0, 0, w, h);
+    gfx.generateTexture(key, w, h);
+    gfx.destroy();
+  }
+
+  private createNeonWallTexture(key: string, w: number, h: number): void {
+    const gfx = this.make.graphics({ x: 0, y: 0 });
+    // Dark fill with slight blue tint
+    gfx.fillStyle(0x001122, 1);
+    gfx.fillRect(0, 0, w, h);
+    // Outer glow
+    gfx.lineStyle(3, 0x0066aa, 0.4);
+    gfx.strokeRect(0, 0, w, h);
+    // Bright neon outline
+    gfx.lineStyle(2, 0x00aaff, 0.9);
+    gfx.strokeRect(1, 1, w - 2, h - 2);
+    // Inner bright highlight
+    gfx.lineStyle(1, 0x00ddff, 0.4);
+    gfx.strokeRect(3, 3, w - 6, h - 6);
+    gfx.generateTexture(key, w, h);
+    gfx.destroy();
+  }
+
   private createRingTexture(key: string, radius: number, color: number): void {
     const gfx = this.make.graphics({ x: 0, y: 0 });
-    const size = radius * 2;
-    gfx.fillStyle(color, 0.25);
-    gfx.fillCircle(radius, radius, radius);
-    gfx.lineStyle(2, color, 0.6);
-    gfx.strokeCircle(radius, radius, radius);
+    const pad = 4;
+    const size = (radius + pad) * 2;
+    const c = radius + pad;
+    // Outer glow
+    gfx.fillStyle(color, 0.12);
+    gfx.fillCircle(c, c, radius + 3);
+    // Main fill
+    gfx.fillStyle(color, 0.35);
+    gfx.fillCircle(c, c, radius);
+    // Bright ring edge
+    gfx.lineStyle(3, color, 0.8);
+    gfx.strokeCircle(c, c, radius);
     gfx.generateTexture(key, size, size);
     gfx.destroy();
   }

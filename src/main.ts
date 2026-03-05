@@ -14,7 +14,7 @@ import { SettingsScene } from './scenes/Settings';
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  backgroundColor: '#1a1a2e',
+  backgroundColor: '#000000',
   scale: {
     mode: Phaser.Scale.RESIZE,
     width: '100%',

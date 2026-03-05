@@ -105,8 +105,12 @@ export class LightningWeapon extends BaseAoEWeapon {
     const perpX = -dy / dist;
     const perpY = dx / dist;
 
-    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 4, 0xffff88, alpha * 0.3, 20);
-    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 2, 0xffff00, alpha * 0.8, 12);
+    // Wide outer glow
+    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 8, 0xffff44, alpha * 0.15, 24);
+    // Mid glow
+    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 4, 0xffff88, alpha * 0.5, 20);
+    // Hot bright core
+    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 2, 0xffffcc, alpha * 1.0, 12);
   }
 
   private drawJaggedLine(

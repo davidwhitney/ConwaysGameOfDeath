@@ -5,17 +5,19 @@ function isWebGL(scene: Phaser.Scene): boolean {
   return scene.game.renderer.type === Phaser.WEBGL;
 }
 
-function addPostFX(cam: Phaser.Cameras.Scene2D.Camera): void {
+function addBloom(cam: Phaser.Cameras.Scene2D.Camera): void {
+  cam.postFX.addBloom(0x222222, 2, 2, 2.5, 2.5);
+}
+
+function addCRTExtras(cam: Phaser.Cameras.Scene2D.Camera): void {
   cam.postFX.addBarrel(1.04);
-  cam.postFX.addBloom(0xffffff, 0.3, 0.3, 1.0, 1.0);
-  cam.postFX.addVignette(0.5, 0.5, 0.88, 0.25);
+  cam.postFX.addVignette(0.5, 0.5, 0.92, 0.3);
 }
 
 /**
- * Apply CRT post-processing to the Game scene camera:
- * barrel distortion + bloom + vignette (WebGL only).
- *
- * Only affects the playfield — HUD, menus, and overlays stay clean.
+ * Apply post-processing to the Game scene camera.
+ * Bloom is always on (core to the neon aesthetic).
+ * Barrel distortion + vignette are optional CRT extras.
  */
 export function applyCRT(scene: Phaser.Scene): void {
   const { crtEnabled } = loadSettings();
@@ -25,7 +27,8 @@ export function applyCRT(scene: Phaser.Scene): void {
     const gameCam = gameScene?.cameras.main;
     if (gameCam) {
       gameCam.postFX.clear();
-      if (crtEnabled) addPostFX(gameCam);
+      addBloom(gameCam);
+      if (crtEnabled) addCRTExtras(gameCam);
     }
   }
 }

@@ -13,8 +13,15 @@ export class HolyShieldWeapon extends BaseForceFieldWeapon {
       const angle = time + (i / stats.amount) * Math.PI * 2;
       const ox = player.state.x + Math.cos(angle) * area;
       const oy = player.state.y + Math.sin(angle) * area;
-      this.gfx.fillStyle(this.def.color, 0.7);
+      // Outer glow
+      this.gfx.fillStyle(this.def.color, 0.1);
+      this.gfx.fillCircle(ox, oy, 14);
+      // Core orb — translucent
+      this.gfx.fillStyle(this.def.color, 0.75);
       this.gfx.fillCircle(ox, oy, 8);
+      // Hot center
+      this.gfx.fillStyle(0xffffff, 0.3);
+      this.gfx.fillCircle(ox, oy, 4);
 
       if (doTick) {
         const enemies = this.ctx.enemyPool.getEnemiesInRadius(ox, oy, 15);
