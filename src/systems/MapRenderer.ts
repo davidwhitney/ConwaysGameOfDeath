@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, type TileMap, TileType } from '../shared';
+import { type TileMap, TileType } from '../types';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '../constants';
 
 /**
  * Renders the tilemap efficiently by only drawing tiles visible to the camera.

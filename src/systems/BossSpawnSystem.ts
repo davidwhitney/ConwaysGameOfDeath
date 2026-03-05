@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import {
-  SeededRandom, EffectType, ENEMY_DEFS, GAME_DURATION_MS,
-} from '../shared';
+import { EffectType } from '../types';
+import { GAME_DURATION_MS } from '../constants';
+import { ENEMY_DEFS } from '../entities/enemies';
+import { SeededRandom } from '../utils/seeded-random';
 import {
   BOSS_SPAWN_MIN_PROGRESS, BOSS_SPAWN_DISTANCE,
   BOSS_SPAWN_INTERVAL_START, BOSS_SPAWN_INTERVAL_END,

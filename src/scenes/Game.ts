@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-import {
-  generateMap,
-  TILE_SIZE, MAP_WIDTH, MAP_HEIGHT,
-  GAME_DURATION_MS, ENEMY_MAX_ACTIVE, WeaponType,
-  SeededRandom, type TileMap,
-} from '../shared';
+import { WeaponType, type TileMap } from '../types';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, GAME_DURATION_MS, ENEMY_MAX_ACTIVE } from '../constants';
+import { SeededRandom } from '../utils/seeded-random';
+import { generateMap } from '../systems/map-generator';
 import { Player } from '../entities/Player';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { DamageNumbersUiComponent } from '../ui/DamageNumbersUiComponent';

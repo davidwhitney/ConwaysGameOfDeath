@@ -1,14 +1,13 @@
+import { EffectType, type TileMap } from '../types';
 import {
-  SeededRandom, EffectType, TILE_SIZE, isWalkable,
-  iterateMap, ensureWalkable, type TileMap,
-} from '../shared';
+  TILE_SIZE, MAP_EVOLUTION_INTERVAL_MS,
+  SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
+} from '../constants';
+import { SeededRandom } from '../utils/seeded-random';
+import { isWalkable, iterateMap, ensureWalkable } from './map-generator';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import type { Player } from '../entities/Player';
-import {
-  MAP_EVOLUTION_INTERVAL_MS,
-  SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
-} from '../constants';
 import Phaser from 'phaser';
 import { MapRenderer } from './MapRenderer';
 import { SpawnController } from './SpawnController';

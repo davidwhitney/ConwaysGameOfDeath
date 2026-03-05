@@ -1,13 +1,11 @@
 import Phaser from 'phaser';
+import { EffectType, type LevelUpOption } from '../types';
 import {
-  SeededRandom, xpForLevel, generateLevelUpOptions, generatePostMaxOptions,
-  applyLevelUpChoice, MAX_LEVEL, EffectType,
-  GOLD_REROLL_BASE_COST, GOLD_REROLL_COST_MULTIPLIER,
-  type LevelUpOption,
-} from '../shared';
-import {
+  MAX_LEVEL, GOLD_REROLL_BASE_COST, GOLD_REROLL_COST_MULTIPLIER,
   LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
 } from '../constants';
+import { SeededRandom } from '../utils/seeded-random';
+import { xpForLevel, generateLevelUpOptions, generatePostMaxOptions, applyLevelUpChoice } from './leveling';
 import type { Player } from '../entities/Player';
 import type { UpdateContext } from '../systems/UpdateContext';
 import type { GameSystem } from '../systems/GameSystem';

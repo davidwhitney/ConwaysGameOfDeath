@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { distance } from '../shared';
+import { distance } from '../utils/math';
 
 /** Time in seconds before a gem can be collected (scatter animation window) */
 const SPAWN_DELAY = 0.4;

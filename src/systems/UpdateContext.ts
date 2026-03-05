@@ -1,4 +1,4 @@
-import type { TileMap } from '../shared';
+import type { TileMap } from '../types';
 import type { Player } from '../entities/Player';
 import type { EnemyPool } from './EnemyPool';
 

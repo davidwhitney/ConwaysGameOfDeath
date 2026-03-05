@@ -3,7 +3,7 @@ import { applyUIZoom } from '../ui/uiScale';
 import { monoStyle } from '../ui/textStyles';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
-import { INTRO_DURATION_MS } from '../shared';
+import { INTRO_DURATION_MS } from '../constants';
 
 interface SnakeSegment {
   x: number;

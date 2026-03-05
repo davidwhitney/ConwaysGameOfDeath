@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
 import {
-  type EnemyState, type EnemyDef, EnemyType, type Vec2,
-  ENEMY_DESPAWN_RANGE, GAME_DURATION_MS, TILE_SIZE,
-  type TileMap, isWalkable, directionTo, distance,
-} from '../shared';
-import { ENEMY_DEFS } from '../shared';
+  type EnemyState, type EnemyDef, EnemyType, type Vec2, type TileMap,
+} from '../types';
 import {
+  ENEMY_DESPAWN_RANGE, GAME_DURATION_MS, TILE_SIZE,
   ENEMY_HP_SCALING, ENEMY_DMG_SCALING,
   BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER,
 } from '../constants';
+import { ENEMY_DEFS } from './enemies';
+import { isWalkable } from '../systems/map-generator';
+import { directionTo, distance } from '../utils/math';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',

@@ -1,4 +1,5 @@
-import { type WeaponInstance, WEAPON_TICK_INTERVAL_MS } from '../../shared';
+import type { WeaponInstance } from '../../types';
+import { WEAPON_TICK_INTERVAL_MS } from '../../constants';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 import { drawEffectCircle } from './GfxPool';

@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { Enemy } from '../entities/Enemy';
-import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE, type TileMap, EnemyType, distanceSq } from '../shared';
+import { type TileMap, EnemyType } from '../types';
+import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE } from '../constants';
+import { distanceSq } from '../utils/math';
 import { CameraManager } from './CameraManager';
 
 export class EnemyPool {

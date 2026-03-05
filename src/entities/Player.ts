@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
 import {
-  PLAYER_BASE_HP, PLAYER_BASE_SPEED, PLAYER_SIZE, PLAYER_INVINCIBLE_MS,
-  PLAYER_PICKUP_RANGE, TILE_SIZE, WORLD_WIDTH, WORLD_HEIGHT,
   EffectType,
   type PlayerState, type WeaponInstance, type EffectInstance, type TileMap,
-  isWalkable, clamp,
-} from '../shared';
-import { EFFECT_DEFS } from '../shared';
+} from '../types';
+import {
+  PLAYER_BASE_HP, PLAYER_BASE_SPEED, PLAYER_SIZE, PLAYER_INVINCIBLE_MS,
+  PLAYER_PICKUP_RANGE, TILE_SIZE, WORLD_WIDTH, WORLD_HEIGHT,
+} from '../constants';
+import { EFFECT_DEFS } from './effects';
+import { isWalkable } from '../systems/map-generator';
+import { clamp } from '../utils/math';
 import { GameEvents } from '../systems/GameEvents';
 
 export class Player {

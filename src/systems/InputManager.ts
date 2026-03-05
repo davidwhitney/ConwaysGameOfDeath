@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Vec2 } from '../shared';
+import type { Vec2 } from '../types';
 
 interface InputSource {
   getMovement(): Vec2;

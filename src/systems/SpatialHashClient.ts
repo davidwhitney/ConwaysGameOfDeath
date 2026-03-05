@@ -1,4 +1,4 @@
-import { SpatialHash, type SpatialEntity } from '../shared';
+import { SpatialHash, type SpatialEntity } from './physics';
 
 /**
  * Client-side spatial hash wrapper.

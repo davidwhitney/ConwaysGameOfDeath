@@ -1,4 +1,5 @@
-import { type WeaponInstance, circlesOverlap } from '../../shared';
+import type { WeaponInstance } from '../../types';
+import { circlesOverlap } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 

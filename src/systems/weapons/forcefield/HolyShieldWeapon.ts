@@ -1,4 +1,4 @@
-import type { WeaponInstance } from '../../../shared';
+import type { WeaponInstance } from '../../../types';
 import type { Player } from '../../../entities/Player';
 import { BaseForceFieldWeapon } from '../BaseForceFieldWeapon';
 

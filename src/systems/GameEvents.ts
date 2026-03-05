@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { WeaponType } from '../shared';
+import type { WeaponType } from '../types';
 import type { Enemy } from '../entities/Enemy';
 import type { SfxName } from './audio/SfxSystem';
 

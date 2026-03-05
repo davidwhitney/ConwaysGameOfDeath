@@ -1,5 +1,6 @@
-import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType, distanceSq, directionTo } from '../../shared';
+import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType } from '../../types';
 import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../constants';
+import { distanceSq, directionTo } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
 import type { WeaponContext } from './WeaponContext';

@@ -1,4 +1,4 @@
-import type { WeaponDef, WeaponInstance } from '../../shared';
+import type { WeaponDef, WeaponInstance } from '../../types';
 import type { Player } from '../../entities/Player';
 import { BaseEffectWeapon } from './BaseEffectWeapon';
 import { drawEffectCircle } from './GfxPool';

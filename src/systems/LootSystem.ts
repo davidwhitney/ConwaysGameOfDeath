@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
+import { EffectType, WeaponType } from '../types';
 import {
-  EffectType, WeaponType, MAX_WEAPON_LEVEL,
-  XP_DROP_BASE_CHANCE, XP_DROP_LUCK_BONUS,
+  MAX_WEAPON_LEVEL, XP_DROP_BASE_CHANCE, XP_DROP_LUCK_BONUS,
   GOLD_DROP_BASE_CHANCE, GOLD_DROP_LUCK_BONUS,
-} from '../shared';
-import { BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT } from '../constants';
+  BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT,
+} from '../constants';
 import type { Player } from '../entities/Player';
 import { XPGemPool } from '../entities/XPGem';
 import type { UpdateContext } from './UpdateContext';

@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { SpawnManager, type TileMap, isWalkable, TILE_SIZE } from '../shared';
+import type { TileMap } from '../types';
+import { TILE_SIZE } from '../constants';
+import { SpawnManager } from './spawn-manager';
+import { isWalkable } from './map-generator';
 import { EnemyPool } from './EnemyPool';
 import { CameraManager } from './CameraManager';
 

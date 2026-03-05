@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { PLAYER_SIZE, circlesOverlap, EffectType } from '../shared';
+import { EffectType } from '../types';
+import { PLAYER_SIZE } from '../constants';
+import { circlesOverlap } from '../utils/math';
 import { InputManager } from './InputManager';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';

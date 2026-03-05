@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
-import { GAME_DURATION_MS, MAX_LEVEL, WEAPON_DEFS, EFFECT_DEFS, MAX_WEAPONS, MAX_EFFECTS } from '../shared';
+import type { PlayerState, WeaponInstance, EffectInstance } from '../types';
+import { GAME_DURATION_MS, MAX_LEVEL, MAX_WEAPONS, MAX_EFFECTS } from '../constants';
+import { WEAPON_DEFS } from '../entities/weapons';
+import { EFFECT_DEFS } from '../entities/effects';
 import { GameEvents } from '../systems/GameEvents';
-import type { PlayerState, WeaponInstance, EffectInstance } from '../shared';
 import { applyUIZoom } from '../ui/uiScale';
 
 const SLOT_SIZE = 32;

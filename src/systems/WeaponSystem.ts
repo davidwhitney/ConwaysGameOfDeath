@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { WEAPON_DEFS, WeaponType } from '../shared';
+import { WeaponType } from '../types';
+import { WEAPON_DEFS } from '../entities/weapons';
 import type { UpdateContext } from './UpdateContext';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';

@@ -1,4 +1,5 @@
-import { type WeaponInstance, distanceSq } from '../../../shared';
+import type { WeaponInstance } from '../../../types';
+import { distanceSq } from '../../../utils/math';
 import type { Player } from '../../../entities/Player';
 import type { Enemy } from '../../../entities/Enemy';
 import { BaseAoEWeapon } from '../BaseAoEWeapon';
@@ -17,7 +18,7 @@ export class LightningWeapon extends BaseAoEWeapon {
   private bolts: ActiveBolt[] = [];
   private boltPool: GfxPool;
 
-  constructor(ctx: import('../WeaponContext').WeaponContext, def: import('../../../shared').WeaponDef) {
+  constructor(ctx: import('../WeaponContext').WeaponContext, def: import('../../../types').WeaponDef) {
     super(ctx, def);
     this.boltPool = new GfxPool(ctx.scene, 8);
   }

@@ -1,4 +1,4 @@
-import { directionTo } from '../../../shared';
+import { directionTo } from '../../../utils/math';
 import type { Player } from '../../../entities/Player';
 import { BaseProjectileWeapon, type ActiveProjectile } from '../BaseProjectileWeapon';
 

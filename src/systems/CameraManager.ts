@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WORLD_WIDTH, WORLD_HEIGHT, CAMERA_ZOOM } from '../shared';
+import { WORLD_WIDTH, WORLD_HEIGHT, CAMERA_ZOOM } from '../constants';
 import { loadSettings } from '../ui/saveData';
 
 export class CameraManager {

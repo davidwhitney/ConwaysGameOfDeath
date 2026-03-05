@@ -1,11 +1,10 @@
 import Phaser from 'phaser';
+import { EnemyType } from '../types';
 import {
-  SeededRandom, EnemyType, GAME_DURATION_MS,
-} from '../shared';
-import {
-  BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
+  GAME_DURATION_MS, BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
   DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL,
 } from '../constants';
+import { SeededRandom } from '../utils/seeded-random';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';

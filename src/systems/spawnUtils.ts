@@ -1,4 +1,4 @@
-import type { SeededRandom } from '../shared';
+import type { SeededRandom } from '../utils/seeded-random';
 
 export function randomPositionAtDistance(
   rng: SeededRandom,

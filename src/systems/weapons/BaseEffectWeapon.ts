@@ -1,4 +1,4 @@
-import type { WeaponDef } from '../../shared';
+import type { WeaponDef } from '../../types';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 import { GfxPool } from './GfxPool';

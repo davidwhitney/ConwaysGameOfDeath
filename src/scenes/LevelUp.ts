@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { type LevelUpOption, WEAPON_DEFS, EFFECT_DEFS, WeaponType } from '../shared';
+import { type LevelUpOption, WeaponType } from '../types';
+import { WEAPON_DEFS } from '../entities/weapons';
+import { EFFECT_DEFS } from '../entities/effects';
 import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
 import { onResizeRestart } from '../ui/resizeHandler';
