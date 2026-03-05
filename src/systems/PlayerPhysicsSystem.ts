@@ -24,7 +24,7 @@ export class PlayerPhysicsSystem implements GameSystem {
     const movement = this.inputManager.getMovement();
     player.move(movement.x, movement.y, dt, ctx.map);
     player.applyRegen(dt);
-    player.updateVisuals();
+    player.updateVisuals(dt);
 
     // Pause
     if (this.inputManager.isMenuPressed()) {

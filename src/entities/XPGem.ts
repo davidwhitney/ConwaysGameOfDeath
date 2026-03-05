@@ -31,14 +31,24 @@ const TEX_MAP: Record<GemKind, string> = {
   vortex: 'vortex-gem',
 };
 
+const GEM_TRAIL_COLORS: Record<GemKind, number> = {
+  xp: 0x00ff66,
+  heal: 0xff2222,
+  gold: 0xffcc00,
+  vortex: 0x2288ff,
+};
+
 export class XPGemPool {
   private pool: Phaser.GameObjects.Sprite[] = [];
   private active: GemData[] = [];
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
+  private trailGfx: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+    this.trailGfx = scene.add.graphics();
+    this.trailGfx.setDepth(2);
     this.container = scene.add.container(0, 0);
     this.container.setDepth(3);
 
@@ -105,6 +115,8 @@ export class XPGemPool {
     let vortex = 0;
     const magnetRange = pickupRange * 3;
 
+    this.trailGfx.clear();
+
     for (let i = this.active.length - 1; i >= 0; i--) {
       const gem = this.active[i];
       if (!gem.alive) continue;
@@ -140,6 +152,16 @@ export class XPGemPool {
           gem.x += (dx / len) * speed * dt;
           gem.y += (dy / len) * speed * dt;
           gem.sprite.setPosition(gem.x, gem.y);
+
+          // Magnetism trail streak
+          const trailColor = GEM_TRAIL_COLORS[gem.kind];
+          const nx = -dx / len;
+          const ny = -dy / len;
+          for (let ti = 1; ti <= 3; ti++) {
+            const tt = ti / 3;
+            this.trailGfx.fillStyle(trailColor, (1 - tt) * 0.35);
+            this.trailGfx.fillCircle(gem.x + nx * ti * 6, gem.y + ny * ti * 6, 3 * (1 - tt * 0.5));
+          }
         }
       }
 
@@ -192,6 +214,7 @@ export class XPGemPool {
   }
 
   destroy(): void {
+    this.trailGfx.destroy();
     this.container.destroy(true);
   }
 }

@@ -88,6 +88,12 @@ export class Enemy {
     this.sprite.setAlpha(1);
     this.sprite.setScale(boss ? BOSS_SIZE_MULTIPLIER : 1);
 
+    // Spawn flash — bright pop then fade to normal
+    this.sprite.setTintFill(0xffffff);
+    this.scene.time.delayedCall(60, () => {
+      if (this.state.alive) this.sprite.clearTint();
+    });
+
     this.knockbackImmuneUntil = 0;
     
     this.orbitAngle = Math.random() * Math.PI * 2;

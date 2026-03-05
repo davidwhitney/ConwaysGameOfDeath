@@ -25,8 +25,16 @@ export class Player {
   private effectCacheLength: number = -1;
   private effectCacheDirty: boolean = true;
 
+  private trailGfx: Phaser.GameObjects.Graphics;
+  private trailPositions: { x: number; y: number }[] = [];
+  private trailTimer: number = 0;
+  private prevX: number = 0;
+  private prevY: number = 0;
+
   constructor(scene: Phaser.Scene, x: number, y: number, id: string = 'local') {
     this.scene = scene;
+    this.trailGfx = scene.add.graphics();
+    this.trailGfx.setDepth(9);
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
     if (scene.game.renderer.type === Phaser.WEBGL) {
@@ -222,8 +230,8 @@ export class Player {
     this.state.maxHp = Math.floor(this.baseMaxHp * (1 + vitality));
   }
 
-  /** Flip sprite based on facing direction */
-  updateVisuals(): void {
+  /** Flip sprite based on facing direction + draw movement trail */
+  updateVisuals(dt: number): void {
     this.sprite.setFlipX(this.facingX < 0);
     // Flash when invincible
     const now = performance.now();
@@ -231,6 +239,40 @@ export class Player {
       this.sprite.setAlpha(Math.sin(now * 0.02) * 0.3 + 0.7);
     } else {
       this.sprite.setAlpha(1);
+    }
+
+    // Movement trail — only record when actually moving a meaningful distance
+    const dx = this.state.x - this.prevX;
+    const dy = this.state.y - this.prevY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq > 64) { // moved more than 8px from last recorded point
+      this.prevX = this.state.x;
+      this.prevY = this.state.y;
+      this.trailPositions.push({ x: this.state.x, y: this.state.y });
+      if (this.trailPositions.length > 6) this.trailPositions.shift();
+    }
+    // Decay trail when standing still
+    if (distSq <= 64) {
+      this.trailTimer += dt;
+      if (this.trailTimer > 0.06 && this.trailPositions.length > 0) {
+        this.trailTimer = 0;
+        this.trailPositions.shift();
+      }
+    } else {
+      this.trailTimer = 0;
+    }
+    this.trailGfx.clear();
+    const len = this.trailPositions.length;
+    for (let i = 0; i < len - 1; i++) { // skip last (it's under the player)
+      const t = (i + 1) / len;
+      const pos = this.trailPositions[i];
+      // Match the full visual size of player sprite + preFX glow halo
+      this.trailGfx.fillStyle(0x2288ff, t * 0.25);
+      this.trailGfx.fillCircle(pos.x, pos.y, 28);
+      this.trailGfx.fillStyle(0x44aaff, t * 0.35);
+      this.trailGfx.fillCircle(pos.x, pos.y, 18);
+      this.trailGfx.fillStyle(0x66ccff, t * 0.5);
+      this.trailGfx.fillCircle(pos.x, pos.y, 10);
     }
   }
 }

@@ -44,6 +44,7 @@ export class GameScene extends Phaser.Scene {
   private lootSystem!: LootSystem;
   private reviveCount: number = 0;
   private awaitingRevive: boolean = false;
+  private dangerOverlay: Phaser.GameObjects.Graphics | null = null;
 
   public constructor() {
     super({ key: 'Game' });
@@ -113,6 +114,11 @@ export class GameScene extends Phaser.Scene {
     this.hudScene = this.scene.get('HUD') as HUDScene;
     this.damageNumbersUi = new DamageNumbersUiComponent(this);
 
+    // Low HP danger overlay — drawn on HUD camera so it stays screen-fixed
+    this.dangerOverlay = this.add.graphics();
+    this.dangerOverlay.setDepth(100);
+    this.dangerOverlay.setScrollFactor(0);
+
     GameEvents.sfx('game-start');
   }
 
@@ -145,6 +151,9 @@ export class GameScene extends Phaser.Scene {
     GameEvents.intensity(
       Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
     );
+
+    // Low HP danger pulse
+    this.updateDangerOverlay();
 
     if (!this.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
@@ -192,6 +201,27 @@ export class GameScene extends Phaser.Scene {
       time: this.gameTimeMs,
       seed: this.seed,
     });
+  }
+
+  private updateDangerOverlay(): void {
+    if (!this.dangerOverlay) return;
+    this.dangerOverlay.clear();
+    const hpPct = this.player.state.hp / this.player.state.maxHp;
+    if (hpPct < 0.4) {
+      const intensity = 1 - hpPct / 0.4; // 0→1 as HP drops
+      const pulse = Math.sin(this.gameTimeMs * 0.006) * 0.5 + 0.5;
+      const alpha = (0.15 + intensity * 0.45) * (0.5 + pulse * 0.5);
+      const cam = this.cameras.main;
+      const w = cam.width;
+      const h = cam.height;
+      // scrollFactor(0) means draw at screen coords (0,0)
+      const thickness = 120 + intensity * 80;
+      this.dangerOverlay.fillStyle(0xff0000, alpha);
+      this.dangerOverlay.fillRect(0, 0, w, thickness); // top
+      this.dangerOverlay.fillRect(0, h - thickness, w, thickness); // bottom
+      this.dangerOverlay.fillRect(0, 0, thickness, h); // left
+      this.dangerOverlay.fillRect(w - thickness, 0, thickness, h); // right
+    }
   }
 
   private shutdown(): void {
