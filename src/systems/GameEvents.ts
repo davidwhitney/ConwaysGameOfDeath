@@ -44,4 +44,12 @@ export const GameEvents = {
   ): void {
     emitter.emit(event, ...args);
   },
+
+  highlight(reason: string): void {
+    document.dispatchEvent(new CustomEvent('game-highlight', { detail: reason }));
+  },
+
+  intensity(value: number): void {
+    document.dispatchEvent(new CustomEvent('game-intensity', { detail: value }));
+  },
 };

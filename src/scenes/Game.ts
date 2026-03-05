@@ -143,9 +143,9 @@ export class GameScene extends Phaser.Scene {
       this.gameWorldSystem.getActiveEnemyCount(),
     );
 
-    document.dispatchEvent(new CustomEvent('game-intensity', {
-      detail: Math.min(1, this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
-    }));
+    GameEvents.intensity(
+      Math.min(1, this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
+    );
 
     if (!this.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;

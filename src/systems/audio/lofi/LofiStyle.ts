@@ -1,12 +1,8 @@
-import type { MusicStyle } from '../MusicStyle';
+import { BaseMusicStyle, pick, STEPS_PER_BAR } from '../BaseMusicStyle';
 import { LofiSynths } from './LofiSynths';
 import { LofiTheory } from './LofiTheory';
 
 const BPM = 75;
-const STEPS_PER_BEAT = 4;
-const STEPS_PER_BAR = STEPS_PER_BEAT * 4;
-const LOOK_AHEAD_S = 0.1;
-const SCHEDULE_INTERVAL_MS = 25;
 
 // Kick patterns: sparse → busy
 const KICK_POOLS: number[][][] = [
@@ -30,29 +26,17 @@ const HAT_POOLS: number[][][] = [
   [[0, 1, 2, 4, 6, 8, 10, 12, 14, 15]],                  // 16th fills
 ];
 
-export class LofiStyle implements MusicStyle {
-  private ctx: AudioContext;
+export class LofiStyle extends BaseMusicStyle {
   private synths: LofiSynths;
   private theory: LofiTheory;
-  private stepDuration: number;
-  private intensity = 0;
-  private highlightBarsLeft = 0;
-
-  private currentStep = 0;
-  private nextStepTime = 0;
-  private timerId = 0;
-  private running = false;
-
   private chordIndex = 0;
   private progression: number[][] = [];
-  private barCount = 0;
   private kickPattern: number[];
   private snarePattern: number[];
   private hatPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    this.ctx = ctx;
-    this.stepDuration = 60 / BPM / STEPS_PER_BEAT;
+    super(ctx, BPM);
     this.synths = new LofiSynths(ctx, output);
     this.theory = new LofiTheory();
     this.progression = this.theory.generateProgression();
@@ -61,8 +45,6 @@ export class LofiStyle implements MusicStyle {
     this.hatPattern = pick(HAT_POOLS[0]);
   }
 
-  setIntensity(v: number): void { this.intensity = v; }
-
   highlight(): void {
     this.highlightBarsLeft = 4;
     this.kickPattern = pick(KICK_POOLS[3]);
@@ -70,62 +52,32 @@ export class LofiStyle implements MusicStyle {
     this.hatPattern = pick(HAT_POOLS[3]);
   }
 
-  start(): void {
-    this.running = true;
-    this.currentStep = 0;
-    this.nextStepTime = this.ctx.currentTime + 0.1;
-    this.barCount = 0;
+  protected onStart(): void {
     this.chordIndex = 0;
     this.synths.startCrackle(this.synths.masterFilter);
-    this.schedule();
   }
 
-  stop(): void {
-    this.running = false;
-    clearTimeout(this.timerId);
+  protected stopSynths(): void {
     this.synths.stopAll();
   }
 
-  /** Map intensity 0–1 to pool tier 0–3. */
-  private tier(): number {
-    return Math.min(3, Math.floor(this.intensity * 4));
-  }
+  protected onBarEnd(): void {
+    this.chordIndex = (this.chordIndex + 1) % this.progression.length;
 
-  private schedule(): void {
-    const lookAheadEnd = this.ctx.currentTime + LOOK_AHEAD_S;
-    while (this.nextStepTime < lookAheadEnd) {
-      this.playStep(this.currentStep, this.nextStepTime);
-      this.nextStepTime += this.stepDuration;
-      this.currentStep++;
-      if (this.currentStep >= STEPS_PER_BAR) {
-        this.currentStep = 0;
-        this.barCount++;
-        this.chordIndex = (this.chordIndex + 1) % this.progression.length;
-
-        // Highlight countdown
-        if (this.highlightBarsLeft > 0) this.highlightBarsLeft--;
-
-        // Pattern refresh — more frequent at higher intensity
-        const refreshChance = 0.15 + this.intensity * 0.35;
-        if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
-          const t = this.tier();
-          this.kickPattern = pick(KICK_POOLS[t]);
-          this.snarePattern = pick(SNARE_POOLS[t]);
-          this.hatPattern = pick(HAT_POOLS[t]);
-        }
-        // Progression change — more frequent at higher intensity
-        const progChance = 0.15 + this.intensity * 0.3;
-        if (this.barCount % this.progression.length === 0 && Math.random() < progChance) {
-          this.progression = this.theory.generateProgression();
-        }
-      }
+    const refreshChance = 0.15 + this.intensity * 0.35;
+    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+      const t = this.tier();
+      this.kickPattern = pick(KICK_POOLS[t]);
+      this.snarePattern = pick(SNARE_POOLS[t]);
+      this.hatPattern = pick(HAT_POOLS[t]);
     }
-    if (this.running) {
-      this.timerId = window.setTimeout(() => this.schedule(), SCHEDULE_INTERVAL_MS);
+    const progChance = 0.15 + this.intensity * 0.3;
+    if (this.barCount % this.progression.length === 0 && Math.random() < progChance) {
+      this.progression = this.theory.generateProgression();
     }
   }
 
-  private playStep(step: number, time: number): void {
+  protected playStep(step: number, time: number): void {
     const chord = this.progression[this.chordIndex];
     const barDuration = this.stepDuration * STEPS_PER_BAR;
     const int = this.intensity;
@@ -182,8 +134,4 @@ export class LofiStyle implements MusicStyle {
       if (step === 14 || step === 15) this.synths.snare(time);
     }
   }
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
 }

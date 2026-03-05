@@ -107,7 +107,7 @@ export class LevelUpSystem implements GameSystem {
     this.player.invalidateEffectCache();
 
     if (choice.kind === 'weapon' && choice.newLevel === 5) {
-      document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'weapon-max' }));
+      GameEvents.highlight('weapon-max');
     }
 
     if (this.pendingLevelUps > 0) {

@@ -56,11 +56,11 @@ export class LootSystem implements GameSystem {
         this.player.state.x, this.player.state.y - 30,
         Math.floor(healTotal), '#ff4444',
       );
-      document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'heal-gem' }));
+      GameEvents.highlight('heal-gem');
     }
 
     if (gemResult.vortex > 0) {
-      document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'vortex-gem' }));
+      GameEvents.highlight('vortex-gem');
     }
 
     if (gemResult.gold > 0) {
@@ -110,7 +110,7 @@ export class LootSystem implements GameSystem {
       if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
         weapon.level++;
         if (weapon.level === 5) {
-          document.dispatchEvent(new CustomEvent('game-highlight', { detail: 'weapon-max' }));
+          GameEvents.highlight('weapon-max');
         }
         GameEvents.emit(this.scene.events, 'show-damage',
           this.player.state.x, this.player.state.y - 40,

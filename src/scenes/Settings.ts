@@ -12,6 +12,9 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.25;
 const VOL_STEP = 0.1;
 
+const BTN = { textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488 } as const;
+const BTN_WARN = { textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444 } as const;
+
 export class SettingsScene extends Phaser.Scene {
   private menuNav!: MenuNav;
   private zoomValueText!: Phaser.GameObjects.Text;
@@ -46,12 +49,14 @@ export class SettingsScene extends Phaser.Scene {
     this.settings = loadSettings();
 
     // Row labels
-    this.add.text(width / 2 - 100, height * 0.27, 'CRT Effect', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    this.add.text(width / 2 - 100, height * 0.33, 'Skip Intro', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    this.add.text(width / 2 - 100, height * 0.39, 'Music', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    this.add.text(width / 2 - 100, height * 0.45, 'Style', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    this.add.text(width / 2 - 100, height * 0.51, 'Volume', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    this.add.text(width / 2 - 100, height * 0.57, 'Zoom', monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
+    const label = (y: number, text: string) =>
+      this.add.text(width / 2 - 100, height * y, text, monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
+    label(0.27, 'CRT Effect');
+    label(0.33, 'Skip Intro');
+    label(0.39, 'Music');
+    label(0.45, 'Style');
+    label(0.51, 'Volume');
+    label(0.57, 'Zoom');
 
     this.volumeValueText = this.add.text(width / 2 + 80, height * 0.51,
       this.formatVolume(this.settings.musicVolume),
@@ -63,17 +68,18 @@ export class SettingsScene extends Phaser.Scene {
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
+    const cx = width / 2;
     this.menuNav = new MenuNav(this, [
-      { x: width / 2 + 80, y: height * 0.27, width: 80, height: 40, label: this.settings.crtEnabled ? 'ON' : 'OFF', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.toggleCRT() },
-      { x: width / 2 + 80, y: height * 0.33, width: 80, height: 40, label: this.settings.skipIntro ? 'ON' : 'OFF', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.toggleSkipIntro() },
-      { x: width / 2 + 80, y: height * 0.39, width: 80, height: 40, label: this.settings.musicEnabled ? 'ON' : 'OFF', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.toggleMusic() },
-      { x: width / 2 + 80, y: height * 0.45, width: 100, height: 40, label: this.settings.musicStyle.toUpperCase(), fontSize: '14px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.cycleStyle() },
-      { x: width / 2 + 45, y: height * 0.51, width: 36, height: 36, label: '-', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustVolume(-VOL_STEP) },
-      { x: width / 2 + 115, y: height * 0.51, width: 36, height: 36, label: '+', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustVolume(VOL_STEP) },
-      { x: width / 2 + 45, y: height * 0.57, width: 36, height: 36, label: '-', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustZoom(-ZOOM_STEP) },
-      { x: width / 2 + 115, y: height * 0.57, width: 36, height: 36, label: '+', fontSize: '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.adjustZoom(ZOOM_STEP) },
-      { x: width / 2, y: height * 0.71, width: 200, height: 40, label: 'CLEAR DATA', fontSize: '14px', textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444, action: () => this.clearData() },
-      { x: width / 2, y: height * 0.84, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
+      { x: cx + 80, y: height * 0.27, width: 80, height: 40, label: this.settings.crtEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleCRT() },
+      { x: cx + 80, y: height * 0.33, width: 80, height: 40, label: this.settings.skipIntro ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleSkipIntro() },
+      { x: cx + 80, y: height * 0.39, width: 80, height: 40, label: this.settings.musicEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleMusic() },
+      { x: cx + 80, y: height * 0.45, width: 100, height: 40, label: this.settings.musicStyle.toUpperCase(), fontSize: '14px', ...BTN, action: () => this.cycleStyle() },
+      { x: cx + 45, y: height * 0.51, width: 36, height: 36, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustVolume(-VOL_STEP) },
+      { x: cx + 115, y: height * 0.51, width: 36, height: 36, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustVolume(VOL_STEP) },
+      { x: cx + 45, y: height * 0.57, width: 36, height: 36, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustZoom(-ZOOM_STEP) },
+      { x: cx + 115, y: height * 0.57, width: 36, height: 36, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustZoom(ZOOM_STEP) },
+      { x: cx, y: height * 0.71, width: 200, height: 40, label: 'CLEAR DATA', fontSize: '14px', ...BTN_WARN, action: () => this.clearData() },
+      { x: cx, y: height * 0.84, width: 200, height: 45, label: 'BACK', fontSize: '18px', ...BTN, action: () => this.goBack() },
     ], () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());

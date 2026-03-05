@@ -1,12 +1,7 @@
-import type { MusicStyle } from '../MusicStyle';
+import { BaseMusicStyle, pick, STEPS_PER_BAR } from '../BaseMusicStyle';
 import { TechnoSynths } from './TechnoSynths';
 
 const BPM = 135;
-const STEPS_PER_BEAT = 4;
-const STEPS_PER_BAR = STEPS_PER_BEAT * 4;
-const LOOK_AHEAD_S = 0.1;
-const SCHEDULE_INTERVAL_MS = 25;
-
 const ROOTS = [36, 38, 40, 41, 43];
 
 // Kick patterns: four-on-floor → relentless
@@ -67,19 +62,8 @@ const ACCENT_POOLS: number[][][] = [
    [1,0,0,1, 0,1,0,0, 1,0,0,0, 1,0,1,0]],                  // maximum squelch
 ];
 
-export class TechnoStyle implements MusicStyle {
-  private ctx: AudioContext;
+export class TechnoStyle extends BaseMusicStyle {
   private synths: TechnoSynths;
-  private stepDuration: number;
-  private intensity = 0;
-  private highlightBarsLeft = 0;
-
-  private currentStep = 0;
-  private nextStepTime = 0;
-  private timerId = 0;
-  private running = false;
-
-  private barCount = 0;
   private root: number;
   private kickPattern: number[];
   private clapPattern: number[];
@@ -89,8 +73,7 @@ export class TechnoStyle implements MusicStyle {
   private accentPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    this.ctx = ctx;
-    this.stepDuration = 60 / BPM / STEPS_PER_BEAT;
+    super(ctx, BPM);
     this.synths = new TechnoSynths(ctx, output);
     this.root = pick(ROOTS);
     this.kickPattern = pick(KICK_POOLS[0]);
@@ -100,8 +83,6 @@ export class TechnoStyle implements MusicStyle {
     this.bassPattern = pick(BASS_POOLS[0]);
     this.accentPattern = pick(ACCENT_POOLS[0]);
   }
-
-  setIntensity(v: number): void { this.intensity = v; }
 
   highlight(): void {
     this.highlightBarsLeft = 4;
@@ -113,58 +94,28 @@ export class TechnoStyle implements MusicStyle {
     this.accentPattern = pick(ACCENT_POOLS[3]);
   }
 
-  start(): void {
-    this.running = true;
-    this.currentStep = 0;
-    this.nextStepTime = this.ctx.currentTime + 0.1;
-    this.barCount = 0;
-    this.schedule();
-  }
-
-  stop(): void {
-    this.running = false;
-    clearTimeout(this.timerId);
+  protected stopSynths(): void {
     this.synths.stopAll();
   }
 
-  private tier(): number {
-    return Math.min(3, Math.floor(this.intensity * 4));
-  }
-
-  private schedule(): void {
-    const end = this.ctx.currentTime + LOOK_AHEAD_S;
-    while (this.nextStepTime < end) {
-      this.playStep(this.currentStep, this.nextStepTime);
-      this.nextStepTime += this.stepDuration;
-      this.currentStep++;
-      if (this.currentStep >= STEPS_PER_BAR) {
-        this.currentStep = 0;
-        this.barCount++;
-
-        if (this.highlightBarsLeft > 0) this.highlightBarsLeft--;
-
-        const t = this.tier();
-        const refreshChance = 0.15 + this.intensity * 0.35;
-        if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
-          this.kickPattern = pick(KICK_POOLS[t]);
-          this.clapPattern = pick(CLAP_POOLS[t]);
-          this.hatPattern = pick(HAT_POOLS[t]);
-          this.openHatPattern = pick(OPEN_HAT_POOLS[t]);
-          this.bassPattern = pick(BASS_POOLS[t]);
-          this.accentPattern = pick(ACCENT_POOLS[t]);
-        }
-        const rootInterval = Math.max(2, 8 - Math.floor(this.intensity * 6));
-        if (this.barCount % rootInterval === 0) {
-          this.root = pick(ROOTS);
-        }
-      }
+  protected onBarEnd(): void {
+    const t = this.tier();
+    const refreshChance = 0.15 + this.intensity * 0.35;
+    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+      this.kickPattern = pick(KICK_POOLS[t]);
+      this.clapPattern = pick(CLAP_POOLS[t]);
+      this.hatPattern = pick(HAT_POOLS[t]);
+      this.openHatPattern = pick(OPEN_HAT_POOLS[t]);
+      this.bassPattern = pick(BASS_POOLS[t]);
+      this.accentPattern = pick(ACCENT_POOLS[t]);
     }
-    if (this.running) {
-      this.timerId = window.setTimeout(() => this.schedule(), SCHEDULE_INTERVAL_MS);
+    const rootInterval = Math.max(2, 8 - Math.floor(this.intensity * 6));
+    if (this.barCount % rootInterval === 0) {
+      this.root = pick(ROOTS);
     }
   }
 
-  private playStep(step: number, time: number): void {
+  protected playStep(step: number, time: number): void {
     const beatLen = this.stepDuration;
     const barDuration = this.stepDuration * STEPS_PER_BAR;
     const int = this.intensity;
@@ -219,8 +170,4 @@ export class TechnoStyle implements MusicStyle {
       if (step >= 12) this.synths.clap(time);
     }
   }
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
 }
