@@ -5,6 +5,8 @@ export interface Settings {
   gameZoom: number;
   endlessMode: boolean;
   skipIntro: boolean;
+  musicEnabled: boolean;
+  musicStyle: string;
 }
 
 export interface ScoreEntry {
@@ -21,7 +23,7 @@ export interface SaveData {
   highScores: ScoreEntry[];
 }
 
-const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false };
+const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'triphop' };
 
 export function loadSave(): SaveData {
   try {
