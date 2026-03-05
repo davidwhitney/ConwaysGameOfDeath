@@ -28,3 +28,15 @@ export class GfxPool {
     this.pool.length = 0;
   }
 }
+
+export function drawEffectCircle(
+  gfx: Phaser.GameObjects.Graphics,
+  x: number, y: number, radius: number,
+  color: number, fillAlpha: number, strokeAlpha: number,
+  strokeWidth: number = 2,
+): void {
+  gfx.fillStyle(color, fillAlpha);
+  gfx.fillCircle(x, y, radius);
+  gfx.lineStyle(strokeWidth, color, strokeAlpha);
+  gfx.strokeCircle(x, y, radius);
+}

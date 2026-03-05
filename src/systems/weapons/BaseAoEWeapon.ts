@@ -1,7 +1,7 @@
-import type { WeaponInstance } from '../../shared';
+import { type WeaponInstance, WEAPON_TICK_INTERVAL_MS } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
-import { GfxPool } from './GfxPool';
+import { GfxPool, drawEffectCircle } from './GfxPool';
 import type { Enemy } from '../../entities/Enemy';
 import type { ActiveEffect } from './ActiveEffect';
 
@@ -68,14 +68,11 @@ export class BaseAoEWeapon extends BaseWeapon {
       const progress = a.age / a.duration;
       const alpha = progress < 0.1 ? progress * 10 : (progress > 0.8 ? (1 - progress) * 5 : 1);
       a.gfx.clear();
-      a.gfx.fillStyle(this.def.color, alpha * 0.3);
-      a.gfx.fillCircle(a.x, a.y, a.radius);
-      a.gfx.lineStyle(2, this.def.color, alpha * 0.6);
-      a.gfx.strokeCircle(a.x, a.y, a.radius);
+      drawEffectCircle(a.gfx, a.x, a.y, a.radius, this.def.color, alpha * 0.3, alpha * 0.6);
 
       a.tickTimer += dt * 1000;
-      if (a.tickTimer >= 200) {
-        a.tickTimer -= 200;
+      if (a.tickTimer >= WEAPON_TICK_INTERVAL_MS) {
+        a.tickTimer -= WEAPON_TICK_INTERVAL_MS;
         const enemies = this.ctx.enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
         for (const enemy of enemies) {
           this.hitEnemy(enemy, a.damage, this.def.type, player);

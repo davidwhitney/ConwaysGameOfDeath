@@ -1,4 +1,4 @@
-import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType, distanceSq } from '../../shared';
+import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType, distanceSq, directionTo } from '../../shared';
 import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../shared/constants';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
@@ -63,12 +63,10 @@ export abstract class BaseWeapon {
     const knockback = player.getEffectValue(EffectType.Knockback);
     const now = this.ctx.scene.time.now;
     if (this.appliesKnockback && knockback > 0 && enemy.state.alive && now >= enemy.knockbackImmuneUntil) {
-      const dx = enemy.state.x - player.state.x;
-      const dy = enemy.state.y - player.state.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const dir = directionTo(player.state, enemy.state);
       const mult = enemy.state.type === EnemyType.Death ? DEATH_KNOCKBACK_MULT : 1;
-      enemy.state.x += (dx / dist) * knockback * mult;
-      enemy.state.y += (dy / dist) * knockback * mult;
+      enemy.state.x += dir.x * knockback * mult;
+      enemy.state.y += dir.y * knockback * mult;
       enemy.knockbackImmuneUntil = now + 500;
     }
 

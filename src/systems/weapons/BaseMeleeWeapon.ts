@@ -1,7 +1,7 @@
 import type { WeaponInstance } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
-import { GfxPool } from './GfxPool';
+import { GfxPool, drawEffectCircle } from './GfxPool';
 import type { ActiveEffect } from './ActiveEffect';
 
 interface ActiveMelee extends ActiveEffect {
@@ -55,10 +55,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
 
       const alpha = 1 - m.age / m.duration;
       m.gfx.clear();
-      m.gfx.fillStyle(this.def.color, alpha * 0.4);
-      m.gfx.fillCircle(m.x, m.y, m.radius * alpha);
-      m.gfx.lineStyle(2, this.def.color, alpha * 0.8);
-      m.gfx.strokeCircle(m.x, m.y, m.radius * alpha);
+      drawEffectCircle(m.gfx, m.x, m.y, m.radius * alpha, this.def.color, alpha * 0.4, alpha * 0.8);
 
       const enemies = this.ctx.enemyPool.getEnemiesInRadius(m.x, m.y, m.radius);
       for (const enemy of enemies) {

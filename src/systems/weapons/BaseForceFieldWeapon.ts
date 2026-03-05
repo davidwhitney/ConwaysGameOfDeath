@@ -1,6 +1,7 @@
-import type { WeaponInstance } from '../../shared';
+import { type WeaponInstance, WEAPON_TICK_INTERVAL_MS } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
+import { drawEffectCircle } from './GfxPool';
 import type { Enemy } from '../../entities/Enemy';
 
 export class BaseForceFieldWeapon extends BaseWeapon {
@@ -29,8 +30,8 @@ export class BaseForceFieldWeapon extends BaseWeapon {
     this.gfx.clear();
     this.tickTimer += dt * 1000;
     let doTick = false;
-    if (this.tickTimer >= 200) {
-      this.tickTimer -= 200;
+    if (this.tickTimer >= WEAPON_TICK_INTERVAL_MS) {
+      this.tickTimer -= WEAPON_TICK_INTERVAL_MS;
       doTick = true;
     }
     this.renderForceField(weapon, doTick, dt, player);
@@ -41,10 +42,7 @@ export class BaseForceFieldWeapon extends BaseWeapon {
     const area = stats.area * player.getAuraMultiplier();
     const dmgMul = player.getDamageMultiplier();
 
-    this.gfx.fillStyle(this.def.color, 0.1);
-    this.gfx.fillCircle(player.state.x, player.state.y, area);
-    this.gfx.lineStyle(1, this.def.color, 0.3);
-    this.gfx.strokeCircle(player.state.x, player.state.y, area);
+    drawEffectCircle(this.gfx, player.state.x, player.state.y, area, this.def.color, 0.1, 0.3, 1);
 
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(player.state.x, player.state.y, area);
 

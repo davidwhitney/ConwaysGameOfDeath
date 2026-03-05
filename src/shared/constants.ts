@@ -95,6 +95,7 @@ export const ENEMY_DMG_SCALING = 3.6;
 
 // ─── Combat ───
 export const CRIT_DAMAGE_MULTIPLIER = 2.0;
+export const WEAPON_TICK_INTERVAL_MS = 200;
 
 // ─── Intro ───
 export const INTRO_DURATION_MS = 3000;
