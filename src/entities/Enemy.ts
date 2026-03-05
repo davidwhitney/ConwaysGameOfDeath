@@ -33,16 +33,11 @@ export class Enemy {
   private scene: Phaser.Scene;
   private map: TileMap;
 
-  // For orbit behavior
   private orbitAngle: number = 0;
-  // For teleport behavior
   private teleportTimer: number = 0;
-  // For cross behavior
   private crossDir: Vec2 = { x: 1, y: 0 };
-  // Slow effect
   private slowFactor: number = 1;
   private slowUntil: number = 0;
-  // Knockback immunity
   knockbackImmuneUntil: number = 0;
 
   constructor(scene: Phaser.Scene, map: TileMap) {
@@ -93,11 +88,11 @@ export class Enemy {
     this.sprite.setAlpha(1);
     this.sprite.setScale(boss ? BOSS_SIZE_MULTIPLIER : 1);
 
-    // Reset knockback immunity
     this.knockbackImmuneUntil = 0;
-    // Init behavior state
+    
     this.orbitAngle = Math.random() * Math.PI * 2;
     this.teleportTimer = 2000 + Math.random() * 3000;
+
     const angle = Math.random() * Math.PI * 2;
     this.crossDir = { x: Math.cos(angle), y: Math.sin(angle) };
   }
@@ -220,14 +215,12 @@ export class Enemy {
       return;
     }
 
-    // Try X-only slide
     const slideX = this.state.x + dx;
     const xOk = this.posWalkable(slideX, this.state.y, halfSize);
     if (xOk) {
       this.state.x = slideX;
     }
 
-    // Try Y-only slide
     const slideY = this.state.y + dy;
     const yOk = this.posWalkable(this.state.x, slideY, halfSize);
     if (yOk) {
@@ -255,7 +248,6 @@ export class Enemy {
     }
   }
 
-  /** Check whether a position is walkable for all four corners of the enemy hitbox */
   private posWalkable(x: number, y: number, half: number): boolean {
     const t1x = Math.floor((x - half) / TILE_SIZE);
     const t2x = Math.floor((x + half) / TILE_SIZE);

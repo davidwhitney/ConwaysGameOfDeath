@@ -26,7 +26,7 @@ export class LootSystem implements GameSystem {
 
     GameEvents.on(this.scene.events, 'scatter-health-gems', (positions) => {
       for (const p of positions) {
-        this.xpGemPool.spawnGolden(p.x, p.y);
+        this.xpGemPool.spawnHealth(p.x, p.y);
       }
     });
 

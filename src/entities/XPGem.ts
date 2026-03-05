@@ -55,7 +55,7 @@ export class XPGemPool {
     this.spawnGem(x, y, value, 'xp');
   }
 
-  spawnGolden(x: number, y: number): void {
+  spawnHealth(x: number, y: number): void {
     this.spawnGem(x, y, 0, 'heal');
   }
 
