@@ -4,6 +4,8 @@ import type { Player } from '../../../entities/Player';
 import type { Enemy } from '../../../entities/Enemy';
 import { BaseAoEWeapon } from '../BaseAoEWeapon';
 import { GfxPool } from '../GfxPool';
+import { WeaponContext } from '../WeaponContext';
+import { WeaponDef } from '../../../types';
 
 const CHAIN_RANGE = 150;
 const BOLT_DURATION = 250;
@@ -18,7 +20,7 @@ export class LightningWeapon extends BaseAoEWeapon {
   private bolts: ActiveBolt[] = [];
   private boltPool: GfxPool;
 
-  constructor(ctx: import('../WeaponContext').WeaponContext, def: import('../../../types').WeaponDef) {
+  constructor(ctx: WeaponContext, def: WeaponDef) {
     super(ctx, def);
     this.boltPool = new GfxPool(ctx.scene, 8);
   }
