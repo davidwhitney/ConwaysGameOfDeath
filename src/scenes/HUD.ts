@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_DURATION_MS, MAX_LEVEL, WEAPON_DEFS, EFFECT_DEFS, MAX_WEAPONS, MAX_EFFECTS } from '../shared';
+import { GameEvents } from '../systems/GameEvents';
 import type { PlayerState, WeaponInstance, EffectInstance } from '../shared';
 import { applyUIZoom } from '../ui/uiScale';
 
@@ -100,6 +101,7 @@ export class HUDScene extends Phaser.Scene {
       const { x, y, w, h } = this.invBounds;
       if (w > 0 && pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h) {
         if (!this.scene.isPaused('Game')) {
+          GameEvents.sfx('pause');
           this.scene.pause('Game');
           this.scene.launch('Pause');
         }

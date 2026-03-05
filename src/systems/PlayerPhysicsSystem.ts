@@ -26,6 +26,7 @@ export class PlayerPhysicsSystem implements GameSystem {
 
     // Pause
     if (this.inputManager.isMenuPressed()) {
+      GameEvents.sfx('pause');
       this.scene.scene.pause();
       this.scene.scene.launch('Pause');
     }

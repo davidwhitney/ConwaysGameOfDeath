@@ -135,6 +135,7 @@ export class LevelUpSystem implements GameSystem {
     if (this.player.state.gold < cost) return;
     this.player.state.gold -= cost;
     this.rerollCount++;
+    GameEvents.sfx('reroll');
 
     const options = this.generateOptions();
     if (options.length === 0) return;

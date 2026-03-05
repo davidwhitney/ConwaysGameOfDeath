@@ -164,6 +164,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleReviveAccept(): void {
+    GameEvents.sfx('revive');
     this.player.state.gold -= this.getReviveCost();
     this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.75);
     this.player.state.alive = true;
@@ -175,6 +176,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleReviveDecline(): void {
+    GameEvents.sfx('revive-decline');
     this.awaitingRevive = false;
     this.scene.stop('Revive');
     this.endGame(this.gameTimeMs >= GAME_DURATION_MS);

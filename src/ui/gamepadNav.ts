@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GameEvents } from '../systems/GameEvents';
 
 export class GamepadNav {
   private scene: Phaser.Scene;
@@ -95,6 +96,7 @@ export class GamepadNav {
         if (this.selectedIndex < 0) this.selectedIndex = this.itemCount - 1;
         if (this.selectedIndex >= this.itemCount) this.selectedIndex = 0;
         this.repeatTimer = time + this.REPEAT_DELAY;
+        GameEvents.sfx('menu-nav');
       }
     }
     this.prevAxis = axis;
@@ -102,6 +104,7 @@ export class GamepadNav {
     // A button (index 0) — confirm
     const aDown = pad.buttons[0]?.pressed ?? false;
     if (aDown && !this.prevA) {
+      GameEvents.sfx('menu-click');
       this.onSelect(this.selectedIndex);
     }
     this.prevA = aDown;

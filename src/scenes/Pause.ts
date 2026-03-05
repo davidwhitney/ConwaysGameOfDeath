@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { monoStyle } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
+import { GameEvents } from '../systems/GameEvents';
 
 export class PauseScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -35,6 +36,7 @@ export class PauseScene extends Phaser.Scene {
 
   private resume(): void {
     if (this.scene.isPaused('Game')) {
+      GameEvents.sfx('unpause');
       this.scene.resume('Game');
       this.scene.stop();
     } else {

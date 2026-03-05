@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GameEvents } from '../systems/GameEvents';
 
 export interface ButtonConfig {
   x: number;
@@ -25,7 +26,7 @@ export function createButton(scene: Phaser.Scene, config: ButtonConfig): ButtonR
     .setInteractive({ useHandCursor: true })
     .on('pointerover', () => bg.setFillStyle(hoverColor))
     .on('pointerout', () => bg.setFillStyle(fillColor))
-    .on('pointerdown', onClick);
+    .on('pointerdown', () => { GameEvents.sfx('menu-click'); onClick(); });
 
   const text = scene.add.text(x, y, label, {
     fontSize,

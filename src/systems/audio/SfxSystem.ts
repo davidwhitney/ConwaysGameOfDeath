@@ -4,7 +4,9 @@ type SfxName =
   | 'gem-collect' | 'gold-collect' | 'heal' | 'vortex'
   | 'level-up' | 'ability-select' | 'game-start'
   | 'player-hit' | 'player-death' | 'boss-spawn'
-  | 'enemy-hit' | 'enemy-kill' | 'weapon-fire';
+  | 'enemy-hit' | 'enemy-kill' | 'weapon-fire'
+  | 'menu-click' | 'menu-nav' | 'revive' | 'revive-decline'
+  | 'weapon-upgrade' | 'reroll' | 'pause' | 'unpause';
 
 const DEBOUNCE: Record<SfxName, number> = {
   'gem-collect': 50,
@@ -20,6 +22,14 @@ const DEBOUNCE: Record<SfxName, number> = {
   'enemy-hit': 30,
   'enemy-kill': 50,
   'weapon-fire': 50,
+  'menu-click': 100,
+  'menu-nav': 80,
+  'revive': 1000,
+  'revive-decline': 1000,
+  'weapon-upgrade': 500,
+  'reroll': 300,
+  'pause': 500,
+  'unpause': 500,
 };
 
 export class SfxSystem {
@@ -256,5 +266,63 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
   'weapon-fire'(ctx, dest) {
     // Subtle whoosh
     playNoise(ctx, dest, 0.04, 0.08, 1000, 3000);
+  },
+
+  'menu-click'(ctx, dest) {
+    // Short sine pop
+    playOsc(ctx, dest, 'sine', 600, 400, 0.03, 0.2);
+  },
+
+  'menu-nav'(ctx, dest) {
+    // Very short quiet square blip
+    playOsc(ctx, dest, 'square', 1000, 1000, 0.02, 0.08);
+  },
+
+  'revive'(ctx, dest) {
+    // Warm ascending chord — like heal but bigger
+    playOsc(ctx, dest, 'sine', 300, 600, 0.3, 0.25);
+    playOsc(ctx, dest, 'sine', 600, 1200, 0.3, 0.15);
+  },
+
+  'revive-decline'(ctx, dest) {
+    // Low descending tone + noise wash
+    playOsc(ctx, dest, 'sine', 300, 150, 0.3, 0.25);
+    playNoise(ctx, dest, 0.3, 0.06, 400, 100);
+  },
+
+  'weapon-upgrade'(ctx, dest) {
+    // Bright rising arpeggio + shimmer (higher than ability-select)
+    const notes = [659.25, 830.61, 987.77];
+    const dur = 0.08;
+    for (let i = 0; i < notes.length; i++) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = notes[i];
+      const start = ctx.currentTime + i * dur;
+      g.gain.setValueAtTime(0.001, ctx.currentTime);
+      g.gain.setValueAtTime(0.25, start);
+      g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(g).connect(dest);
+      osc.start(start);
+      osc.stop(start + dur);
+    }
+    // Shimmer overtone
+    playOsc(ctx, dest, 'sine', 1975.53, 1975.53, 0.3, 0.06);
+  },
+
+  'reroll'(ctx, dest) {
+    // Filtered noise sweep — shuffle feel
+    playNoise(ctx, dest, 0.15, 0.15, 2000, 500);
+  },
+
+  'pause'(ctx, dest) {
+    // Low muted thud
+    playOsc(ctx, dest, 'sine', 150, 80, 0.1, 0.25);
+  },
+
+  'unpause'(ctx, dest) {
+    // Quick bright chirp
+    playOsc(ctx, dest, 'sine', 400, 800, 0.05, 0.2);
   },
 };
