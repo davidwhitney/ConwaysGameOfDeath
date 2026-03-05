@@ -1,6 +1,7 @@
 import type { WeaponInstance } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
+import { GfxPool } from './GfxPool';
 import type { Enemy } from '../../entities/Enemy';
 
 interface ActiveAoE {
@@ -18,19 +19,11 @@ interface ActiveAoE {
 export class BaseAoEWeapon extends BaseWeapon {
   protected override appliesKnockback = false;
   protected aoes: ActiveAoE[] = [];
-  private gfxPool: Phaser.GameObjects.Graphics[] = [];
+  private pool: GfxPool;
 
-  private acquireGfx(): Phaser.GameObjects.Graphics {
-    const gfx = this.gfxPool.pop() ?? this.ctx.scene.add.graphics();
-    gfx.setVisible(true);
-    gfx.setDepth(6);
-    return gfx;
-  }
-
-  private releaseGfx(gfx: Phaser.GameObjects.Graphics): void {
-    gfx.clear();
-    gfx.setVisible(false);
-    this.gfxPool.push(gfx);
+  constructor(ctx: import('./WeaponContext').WeaponContext, def: import('../../shared').WeaponDef) {
+    super(ctx, def);
+    this.pool = new GfxPool(ctx.scene, 6);
   }
 
   protected pickTarget(player: Player): { x: number; y: number } {
@@ -53,7 +46,6 @@ export class BaseAoEWeapon extends BaseWeapon {
 
     for (let i = 0; i < stats.amount; i++) {
       const target = this.pickTarget(player);
-      const gfx = this.acquireGfx();
 
       this.aoes.push({
         weaponType: this.def.type,
@@ -64,7 +56,7 @@ export class BaseAoEWeapon extends BaseWeapon {
         duration: Math.max(stats.duration * player.getDurationMultiplier(), 300),
         age: 0,
         tickTimer: 0,
-        gfx,
+        gfx: this.pool.acquire(),
       });
     }
   }
@@ -75,7 +67,7 @@ export class BaseAoEWeapon extends BaseWeapon {
       a.age += dt * 1000;
 
       if (a.age >= a.duration) {
-        this.releaseGfx(a.gfx);
+        this.pool.release(a.gfx);
         this.aoes.splice(i, 1);
         continue;
       }
@@ -102,8 +94,7 @@ export class BaseAoEWeapon extends BaseWeapon {
 
   destroy(): void {
     for (const a of this.aoes) a.gfx.destroy();
-    for (const gfx of this.gfxPool) gfx.destroy();
     this.aoes.length = 0;
-    this.gfxPool.length = 0;
+    this.pool.destroy();
   }
 }

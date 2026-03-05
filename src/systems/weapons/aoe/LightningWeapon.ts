@@ -2,6 +2,7 @@ import type { WeaponInstance } from '../../../shared';
 import type { Player } from '../../../entities/Player';
 import type { Enemy } from '../../../entities/Enemy';
 import { BaseAoEWeapon } from '../BaseAoEWeapon';
+import { GfxPool } from '../GfxPool';
 
 const CHAIN_RANGE = 150;
 const BOLT_DURATION = 250;
@@ -14,7 +15,12 @@ interface ActiveBolt {
 
 export class LightningWeapon extends BaseAoEWeapon {
   private bolts: ActiveBolt[] = [];
-  private boltPool: Phaser.GameObjects.Graphics[] = [];
+  private boltPool: GfxPool;
+
+  constructor(ctx: import('../WeaponContext').WeaponContext, def: import('../../../shared').WeaponDef) {
+    super(ctx, def);
+    this.boltPool = new GfxPool(ctx.scene, 8);
+  }
 
   protected override fire(weapon: WeaponInstance, player: Player): void {
     const stats = this.getStats(weapon);
@@ -44,7 +50,7 @@ export class LightningWeapon extends BaseAoEWeapon {
         }
       }
 
-      this.spawnBolt(points);
+      this.bolts.push({ points, age: 0, gfx: this.boltPool.acquire() });
     }
   }
 
@@ -62,26 +68,15 @@ export class LightningWeapon extends BaseAoEWeapon {
     return best;
   }
 
-  private spawnBolt(points: { x: number; y: number }[]): void {
-    const gfx = this.boltPool.pop() ?? this.ctx.scene.add.graphics();
-    gfx.setVisible(true);
-    gfx.setDepth(8);
-    this.bolts.push({ points, age: 0, gfx });
-  }
-
   protected override updateActive(dt: number, _player: Player): void {
-    // Update AoE zones from base class (if any remain from before)
     super.updateActive(dt, _player);
 
-    // Update lightning bolts
     for (let i = this.bolts.length - 1; i >= 0; i--) {
       const bolt = this.bolts[i];
       bolt.age += dt * 1000;
 
       if (bolt.age >= BOLT_DURATION) {
-        bolt.gfx.clear();
-        bolt.gfx.setVisible(false);
-        this.boltPool.push(bolt.gfx);
+        this.boltPool.release(bolt.gfx);
         this.bolts.splice(i, 1);
         continue;
       }
@@ -89,7 +84,6 @@ export class LightningWeapon extends BaseAoEWeapon {
       const alpha = 1 - bolt.age / BOLT_DURATION;
       bolt.gfx.clear();
 
-      // Draw jagged bolt between each pair of points
       for (let j = 0; j < bolt.points.length - 1; j++) {
         this.drawBoltSegment(bolt.gfx, bolt.points[j], bolt.points[j + 1], alpha);
       }
@@ -109,42 +103,37 @@ export class LightningWeapon extends BaseAoEWeapon {
     const perpX = -dy / dist;
     const perpY = dx / dist;
 
-    // Glow
-    gfx.lineStyle(4, 0xffff88, alpha * 0.3);
-    gfx.beginPath();
-    gfx.moveTo(from.x, from.y);
-    for (let s = 1; s < segments; s++) {
-      const t = s / segments;
-      const jitter = (Math.random() - 0.5) * 20;
-      gfx.lineTo(
-        from.x + dx * t + perpX * jitter,
-        from.y + dy * t + perpY * jitter,
-      );
-    }
-    gfx.lineTo(to.x, to.y);
-    gfx.strokePath();
+    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 4, 0xffff88, alpha * 0.3, 20);
+    this.drawJaggedLine(gfx, from, dx, dy, perpX, perpY, segments, 2, 0xffff00, alpha * 0.8, 12);
+  }
 
-    // Core
-    gfx.lineStyle(2, 0xffff00, alpha * 0.8);
+  private drawJaggedLine(
+    gfx: Phaser.GameObjects.Graphics,
+    from: { x: number; y: number },
+    dx: number, dy: number,
+    perpX: number, perpY: number,
+    segments: number,
+    lineWidth: number, color: number, alpha: number, jitterAmount: number,
+  ): void {
+    gfx.lineStyle(lineWidth, color, alpha);
     gfx.beginPath();
     gfx.moveTo(from.x, from.y);
     for (let s = 1; s < segments; s++) {
       const t = s / segments;
-      const jitter = (Math.random() - 0.5) * 12;
+      const jitter = (Math.random() - 0.5) * jitterAmount;
       gfx.lineTo(
         from.x + dx * t + perpX * jitter,
         from.y + dy * t + perpY * jitter,
       );
     }
-    gfx.lineTo(to.x, to.y);
+    gfx.lineTo(from.x + dx, from.y + dy);
     gfx.strokePath();
   }
 
   override destroy(): void {
     super.destroy();
     for (const b of this.bolts) b.gfx.destroy();
-    for (const gfx of this.boltPool) gfx.destroy();
     this.bolts.length = 0;
-    this.boltPool.length = 0;
+    this.boltPool.destroy();
   }
 }

@@ -4,6 +4,14 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
 import { onResizeRestart } from '../ui/resizeHandler';
 
+interface CardLayout {
+  cardW: number;
+  cardH: number;
+  scale: number;
+  titleAreaH: number;
+  isNarrow: boolean;
+}
+
 export class LevelUpScene extends Phaser.Scene {
   private options: LevelUpOption[] = [];
   private cards: Phaser.GameObjects.Container[] = [];
@@ -31,25 +39,31 @@ export class LevelUpScene extends Phaser.Scene {
   create(): void {
     const width = this.scale.width;
     const height = this.scale.height;
-    const n = this.options.length;
 
-    // Darken background
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
-    // Space reserved for reroll row below cards
-    const rerollAreaH = 55;
+    const layout = this.computeLayout(width, height);
+    this.isNarrow = layout.isNarrow;
 
-    // Determine layout: horizontal if cards fit, vertical if narrow
+    const cardsBottomY = this.createCards(width, height, layout);
+    this.createRerollSection(width, cardsBottomY);
+    this.setupInput(layout);
+
+    onResizeRestart(this, this.initData);
+    this.events.once('shutdown', () => this.shutdown());
+  }
+
+  private computeLayout(width: number, height: number): CardLayout {
+    const n = this.options.length;
+    const rerollAreaH = 55;
     const baseCardW = 220;
     const baseCardH = 200;
     const spacing = 20;
     const horizontalNeeded = n * baseCardW + (n - 1) * spacing + 40;
-    this.isNarrow = width < horizontalNeeded;
+    const isNarrow = width < horizontalNeeded;
 
-    // Scale cards to fit available space (minus reroll area)
     let cardW: number, cardH: number, scale: number;
-    if (this.isNarrow) {
-      // Vertical layout — fit cards to width, distribute available height
+    if (isNarrow) {
       scale = Math.min(1, (width - 40) / baseCardW);
       cardW = baseCardW * scale;
       const availH = height - 120 - rerollAreaH;
@@ -61,7 +75,6 @@ export class LevelUpScene extends Phaser.Scene {
       cardH = baseCardH;
     }
 
-    // Title
     const titleSize = Math.max(16, Math.floor(32 * Math.min(1, width / 500)));
     const subtitleSize = Math.max(10, Math.floor(16 * Math.min(1, width / 500)));
 
@@ -80,13 +93,22 @@ export class LevelUpScene extends Phaser.Scene {
 
     const titleAreaH = 20 * scale + titleSize + subtitleSize + 30;
 
-    // Create cards (shifted up to leave room for reroll row)
+    return { cardW, cardH, scale, titleAreaH, isNarrow };
+  }
+
+  private createCards(width: number, height: number, layout: CardLayout): number {
+    const { cardW, cardH, scale, titleAreaH, isNarrow } = layout;
+    const n = this.options.length;
+    const spacing = 20;
+    const rerollAreaH = 55;
+
     this.cards = [];
     this.cardBgs = [];
     let cardsBottomY = 0;
+
     for (let i = 0; i < n; i++) {
       let cx: number, cy: number;
-      if (this.isNarrow) {
+      if (isNarrow) {
         const totalH = n * cardH + (n - 1) * spacing;
         const startY = titleAreaH + (height - titleAreaH - rerollAreaH - totalH) / 2 + cardH / 2;
         cx = width / 2;
@@ -102,7 +124,10 @@ export class LevelUpScene extends Phaser.Scene {
       cardsBottomY = Math.max(cardsBottomY, cy + cardH / 2);
     }
 
-    // Reroll row — right below cards
+    return cardsBottomY;
+  }
+
+  private createRerollSection(width: number, cardsBottomY: number): void {
     const goldY = cardsBottomY + 14;
     const rerollBtnY = cardsBottomY + 36;
 
@@ -147,24 +172,23 @@ export class LevelUpScene extends Phaser.Scene {
       .on('pointerover', () => skipBtn.setFillStyle(0x443333))
       .on('pointerout', () => skipBtn.setFillStyle(0x332222))
       .on('pointerdown', () => this.skip());
+  }
 
-    // Keyboard navigation via native DOM listener
+  private setupInput(layout: CardLayout): void {
+    const n = this.options.length;
+
     this.kbSelected = 0;
     this.keyHandler = (e: KeyboardEvent) => {
       const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= this.options.length) {
+      if (num >= 1 && num <= n) {
         this.selectOption(num - 1);
         return;
       }
       const key = e.key.toLowerCase();
-      if (key === 'a' || key === 'arrowleft') {
-        this.kbSelected = (this.kbSelected - 1 + this.options.length) % this.options.length;
-      } else if (key === 'd' || key === 'arrowright') {
-        this.kbSelected = (this.kbSelected + 1) % this.options.length;
-      } else if (key === 'w' || key === 'arrowup') {
-        this.kbSelected = (this.kbSelected - 1 + this.options.length) % this.options.length;
-      } else if (key === 's' || key === 'arrowdown') {
-        this.kbSelected = (this.kbSelected + 1) % this.options.length;
+      if (key === 'a' || key === 'arrowleft' || key === 'w' || key === 'arrowup') {
+        this.kbSelected = (this.kbSelected - 1 + n) % n;
+      } else if (key === 'd' || key === 'arrowright' || key === 's' || key === 'arrowdown') {
+        this.kbSelected = (this.kbSelected + 1) % n;
       } else if (key === ' ' || key === 'enter') {
         this.selectOption(this.kbSelected);
       } else if (key === 'r') {
@@ -175,14 +199,8 @@ export class LevelUpScene extends Phaser.Scene {
     };
     window.addEventListener('keydown', this.keyHandler);
 
-    // Gamepad navigation
-    const direction = this.isNarrow ? 'vertical' as const : 'horizontal' as const;
+    const direction = layout.isNarrow ? 'vertical' as const : 'horizontal' as const;
     this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), () => this.skip(), direction);
-
-    onResizeRestart(this, this.initData);
-
-    // Cleanup on shutdown
-    this.events.once('shutdown', () => this.shutdown());
   }
 
   update(_time: number): void {
@@ -196,7 +214,6 @@ export class LevelUpScene extends Phaser.Scene {
     }
     this.prevY = yPressed;
 
-    // Use whichever selection moved most recently
     const gpSel = this.gpNav.getSelected();
     const sel = pad ? gpSel : this.kbSelected;
     for (let i = 0; i < this.cardBgs.length; i++) {

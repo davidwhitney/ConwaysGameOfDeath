@@ -1,6 +1,7 @@
 import type { WeaponInstance } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
+import { GfxPool } from './GfxPool';
 
 interface ActiveMelee {
   weaponType: number;
@@ -16,19 +17,11 @@ interface ActiveMelee {
 
 export class BaseMeleeWeapon extends BaseWeapon {
   protected melees: ActiveMelee[] = [];
-  private gfxPool: Phaser.GameObjects.Graphics[] = [];
+  private pool: GfxPool;
 
-  private acquireGfx(): Phaser.GameObjects.Graphics {
-    const gfx = this.gfxPool.pop() ?? this.ctx.scene.add.graphics();
-    gfx.setVisible(true);
-    gfx.setDepth(9);
-    return gfx;
-  }
-
-  private releaseGfx(gfx: Phaser.GameObjects.Graphics): void {
-    gfx.clear();
-    gfx.setVisible(false);
-    this.gfxPool.push(gfx);
+  constructor(ctx: import('./WeaponContext').WeaponContext, def: import('../../shared').WeaponDef) {
+    super(ctx, def);
+    this.pool = new GfxPool(ctx.scene, 9);
   }
 
   protected getCooldown(weapon: WeaponInstance, player: Player): number {
@@ -41,7 +34,6 @@ export class BaseMeleeWeapon extends BaseWeapon {
 
     for (let i = 0; i < stats.amount; i++) {
       const angle = Math.atan2(player.facingY, player.facingX) + (i - (stats.amount - 1) / 2) * 0.5;
-      const gfx = this.acquireGfx();
 
       this.melees.push({
         weaponType: this.def.type,
@@ -52,7 +44,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
         duration: stats.duration * player.getDurationMultiplier(),
         age: 0,
         hitEnemies: new Set(),
-        gfx,
+        gfx: this.pool.acquire(),
       });
     }
   }
@@ -63,7 +55,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
       m.age += dt * 1000;
 
       if (m.age >= m.duration) {
-        this.releaseGfx(m.gfx);
+        this.pool.release(m.gfx);
         this.melees.splice(i, 1);
         continue;
       }
@@ -86,8 +78,7 @@ export class BaseMeleeWeapon extends BaseWeapon {
 
   destroy(): void {
     for (const m of this.melees) m.gfx.destroy();
-    for (const gfx of this.gfxPool) gfx.destroy();
     this.melees.length = 0;
-    this.gfxPool.length = 0;
+    this.pool.destroy();
   }
 }
