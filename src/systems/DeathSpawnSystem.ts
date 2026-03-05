@@ -19,6 +19,7 @@ export class DeathSpawnSystem implements GameSystem {
   constructor(scene: Phaser.Scene, rng: SeededRandom, enabled: boolean = true) {
     this.scene = scene;
     this.rng = rng;
+    this.enabled = enabled;
   }
 
   setEnabled(val: boolean): void {
