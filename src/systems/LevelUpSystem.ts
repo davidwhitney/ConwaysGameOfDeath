@@ -7,7 +7,7 @@ import {
 } from '../shared';
 import {
   LEVELUP_LUCK_BASE_HEAL_PCT, LEVELUP_LUCK_HEAL_SCALING,
-} from '../shared/constants';
+} from '../constants';
 import type { Player } from '../entities/Player';
 import type { UpdateContext } from '../systems/UpdateContext';
 import type { GameSystem } from '../systems/GameSystem';

@@ -8,7 +8,7 @@ import type { Player } from '../entities/Player';
 import {
   MAP_EVOLUTION_INTERVAL_MS,
   SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
-} from '../shared/constants';
+} from '../constants';
 import Phaser from 'phaser';
 import { MapRenderer } from './MapRenderer';
 import { SpawnController } from './SpawnController';

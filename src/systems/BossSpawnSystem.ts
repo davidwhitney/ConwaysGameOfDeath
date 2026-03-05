@@ -5,7 +5,7 @@ import {
 import {
   BOSS_SPAWN_MIN_PROGRESS, BOSS_SPAWN_DISTANCE,
   BOSS_SPAWN_INTERVAL_START, BOSS_SPAWN_INTERVAL_END,
-} from '../shared/constants';
+} from '../constants';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';

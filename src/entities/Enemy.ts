@@ -8,7 +8,7 @@ import { ENEMY_DEFS } from '../shared';
 import {
   ENEMY_HP_SCALING, ENEMY_DMG_SCALING,
   BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER,
-} from '../shared/constants';
+} from '../constants';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',

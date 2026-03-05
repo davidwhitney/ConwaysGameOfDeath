@@ -5,7 +5,7 @@ import {
 import {
   BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
   DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL,
-} from '../shared/constants';
+} from '../constants';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
