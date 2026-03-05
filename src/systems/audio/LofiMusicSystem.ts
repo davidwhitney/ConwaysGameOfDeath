@@ -5,6 +5,11 @@ import { DjentStyle } from './djent/DjentStyle';
 import { IndustrialStyle } from './industrial/IndustrialStyle';
 import { TechnoStyle } from './techno/TechnoStyle';
 import { EightBitStyle } from './eightbit/EightBitStyle';
+import { SynthwaveStyle } from './synthwave/SynthwaveStyle';
+import { DnbStyle } from './dnb/DnbStyle';
+import { PopPunkStyle } from './poppunk/PopPunkStyle';
+import { FunkStyle } from './funk/FunkStyle';
+import { AmbientStyle } from './ambient/AmbientStyle';
 import { loadSettings } from '../../ui/preferences';
 
 export const MUSIC_STYLES: Record<string, MusicStyleFactory> = {
@@ -14,6 +19,11 @@ export const MUSIC_STYLES: Record<string, MusicStyleFactory> = {
   industrial: (ctx, out) => new IndustrialStyle(ctx, out),
   techno: (ctx, out) => new TechnoStyle(ctx, out),
   '8bit-metal': (ctx, out) => new EightBitStyle(ctx, out),
+  synthwave: (ctx, out) => new SynthwaveStyle(ctx, out),
+  dnb: (ctx, out) => new DnbStyle(ctx, out),
+  'pop-punk': (ctx, out) => new PopPunkStyle(ctx, out),
+  funk: (ctx, out) => new FunkStyle(ctx, out),
+  ambient: (ctx, out) => new AmbientStyle(ctx, out),
 };
 
 export const STYLE_NAMES = Object.keys(MUSIC_STYLES);
