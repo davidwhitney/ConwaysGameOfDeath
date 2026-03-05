@@ -28,7 +28,7 @@ export interface GemData {
 
 const TEX_MAP: Record<GemKind, string> = {
   xp: 'xp-gem',
-  heal: 'golden-gem',
+  heal: 'healing-gem',
   gold: 'gold-gem',
   vortex: 'vortex-gem',
 };

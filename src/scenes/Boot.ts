@@ -74,8 +74,8 @@ export class BootScene extends Phaser.Scene {
     // XP Gem - blazing green diamond
     this.createGemTexture('xp-gem', 10, Colors.gems.xp.main, Colors.gems.xp.bright);
 
-    // Golden Gem - blazing red diamond (heal pickup)
-    this.createGemTexture('golden-gem', 12, Colors.gems.heal.main, Colors.gems.heal.bright);
+    // Healing Gem - blazing red diamond (heal pickup)
+    this.createGemTexture('healing-gem', 12, Colors.gems.heal.main, Colors.gems.heal.bright);
 
     // Gold Gem - blazing gold diamond (currency)
     this.createGemTexture('gold-gem', 11, Colors.gems.gold.main, Colors.gems.gold.bright);
