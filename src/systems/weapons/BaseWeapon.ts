@@ -48,6 +48,7 @@ export abstract class BaseWeapon {
     }
     const killed = enemy.takeDamage(finalDamage);
     GameEvents.emit(this.ctx.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+    GameEvents.sfx('enemy-hit');
 
     // Lifesteal: heal player for % of damage dealt
     const lifesteal = player.getEffectValue(EffectType.Lifesteal);
@@ -71,6 +72,7 @@ export abstract class BaseWeapon {
     }
 
     if (killed) {
+      GameEvents.sfx('enemy-kill');
       GameEvents.emit(this.ctx.scene.events, 'enemy-killed', enemy, weaponType);
     }
   }
@@ -92,6 +94,7 @@ export abstract class BaseWeapon {
     if (weapon.cooldownTimer <= 0) {
       this.fire(weapon, player);
       weapon.cooldownTimer = this.getCooldown(weapon, player);
+      GameEvents.sfx('weapon-fire');
     }
     this.updateActive(dt, player);
   }

@@ -7,6 +7,7 @@ import {
   isWalkable, clamp,
 } from '../shared';
 import { EFFECT_DEFS } from '../shared';
+import { GameEvents } from '../systems/GameEvents';
 
 export class Player {
   sprite: Phaser.GameObjects.Sprite;
@@ -161,6 +162,7 @@ export class Player {
     const reduced = Math.max(1, damage - this.getArmor());
     this.state.hp -= reduced;
     this.state.invincibleUntil = now + PLAYER_INVINCIBLE_MS;
+    GameEvents.sfx('player-hit');
 
     // Flash the player sprite to show damage / i-frames
     this.sprite.setTintFill(0xffffff);
@@ -180,6 +182,7 @@ export class Player {
       } else {
         this.state.hp = 0;
         this.state.alive = false;
+        GameEvents.sfx('player-death');
       }
     }
 

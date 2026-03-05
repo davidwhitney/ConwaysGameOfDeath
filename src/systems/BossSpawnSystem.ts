@@ -60,6 +60,7 @@ export class BossSpawnSystem implements GameSystem {
       boss.state.maxHp = boss.state.hp;
     }
     GameEvents.emit(this.scene.events, 'screen-shake', 200, 0.008);
+    GameEvents.sfx('boss-spawn');
   }
 
   reset(): void {

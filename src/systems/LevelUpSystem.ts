@@ -40,6 +40,8 @@ export class LevelUpSystem implements GameSystem {
       this.player.state.xp -= this.player.state.xpToNext;
       this.player.state.level++;
       this.player.state.xpToNext = xpForLevel(this.player.state.level + 1);
+      GameEvents.sfx('level-up');
+      GameEvents.highlight('level-up');
 
       // Luck-based heal on level up
       const luckVal = this.player.getEffectValue(EffectType.Luck);
@@ -105,10 +107,8 @@ export class LevelUpSystem implements GameSystem {
     const choice = options[index];
     applyLevelUpChoice(this.player.state, choice);
     this.player.invalidateEffectCache();
+    GameEvents.sfx('ability-select');
 
-    if (choice.kind === 'weapon' && choice.newLevel === 5) {
-      GameEvents.highlight('weapon-max');
-    }
 
     if (this.pendingLevelUps > 0) {
       this.processLevelUp();

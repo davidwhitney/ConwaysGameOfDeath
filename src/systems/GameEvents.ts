@@ -52,4 +52,8 @@ export const GameEvents = {
   intensity(value: number): void {
     document.dispatchEvent(new CustomEvent('game-intensity', { detail: value }));
   },
+
+  sfx(name: string): void {
+    document.dispatchEvent(new CustomEvent('sfx', { detail: name }));
+  },
 };

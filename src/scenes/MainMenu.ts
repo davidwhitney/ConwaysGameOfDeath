@@ -8,6 +8,7 @@ import { MenuNav } from '../ui/MenuNav';
 import { loadSettings, saveSettings } from '../ui/preferences';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
+import { SfxSystem } from '../systems/audio/SfxSystem';
 
 export class MainMenuScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -77,10 +78,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Start music (uses Phaser's AudioContext + unlock mechanism)
     // Menu always plays trip-hop regardless of the saved style setting
+    const audioCtx = (this.sound as Phaser.Sound.WebAudioSoundManager).context;
     const music = LofiMusicSystem.instance;
-    music.init((this.sound as Phaser.Sound.WebAudioSoundManager).context);
+    music.init(audioCtx);
     music.setStyle('triphop');
     music.start();
+    SfxSystem.instance.init(audioCtx);
 
     // Ensure seed input is removed on any scene transition
     this.events.once('shutdown', () => this.removeSeedInput());

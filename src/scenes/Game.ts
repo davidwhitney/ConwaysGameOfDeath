@@ -115,6 +115,8 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch('HUD', { seed: this.seed });
     this.hudScene = this.scene.get('HUD') as HUDScene;
     this.damageNumbersUi = new DamageNumbersUiComponent(this);
+
+    GameEvents.sfx('game-start');
   }
 
   public update(time: number, delta: number): void {
@@ -144,7 +146,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     GameEvents.intensity(
-      Math.min(1, this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
+      Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
     );
 
     if (!this.player.state.alive && !this.awaitingRevive) {

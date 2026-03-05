@@ -8,6 +8,8 @@ export interface Settings {
   musicEnabled: boolean;
   musicStyle: string;
   musicVolume: number;
+  sfxEnabled: boolean;
+  sfxVolume: number;
 }
 
 export interface ScoreEntry {
@@ -24,7 +26,7 @@ export interface SaveData {
   highScores: ScoreEntry[];
 }
 
-const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'random', musicVolume: 0.5 };
+const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'random', musicVolume: 0.5, sfxEnabled: true, sfxVolume: 0.5 };
 
 export function loadSave(): SaveData {
   try {

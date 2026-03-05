@@ -6,6 +6,7 @@ import { MenuNav } from '../ui/MenuNav';
 import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/preferences';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem, STYLE_NAMES, ALL_STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
+import { SfxSystem } from '../systems/audio/SfxSystem';
 
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -19,6 +20,7 @@ export class SettingsScene extends Phaser.Scene {
   private menuNav!: MenuNav;
   private zoomValueText!: Phaser.GameObjects.Text;
   private volumeValueText!: Phaser.GameObjects.Text;
+  private sfxVolumeValueText!: Phaser.GameObjects.Text;
   private clearConfirm = false;
   private settings!: Settings;
   private returnTo: string = 'MainMenu';
@@ -42,44 +44,62 @@ export class SettingsScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
 
     // Title
-    this.add.text(width / 2, height * 0.15, 'SETTINGS',
+    this.add.text(width / 2, height * 0.12, 'SETTINGS',
       monoStyle('36px', '#ffcc00', { fontStyle: 'bold' }),
     ).setOrigin(0.5);
 
     this.settings = loadSettings();
 
-    // Row labels
-    const label = (y: number, text: string) =>
-      this.add.text(width / 2 - 100, height * y, text, monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
-    label(0.27, 'CRT Effect');
-    label(0.33, 'Skip Intro');
-    label(0.39, 'Music');
-    label(0.45, 'Style');
-    label(0.51, 'Volume');
-    label(0.57, 'Zoom');
+    // Row layout — uniform spacing and control width
+    const ROW_W = 100;       // all controls share this width
+    const ROW_H = 34;        // uniform row height
+    const SLIDER_BTN_W = 36; // +/- button width inside slider rows
+    const rows = [0.20, 0.265, 0.33, 0.395, 0.46, 0.525, 0.59, 0.655];
+    const cx = width / 2;
+    const ctrlX = cx + 80;   // center of control column
+    const minusX = ctrlX - ROW_W / 2 + SLIDER_BTN_W / 2;  // left edge aligns with toggle
+    const plusX = ctrlX + ROW_W / 2 - SLIDER_BTN_W / 2;   // right edge aligns with toggle
 
-    this.volumeValueText = this.add.text(width / 2 + 80, height * 0.51,
+    const label = (y: number, text: string) =>
+      this.add.text(cx - 100, height * y, text, monoStyle('18px', '#aaaacc')).setOrigin(0, 0.5);
+    label(rows[0], 'CRT Effect');
+    label(rows[1], 'Skip Intro');
+    label(rows[2], 'Music');
+    label(rows[3], 'Style');
+    label(rows[4], 'Music Vol');
+    label(rows[5], 'SFX');
+    label(rows[6], 'SFX Vol');
+    label(rows[7], 'Zoom');
+
+    this.volumeValueText = this.add.text(ctrlX, height * rows[4],
       this.formatVolume(this.settings.musicVolume),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
-    this.zoomValueText = this.add.text(width / 2 + 80, height * 0.57,
+    this.sfxVolumeValueText = this.add.text(ctrlX, height * rows[6],
+      this.formatVolume(this.settings.sfxVolume),
+      monoStyle('16px', '#ffffff'),
+    ).setOrigin(0.5);
+
+    this.zoomValueText = this.add.text(ctrlX, height * rows[7],
       this.formatZoom(this.settings.gameZoom),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
-    const cx = width / 2;
     this.menuNav = new MenuNav(this, [
-      { x: cx + 80, y: height * 0.27, width: 80, height: 40, label: this.settings.crtEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleCRT() },
-      { x: cx + 80, y: height * 0.33, width: 80, height: 40, label: this.settings.skipIntro ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleSkipIntro() },
-      { x: cx + 80, y: height * 0.39, width: 80, height: 40, label: this.settings.musicEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleMusic() },
-      { x: cx + 80, y: height * 0.45, width: 100, height: 40, label: this.settings.musicStyle.toUpperCase(), fontSize: '14px', ...BTN, action: () => this.cycleStyle() },
-      { x: cx + 45, y: height * 0.51, width: 36, height: 36, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustVolume(-VOL_STEP) },
-      { x: cx + 115, y: height * 0.51, width: 36, height: 36, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustVolume(VOL_STEP) },
-      { x: cx + 45, y: height * 0.57, width: 36, height: 36, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustZoom(-ZOOM_STEP) },
-      { x: cx + 115, y: height * 0.57, width: 36, height: 36, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustZoom(ZOOM_STEP) },
-      { x: cx, y: height * 0.71, width: 200, height: 40, label: 'CLEAR DATA', fontSize: '14px', ...BTN_WARN, action: () => this.clearData() },
-      { x: cx, y: height * 0.84, width: 200, height: 45, label: 'BACK', fontSize: '18px', ...BTN, action: () => this.goBack() },
+      /* 0  */ { x: ctrlX, y: height * rows[0], width: ROW_W, height: ROW_H, label: this.settings.crtEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleCRT() },
+      /* 1  */ { x: ctrlX, y: height * rows[1], width: ROW_W, height: ROW_H, label: this.settings.skipIntro ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleSkipIntro() },
+      /* 2  */ { x: ctrlX, y: height * rows[2], width: ROW_W, height: ROW_H, label: this.settings.musicEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleMusic() },
+      /* 3  */ { x: ctrlX, y: height * rows[3], width: ROW_W, height: ROW_H, label: this.settings.musicStyle.toUpperCase(), fontSize: '14px', ...BTN, action: () => this.cycleStyle() },
+      /* 4  */ { x: minusX, y: height * rows[4], width: SLIDER_BTN_W, height: ROW_H, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustVolume(-VOL_STEP) },
+      /* 5  */ { x: plusX,  y: height * rows[4], width: SLIDER_BTN_W, height: ROW_H, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustVolume(VOL_STEP) },
+      /* 6  */ { x: ctrlX, y: height * rows[5], width: ROW_W, height: ROW_H, label: this.settings.sfxEnabled ? 'ON' : 'OFF', fontSize: '18px', ...BTN, action: () => this.toggleSfx() },
+      /* 7  */ { x: minusX, y: height * rows[6], width: SLIDER_BTN_W, height: ROW_H, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustSfxVolume(-VOL_STEP) },
+      /* 8  */ { x: plusX,  y: height * rows[6], width: SLIDER_BTN_W, height: ROW_H, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustSfxVolume(VOL_STEP) },
+      /* 9  */ { x: minusX, y: height * rows[7], width: SLIDER_BTN_W, height: ROW_H, label: '-', fontSize: '22px', ...BTN, action: () => this.adjustZoom(-ZOOM_STEP) },
+      /* 10 */ { x: plusX,  y: height * rows[7], width: SLIDER_BTN_W, height: ROW_H, label: '+', fontSize: '22px', ...BTN, action: () => this.adjustZoom(ZOOM_STEP) },
+      /* 11 */ { x: cx, y: height * 0.76, width: 200, height: 40, label: 'CLEAR DATA', fontSize: '14px', ...BTN_WARN, action: () => this.clearData() },
+      /* 12 */ { x: cx, y: height * 0.87, width: 200, height: 45, label: 'BACK', fontSize: '18px', ...BTN, action: () => this.goBack() },
     ], () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
@@ -135,6 +155,21 @@ export class SettingsScene extends Phaser.Scene {
     this.volumeValueText.setText(this.formatVolume(this.settings.musicVolume));
   }
 
+  private toggleSfx(): void {
+    this.settings.sfxEnabled = !this.settings.sfxEnabled;
+    saveSettings(this.settings);
+    SfxSystem.instance.setEnabled(this.settings.sfxEnabled);
+    this.menuNav.getText(6).setText(this.settings.sfxEnabled ? 'ON' : 'OFF');
+  }
+
+  private adjustSfxVolume(delta: number): void {
+    const raw = Math.round((this.settings.sfxVolume + delta) * 100) / 100;
+    this.settings.sfxVolume = Math.max(0, Math.min(1, raw));
+    saveSettings(this.settings);
+    SfxSystem.instance.setVolume(this.settings.sfxVolume);
+    this.sfxVolumeValueText.setText(this.formatVolume(this.settings.sfxVolume));
+  }
+
   private formatVolume(v: number): string {
     return `${Math.round(v * 100)}%`;
   }
@@ -153,7 +188,7 @@ export class SettingsScene extends Phaser.Scene {
   private clearData(): void {
     if (!this.clearConfirm) {
       this.clearConfirm = true;
-      this.menuNav.getText(8).setText('ARE YOU SURE?');
+      this.menuNav.getText(11).setText('ARE YOU SURE?');
       return;
     }
     clearAllData();
