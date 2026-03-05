@@ -135,16 +135,12 @@ export class GameScene extends Phaser.Scene {
     );
 
     if (!this.player.state.alive && !this.awaitingRevive) {
-      if (this.gameTimeMs >= GAME_DURATION_MS) {
-        this.endGame(true);
-      } else {
-        this.awaitingRevive = true;
-        this.scene.pause();
-        this.scene.launch('Revive', {
-          gold: this.player.state.gold,
-          cost: this.getReviveCost(),
-        });
-      }
+      this.awaitingRevive = true;
+      this.scene.pause();
+      this.scene.launch('Revive', {
+        gold: this.player.state.gold,
+        cost: this.getReviveCost(),
+      });
     }
   }
 
@@ -166,7 +162,7 @@ export class GameScene extends Phaser.Scene {
   private handleReviveDecline(): void {
     this.awaitingRevive = false;
     this.scene.stop('Revive');
-    this.endGame(false);
+    this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
   }
 
   private endGame(victory: boolean): void {
