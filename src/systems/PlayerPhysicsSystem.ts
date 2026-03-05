@@ -26,9 +26,7 @@ export class PlayerPhysicsSystem implements GameSystem {
 
     // Pause
     if (this.inputManager.isMenuPressed()) {
-      GameEvents.sfx('pause');
-      this.scene.scene.pause();
-      this.scene.scene.launch('Pause');
+      GameEvents.pauseGame(this.scene.scene);
     }
 
     // Enemy collision & thorns
@@ -69,7 +67,4 @@ export class PlayerPhysicsSystem implements GameSystem {
     }
   }
 
-  destroy(): void {
-    // No listeners to clean up
-  }
 }

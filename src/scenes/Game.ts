@@ -95,8 +95,7 @@ export class GameScene extends Phaser.Scene {
     // UI Events
     this.visibilityHandler = () => {
       if (!this.gameOver && !this.scene.isPaused()) {
-        this.scene.pause();
-        this.scene.launch('Pause');
+        GameEvents.pauseGame(this.scene, false);
       }
     };
     this.visibilityChangeHandler = () => { if (document.hidden) this.visibilityHandler!(); };
@@ -207,7 +206,7 @@ export class GameScene extends Phaser.Scene {
       this.visibilityHandler = null;
     }
     for (const system of this.subsystems) {
-      system.destroy();
+      system.destroy?.();
     }
     this.damageNumbersUi?.destroy();
     this.events.off('show-damage');

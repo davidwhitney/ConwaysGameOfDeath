@@ -1,6 +1,6 @@
 import { loadSettings } from '../../ui/saveData';
 
-type SfxName =
+export type SfxName =
   | 'gem-collect' | 'gold-collect' | 'heal' | 'vortex'
   | 'level-up' | 'ability-select' | 'game-start'
   | 'player-hit' | 'player-death' | 'boss-spawn'

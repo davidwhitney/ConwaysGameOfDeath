@@ -25,21 +25,18 @@ export class MenuNav {
   constructor(scene: Phaser.Scene, items: MenuItemDef[], onBack?: () => void) {
     for (let i = 0; i < items.length; i++) {
       const def = items[i];
+      const idx = i;
       const result = createButton(scene, {
         x: def.x, y: def.y, width: def.width, height: def.height,
         label: def.label, fontSize: def.fontSize, textColor: def.textColor,
         fillColor: def.fillColor, hoverColor: def.hoverColor,
         onClick: def.action,
+        onPointerOut: () => { this.buttons[idx]?.setFillStyle(this.defaultFills[idx]); },
       });
       this.buttons.push(result.bg);
       this.texts.push(result.text);
       this.defaultFills.push(def.fillColor);
       this.hoverFills.push(def.hoverColor);
-
-      const idx = i;
-      result.bg.off('pointerout').on('pointerout', () => {
-        this.buttons[idx]?.setFillStyle(this.defaultFills[idx]);
-      });
     }
 
     const actions = items.map(def => def.action);

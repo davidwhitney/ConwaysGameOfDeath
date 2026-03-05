@@ -12,6 +12,7 @@ export interface ButtonConfig {
   fillColor: number;
   hoverColor: number;
   onClick: () => void;
+  onPointerOut?: () => void;
 }
 
 export interface ButtonResult {
@@ -20,12 +21,12 @@ export interface ButtonResult {
 }
 
 export function createButton(scene: Phaser.Scene, config: ButtonConfig): ButtonResult {
-  const { x, y, width, height, label, fontSize, textColor, fillColor, hoverColor, onClick } = config;
+  const { x, y, width, height, label, fontSize, textColor, fillColor, hoverColor, onClick, onPointerOut } = config;
 
   const bg = scene.add.rectangle(x, y, width, height, fillColor)
     .setInteractive({ useHandCursor: true })
     .on('pointerover', () => bg.setFillStyle(hoverColor))
-    .on('pointerout', () => bg.setFillStyle(fillColor))
+    .on('pointerout', () => { bg.setFillStyle(fillColor); onPointerOut?.(); })
     .on('pointerdown', () => { GameEvents.sfx('menu-click'); onClick(); });
 
   const text = scene.add.text(x, y, label, {

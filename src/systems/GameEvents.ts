@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { WeaponType } from '../shared';
 import type { Enemy } from '../entities/Enemy';
+import type { SfxName } from './audio/SfxSystem';
 
 export interface GameEventMap {
   'show-damage': [x: number, y: number, amount: number, color?: string, crit?: boolean];
@@ -53,7 +54,13 @@ export const GameEvents = {
     document.dispatchEvent(new CustomEvent('game-intensity', { detail: value }));
   },
 
-  sfx(name: string): void {
+  sfx(name: SfxName): void {
     document.dispatchEvent(new CustomEvent('sfx', { detail: name }));
+  },
+
+  pauseGame(scenes: Phaser.Scenes.ScenePlugin, sfx = true): void {
+    if (sfx) document.dispatchEvent(new CustomEvent('sfx', { detail: 'pause' }));
+    scenes.pause('Game');
+    scenes.launch('Pause');
   },
 };

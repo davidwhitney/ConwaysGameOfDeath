@@ -9,6 +9,7 @@ import {
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
+import { randomPositionAtDistance } from './spawnUtils';
 
 export class BossSpawnSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -49,9 +50,7 @@ export class BossSpawnSystem implements GameSystem {
     if (this.cachedAvailableTypes.length === 0) return;
 
     const type = this.cachedAvailableTypes[Math.floor(this.rng.next() * this.cachedAvailableTypes.length)].type;
-    const angle = this.rng.next() * Math.PI * 2;
-    const bx = player.state.x + Math.cos(angle) * BOSS_SPAWN_DISTANCE;
-    const by = player.state.y + Math.sin(angle) * BOSS_SPAWN_DISTANCE;
+    const { x: bx, y: by } = randomPositionAtDistance(this.rng, player.state.x, player.state.y, BOSS_SPAWN_DISTANCE);
 
     const boss = enemyPool.spawn(type, bx, by, gameTimeMs, true);
     if (boss && luckValue > 0) {
@@ -67,7 +66,4 @@ export class BossSpawnSystem implements GameSystem {
     this.timer = 0;
   }
 
-  destroy(): void {
-    // No listeners to clean up
-  }
 }

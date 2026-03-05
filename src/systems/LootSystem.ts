@@ -114,8 +114,6 @@ export class LootSystem implements GameSystem {
       if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
         weapon.level++;
         GameEvents.sfx('weapon-upgrade');
-        if (weapon.level === 5) {
-        }
         GameEvents.emit(this.scene.events, 'show-damage',
           this.player.state.x, this.player.state.y - 40,
           weapon.level, '#ffcc00',

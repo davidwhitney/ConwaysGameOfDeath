@@ -9,6 +9,7 @@ import {
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
+import { randomPositionAtDistance } from './spawnUtils';
 
 export class DeathSpawnSystem implements GameSystem {
   private scene: Phaser.Scene;
@@ -39,9 +40,7 @@ export class DeathSpawnSystem implements GameSystem {
 
   private spawnDeath(ctx: UpdateContext): void {
     const { player, enemyPool } = ctx;
-    const angle = this.rng.next() * Math.PI * 2;
-    const bx = player.state.x + Math.cos(angle) * BOSS_SPAWN_DISTANCE;
-    const by = player.state.y + Math.sin(angle) * BOSS_SPAWN_DISTANCE;
+    const { x: bx, y: by } = randomPositionAtDistance(this.rng, player.state.x, player.state.y, BOSS_SPAWN_DISTANCE);
 
     const death = enemyPool.spawn(EnemyType.Death, bx, by, ctx.time.elapsed, true);
     if (death) {
@@ -65,7 +64,4 @@ export class DeathSpawnSystem implements GameSystem {
     this.timer = 0;
   }
 
-  destroy(): void {
-    // No listeners to clean up
-  }
 }

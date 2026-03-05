@@ -132,16 +132,13 @@ export class GameWorldSystem implements GameSystem {
     }
   }
 
-  private scatterVortexGem(player: Player): void {
-    const cam = this.scene.cameras.main;
-    const viewHalfW = cam.worldView.width / 2;
-    const viewHalfH = cam.worldView.height / 2;
-    const px = player.state.x;
-    const py = player.state.y;
-
+  private findScatterPosition(
+    px: number, py: number, maxDist: number,
+    viewHalfW: number, viewHalfH: number,
+  ): { x: number; y: number } | null {
     for (let attempt = 0; attempt < 20; attempt++) {
       const angle = this.rng.next() * Math.PI * 2;
-      const dist = 200 + this.rng.next() * 2000;
+      const dist = 200 + this.rng.next() * maxDist;
       const gx = px + Math.cos(angle) * dist;
       const gy = py + Math.sin(angle) * dist;
 
@@ -151,8 +148,19 @@ export class GameWorldSystem implements GameSystem {
       const ty = Math.floor(gy / TILE_SIZE);
       if (!isWalkable(this.map, tx, ty)) continue;
 
-      GameEvents.emit(this.scene.events, 'scatter-vortex-gem', { x: gx, y: gy });
-      break;
+      return { x: gx, y: gy };
+    }
+    return null;
+  }
+
+  private scatterVortexGem(player: Player): void {
+    const cam = this.scene.cameras.main;
+    const pos = this.findScatterPosition(
+      player.state.x, player.state.y, 2000,
+      cam.worldView.width / 2, cam.worldView.height / 2,
+    );
+    if (pos) {
+      GameEvents.emit(this.scene.events, 'scatter-vortex-gem', pos);
     }
   }
 
@@ -166,27 +174,12 @@ export class GameWorldSystem implements GameSystem {
     const cam = this.scene.cameras.main;
     const viewHalfW = cam.worldView.width / 2;
     const viewHalfH = cam.worldView.height / 2;
-    const px = player.state.x;
-    const py = player.state.y;
+    const maxDist = 2800 * (1 - luckValue * 0.6);
 
     const positions: { x: number; y: number }[] = [];
     for (let i = 0; i < count; i++) {
-      for (let attempt = 0; attempt < 20; attempt++) {
-        const angle = this.rng.next() * Math.PI * 2;
-        const maxDist = 2800 * (1 - luckValue * 0.6);
-        const dist = 200 + this.rng.next() * maxDist;
-        const gx = px + Math.cos(angle) * dist;
-        const gy = py + Math.sin(angle) * dist;
-
-        if (Math.abs(gx - px) < viewHalfW + 32 && Math.abs(gy - py) < viewHalfH + 32) continue;
-
-        const tx = Math.floor(gx / TILE_SIZE);
-        const ty = Math.floor(gy / TILE_SIZE);
-        if (!isWalkable(this.map, tx, ty)) continue;
-
-        positions.push({ x: gx, y: gy });
-        break;
-      }
+      const pos = this.findScatterPosition(player.state.x, player.state.y, maxDist, viewHalfW, viewHalfH);
+      if (pos) positions.push(pos);
     }
 
     if (positions.length > 0) {

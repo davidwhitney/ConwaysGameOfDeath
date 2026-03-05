@@ -101,9 +101,7 @@ export class HUDScene extends Phaser.Scene {
       const { x, y, w, h } = this.invBounds;
       if (w > 0 && pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h) {
         if (!this.scene.isPaused('Game')) {
-          GameEvents.sfx('pause');
-          this.scene.pause('Game');
-          this.scene.launch('Pause');
+          GameEvents.pauseGame(this.scene);
         }
       }
     });

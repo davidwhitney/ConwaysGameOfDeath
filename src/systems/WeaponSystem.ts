@@ -3,6 +3,7 @@ import { WEAPON_DEFS, WeaponType } from '../shared';
 import type { UpdateContext } from './UpdateContext';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';
+import type { EnemyPool } from './EnemyPool';
 import { BoomerangWeapon } from './weapons/projectile/BoomerangWeapon';
 import { ScytheWeapon } from './weapons/projectile/ScytheWeapon';
 import { HolyShieldWeapon } from './weapons/forcefield/HolyShieldWeapon';
@@ -34,7 +35,8 @@ export class WeaponSystem implements GameSystem {
   private projectilePool: Phaser.GameObjects.Sprite[] = [];
   private weaponMap = new Map<WeaponType, BaseWeapon>();
   private ctx: WeaponContext;
-    
+  private currentEnemyPool: EnemyPool | null = null;
+
   private WEAPON_CLASS_MAP: Record<WeaponType, WeaponConstructor> = {
     // Melee — all use default base
     [WeaponType.Whip]: BaseMeleeWeapon,
@@ -95,16 +97,20 @@ export class WeaponSystem implements GameSystem {
       this.projectilePool.push(s);
     }
 
+    const self = this;
     this.ctx = {
       scene,
-      enemyPool: null!,
+      get enemyPool(): EnemyPool {
+        if (!self.currentEnemyPool) throw new Error('WeaponSystem: enemyPool accessed before update');
+        return self.currentEnemyPool;
+      },
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
     };
   }
 
   update(ctx: UpdateContext): void {
-    this.ctx.enemyPool = ctx.enemyPool;
+    this.currentEnemyPool = ctx.enemyPool;
 
     for (const weapon of ctx.player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
