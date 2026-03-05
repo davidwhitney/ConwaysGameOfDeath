@@ -27,7 +27,7 @@ const HAT_POOLS: number[][][] = [
 ];
 
 export class LofiStyle extends BaseMusicStyle {
-  private synths: LofiSynths;
+  protected declare synths: LofiSynths;
   private theory: LofiTheory;
   private chordIndex = 0;
   private progression: number[][] = [];
@@ -36,8 +36,7 @@ export class LofiStyle extends BaseMusicStyle {
   private hatPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new LofiSynths(ctx, output);
+    super(ctx, BPM, new LofiSynths(ctx, output));
     this.theory = new LofiTheory();
     this.progression = this.theory.generateProgression();
     this.kickPattern = pick(KICK_POOLS[0]);
@@ -57,15 +56,10 @@ export class LofiStyle extends BaseMusicStyle {
     this.synths.startCrackle(this.synths.masterFilter);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     this.chordIndex = (this.chordIndex + 1) % this.progression.length;
 
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       const t = this.tier();
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);

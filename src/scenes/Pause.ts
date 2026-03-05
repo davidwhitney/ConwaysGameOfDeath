@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { monoStyle } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
-import { onResizeRestart } from '../ui/resizeHandler';
+import { setupMenuScene } from '../ui/sceneSetup';
 
 export class PauseScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -12,8 +11,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.bringToTop();
-    const { width, height } = applyUIZoom(this);
+    const { width, height } = setupMenuScene(this, { bringToTop: true, crt: false });
 
     // Overlay
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
@@ -29,12 +27,6 @@ export class PauseScene extends Phaser.Scene {
     ], () => this.resume());
 
     this.input.keyboard!.on('keydown-ESC', () => this.resume());
-
-    onResizeRestart(this);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number): void {

@@ -89,7 +89,7 @@ const BASS_POOLS: { steps: number[]; notes: number[] }[][] = [
 ];
 
 export class PopPunkStyle extends BaseMusicStyle {
-  private synths: PopPunkSynths;
+  protected declare synths: PopPunkSynths;
   private progression: number[];
   private chordIndex = 0;
   private kickPattern: number[];
@@ -101,8 +101,7 @@ export class PopPunkStyle extends BaseMusicStyle {
   private inChorus = false;
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new PopPunkSynths(ctx, output);
+    super(ctx, BPM, new PopPunkSynths(ctx, output));
     this.intensity = 0.5;
     this.progression = pick(PROGRESSIONS);
     this.kickPattern = pick(KICK_POOLS[0]);
@@ -125,10 +124,6 @@ export class PopPunkStyle extends BaseMusicStyle {
     this.bassPattern = pick(BASS_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     this.chordIndex = (this.chordIndex + 1) % this.progression.length;
 
@@ -137,8 +132,7 @@ export class PopPunkStyle extends BaseMusicStyle {
       this.inChorus = this.barCount % 8 >= 4;
     }
 
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       const t = this.tier();
       // Chorus uses higher tier patterns
       const ct = this.inChorus ? Math.min(3, t + 1) : t;

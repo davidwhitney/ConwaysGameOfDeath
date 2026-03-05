@@ -34,7 +34,7 @@ const ARP_POOLS: number[][][] = [
 ];
 
 export class SynthwaveStyle extends BaseMusicStyle {
-  private synths: SynthwaveSynths;
+  protected declare synths: SynthwaveSynths;
   private rootIndex = 0;
   private root: number;
   private kickPattern: number[];
@@ -43,8 +43,7 @@ export class SynthwaveStyle extends BaseMusicStyle {
   private arpPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new SynthwaveSynths(ctx, output);
+    super(ctx, BPM, new SynthwaveSynths(ctx, output));
     this.root = ROOTS[0];
     this.kickPattern = pick(KICK_POOLS[0]);
     this.snarePattern = pick(SNARE_POOLS[0]);
@@ -60,16 +59,11 @@ export class SynthwaveStyle extends BaseMusicStyle {
     this.arpPattern = pick(ARP_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     this.rootIndex = (this.rootIndex + 1) % ROOTS.length;
     this.root = ROOTS[this.rootIndex];
 
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       const t = this.tier();
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);

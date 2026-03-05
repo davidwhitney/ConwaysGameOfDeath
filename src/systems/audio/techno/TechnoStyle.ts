@@ -63,7 +63,7 @@ const ACCENT_POOLS: number[][][] = [
 ];
 
 export class TechnoStyle extends BaseMusicStyle {
-  private synths: TechnoSynths;
+  protected declare synths: TechnoSynths;
   private root: number;
   private kickPattern: number[];
   private clapPattern: number[];
@@ -73,8 +73,7 @@ export class TechnoStyle extends BaseMusicStyle {
   private accentPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new TechnoSynths(ctx, output);
+    super(ctx, BPM, new TechnoSynths(ctx, output));
     this.root = pick(ROOTS);
     this.kickPattern = pick(KICK_POOLS[0]);
     this.clapPattern = pick(CLAP_POOLS[0]);
@@ -94,14 +93,9 @@ export class TechnoStyle extends BaseMusicStyle {
     this.accentPattern = pick(ACCENT_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     const t = this.tier();
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       this.kickPattern = pick(KICK_POOLS[t]);
       this.clapPattern = pick(CLAP_POOLS[t]);
       this.hatPattern = pick(HAT_POOLS[t]);

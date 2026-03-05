@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { loadScores, formatTime } from '../ui/highScores';
 import { monoStyle } from '../ui/textStyles';
-import { applyCRT } from '../ui/crtEffect';
 import { MenuNav } from '../ui/MenuNav';
-import { onResizeRestart } from '../ui/resizeHandler';
+import { setupMenuScene } from '../ui/sceneSetup';
 
 export class HighScoresScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -14,8 +12,7 @@ export class HighScoresScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { width, height } = applyUIZoom(this);
-    applyCRT(this);
+    const { width, height } = setupMenuScene(this);
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
@@ -67,12 +64,6 @@ export class HighScoresScene extends Phaser.Scene {
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
     this.input.keyboard!.on('keydown-ENTER', () => this.goBack());
-
-    onResizeRestart(this);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number): void {

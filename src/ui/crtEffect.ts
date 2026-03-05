@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { loadSettings } from './preferences';
+import { loadSettings } from './saveData';
 
 function isWebGL(scene: Phaser.Scene): boolean {
   return scene.game.renderer.type === Phaser.WEBGL;

@@ -27,7 +27,7 @@ const HAT_POOLS: number[][][] = [
 ];
 
 export class TripHopStyle extends BaseMusicStyle {
-  private synths: TripHopSynths;
+  protected declare synths: TripHopSynths;
   private theory: TripHopTheory;
   private chordIndex = 0;
   private progression: number[][] = [];
@@ -36,8 +36,7 @@ export class TripHopStyle extends BaseMusicStyle {
   private hatPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new TripHopSynths(ctx, output);
+    super(ctx, BPM, new TripHopSynths(ctx, output));
     this.theory = new TripHopTheory();
     this.progression = this.theory.generateProgression();
     this.kickPattern = pick(KICK_POOLS[0]);
@@ -58,15 +57,10 @@ export class TripHopStyle extends BaseMusicStyle {
     this.synths.startDrone(this.progression[0][0], this.synths.masterFilter);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     this.chordIndex = (this.chordIndex + 1) % this.progression.length;
 
-    const refreshChance = 0.1 + this.intensity * 0.3;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.1, 0.3)) {
       const t = this.tier();
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);

@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { monoStyle } from '../ui/textStyles';
-import { applyCRT } from '../ui/crtEffect';
 import { MenuNav } from '../ui/MenuNav';
-import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/preferences';
-import { onResizeRestart } from '../ui/resizeHandler';
+import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/saveData';
+import { setupMenuScene } from '../ui/sceneSetup';
 import { LofiMusicSystem, STYLE_NAMES, ALL_STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
 
@@ -36,9 +34,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.bringToTop();
-    const { width, height } = applyUIZoom(this);
-    applyCRT(this);
+    const { width, height } = setupMenuScene(this, { bringToTop: true, initData: this.initData });
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
@@ -103,12 +99,6 @@ export class SettingsScene extends Phaser.Scene {
     ], () => this.goBack());
 
     this.input.keyboard!.on('keydown-ESC', () => this.goBack());
-
-    onResizeRestart(this, this.initData);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number): void {
@@ -148,11 +138,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private adjustVolume(delta: number): void {
-    const raw = Math.round((this.settings.musicVolume + delta) * 100) / 100;
-    this.settings.musicVolume = Math.max(0, Math.min(1, raw));
-    saveSettings(this.settings);
-    LofiMusicSystem.instance.setVolume(this.settings.musicVolume);
-    this.volumeValueText.setText(this.formatVolume(this.settings.musicVolume));
+    this.adjustVolumeSetting('musicVolume', delta, this.volumeValueText, LofiMusicSystem.instance);
   }
 
   private toggleSfx(): void {
@@ -163,11 +149,19 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private adjustSfxVolume(delta: number): void {
-    const raw = Math.round((this.settings.sfxVolume + delta) * 100) / 100;
-    this.settings.sfxVolume = Math.max(0, Math.min(1, raw));
+    this.adjustVolumeSetting('sfxVolume', delta, this.sfxVolumeValueText, SfxSystem.instance);
+  }
+
+  private adjustVolumeSetting(
+    key: 'musicVolume' | 'sfxVolume', delta: number,
+    display: Phaser.GameObjects.Text,
+    system: { setVolume(v: number): void },
+  ): void {
+    const raw = Math.round((this.settings[key] + delta) * 100) / 100;
+    this.settings[key] = Math.max(0, Math.min(1, raw));
     saveSettings(this.settings);
-    SfxSystem.instance.setVolume(this.settings.sfxVolume);
-    this.sfxVolumeValueText.setText(this.formatVolume(this.settings.sfxVolume));
+    system.setVolume(this.settings[key]);
+    display.setText(this.formatVolume(this.settings[key]));
   }
 
   private formatVolume(v: number): string {

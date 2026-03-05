@@ -5,12 +5,17 @@ export const STEPS_PER_BAR = STEPS_PER_BEAT * 4;
 const LOOK_AHEAD_S = 0.1;
 const SCHEDULE_INTERVAL_MS = 25;
 
+export interface Synths {
+  stopAll(): void;
+}
+
 export function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 export abstract class BaseMusicStyle implements MusicStyle {
   protected ctx: AudioContext;
+  protected synths: Synths;
   protected intensity = 0;
   protected highlightBarsLeft = 0;
   protected currentStep = 0;
@@ -20,8 +25,9 @@ export abstract class BaseMusicStyle implements MusicStyle {
   private timerId = 0;
   private running = false;
 
-  constructor(ctx: AudioContext, bpm: number) {
+  constructor(ctx: AudioContext, bpm: number, synths: Synths) {
     this.ctx = ctx;
+    this.synths = synths;
     this.stepDuration = 60 / bpm / STEPS_PER_BEAT;
   }
 
@@ -64,8 +70,18 @@ export abstract class BaseMusicStyle implements MusicStyle {
     }
   }
 
+  protected shouldRefreshPatterns(baseChance: number, intensityScale: number): boolean {
+    return this.highlightBarsLeft <= 0
+      && this.barCount % 2 === 0
+      && Math.random() < baseChance + this.intensity * intensityScale;
+  }
+
   protected onStart(): void {}
-  protected abstract stopSynths(): void;
+
+  protected stopSynths(): void {
+    this.synths.stopAll();
+  }
+
   protected abstract playStep(step: number, time: number): void;
   protected abstract onBarEnd(): void;
   abstract highlight(reason: string): void;

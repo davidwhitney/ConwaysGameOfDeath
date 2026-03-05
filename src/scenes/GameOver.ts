@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { addScore, formatTime } from '../ui/highScores';
 import { monoStyle } from '../ui/textStyles';
-import { applyCRT } from '../ui/crtEffect';
 import { MenuNav } from '../ui/MenuNav';
-import { onResizeRestart } from '../ui/resizeHandler';
+import { setupMenuScene } from '../ui/sceneSetup';
 
 interface GameOverData {
   victory: boolean;
@@ -41,8 +39,7 @@ export class GameOverScene extends Phaser.Scene {
   create(): void {
     const data = this.initData!;
     const rank = this.rank;
-    const { width, height } = applyUIZoom(this);
-    applyCRT(this);
+    const { width, height } = setupMenuScene(this, { initData: this.initData! });
 
     // Background
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8);
@@ -84,12 +81,6 @@ export class GameOverScene extends Phaser.Scene {
     ]);
 
     this.input.keyboard!.on('keydown-ENTER', () => this.playAgain());
-
-    onResizeRestart(this, this.initData!);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number): void {

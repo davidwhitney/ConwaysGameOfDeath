@@ -5,7 +5,7 @@ import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
 import { MenuNav } from '../ui/MenuNav';
-import { loadSettings, saveSettings } from '../ui/preferences';
+import { loadSettings, saveSettings } from '../ui/saveData';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';

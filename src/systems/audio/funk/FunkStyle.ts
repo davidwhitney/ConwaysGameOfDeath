@@ -48,7 +48,7 @@ const BASS_POOLS: { steps: number[]; notes: number[] }[][] = [
 ];
 
 export class FunkStyle extends BaseMusicStyle {
-  private synths: FunkSynths;
+  protected declare synths: FunkSynths;
   private rootIndex = 0;
   private root: number;
   private kickPattern: number[];
@@ -59,8 +59,7 @@ export class FunkStyle extends BaseMusicStyle {
   private bassPattern: { steps: number[]; notes: number[] };
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new FunkSynths(ctx, output);
+    super(ctx, BPM, new FunkSynths(ctx, output));
     this.root = ROOTS[0];
     this.kickPattern = pick(KICK_POOLS[0]);
     this.snarePattern = pick(SNARE_POOLS[0]);
@@ -80,18 +79,13 @@ export class FunkStyle extends BaseMusicStyle {
     this.bassPattern = pick(BASS_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     if (this.barCount % 4 === 0) {
       this.rootIndex = (this.rootIndex + 1) % ROOTS.length;
       this.root = ROOTS[this.rootIndex];
     }
 
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       const t = this.tier();
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);

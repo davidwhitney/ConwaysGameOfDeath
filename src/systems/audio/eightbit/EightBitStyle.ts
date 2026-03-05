@@ -48,7 +48,7 @@ const RIFF_POOLS: number[][][] = [
 const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 24];
 
 export class EightBitStyle extends BaseMusicStyle {
-  private synths: EightBitSynths;
+  protected declare synths: EightBitSynths;
   private root: number;
   private kickPattern: number[];
   private snarePattern: number[];
@@ -57,8 +57,7 @@ export class EightBitStyle extends BaseMusicStyle {
   private shredBar = false;
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new EightBitSynths(ctx, output);
+    super(ctx, BPM, new EightBitSynths(ctx, output));
     this.root = pick(ROOTS);
     this.kickPattern = pick(KICK_POOLS[0]);
     this.snarePattern = pick(SNARE_POOLS[0]);
@@ -75,18 +74,13 @@ export class EightBitStyle extends BaseMusicStyle {
     this.shredBar = true;
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     // Shred bars: rare at low intensity, more frequent as intensity rises, always during highlight
     const shredChance = this.highlightBarsLeft > 0 ? 1 : 0.1 + this.intensity * 0.3;
     this.shredBar = this.barCount % 4 === 3 && Math.random() < shredChance;
 
     const t = this.tier();
-    const refreshChance = 0.15 + this.intensity * 0.35;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.15, 0.35)) {
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);
       this.hatPattern = pick(HAT_POOLS[t]);

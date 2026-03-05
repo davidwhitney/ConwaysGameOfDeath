@@ -32,14 +32,13 @@ const KICK_POOLS: number[][][] = [
 ];
 
 export class DjentStyle extends BaseMusicStyle {
-  private synths: DjentSynths;
+  protected declare synths: DjentSynths;
   private root: number;
   private chugPattern: number[];
   private kickPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new DjentSynths(ctx, output);
+    super(ctx, BPM, new DjentSynths(ctx, output));
     this.root = pick(ROOTS);
     this.chugPattern = pick(CHUG_POOLS[0]);
     this.kickPattern = pick(KICK_POOLS[0]);
@@ -51,14 +50,9 @@ export class DjentStyle extends BaseMusicStyle {
     this.kickPattern = pick(KICK_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     const t = this.tier();
-    const refreshChance = 0.2 + this.intensity * 0.3;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.2, 0.3)) {
       this.chugPattern = pick(CHUG_POOLS[t]);
       this.kickPattern = pick(KICK_POOLS[t]);
     }

@@ -1,4 +1,4 @@
-import { loadSettings } from '../../ui/preferences';
+import { loadSettings } from '../../ui/saveData';
 
 type SfxName =
   | 'gem-collect' | 'gold-collect' | 'heal' | 'vortex'

@@ -10,7 +10,7 @@ import { DnbStyle } from './dnb/DnbStyle';
 import { PopPunkStyle } from './poppunk/PopPunkStyle';
 import { FunkStyle } from './funk/FunkStyle';
 import { AmbientStyle } from './ambient/AmbientStyle';
-import { loadSettings } from '../../ui/preferences';
+import { loadSettings } from '../../ui/saveData';
 
 export const MUSIC_STYLES: Record<string, MusicStyleFactory> = {
   lofi: (ctx, out) => new LofiStyle(ctx, out),

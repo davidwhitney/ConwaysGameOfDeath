@@ -52,6 +52,20 @@ export function clearSave(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+export function loadSettings(): Settings {
+  return loadSave().settings;
+}
+
+export function saveSettings(s: Settings): void {
+  const data = loadSave();
+  data.settings = s;
+  writeSave(data);
+}
+
+export function clearAllData(): void {
+  clearSave();
+}
+
 /** Migrate legacy per-key storage into the unified blob. */
 function migrate(): SaveData {
   const data: SaveData = { settings: { ...DEFAULT_SETTINGS }, highScores: [] };

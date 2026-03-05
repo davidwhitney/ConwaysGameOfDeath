@@ -41,7 +41,7 @@ const STAB_POOLS: number[][][] = [
 ];
 
 export class IndustrialStyle extends BaseMusicStyle {
-  private synths: IndustrialSynths;
+  protected declare synths: IndustrialSynths;
   private root: number;
   private kickPattern: number[];
   private snarePattern: number[];
@@ -49,8 +49,7 @@ export class IndustrialStyle extends BaseMusicStyle {
   private stabPattern: number[];
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new IndustrialSynths(ctx, output);
+    super(ctx, BPM, new IndustrialSynths(ctx, output));
     this.root = pick(ROOTS);
     this.kickPattern = pick(KICK_POOLS[0]);
     this.snarePattern = pick(SNARE_POOLS[0]);
@@ -70,14 +69,9 @@ export class IndustrialStyle extends BaseMusicStyle {
     this.synths.startNoise(this.synths.masterFilter);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     const t = this.tier();
-    const refreshChance = 0.1 + this.intensity * 0.3;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.1, 0.3)) {
       this.kickPattern = pick(KICK_POOLS[t]);
       this.snarePattern = pick(SNARE_POOLS[t]);
       this.hatPattern = pick(HAT_POOLS[t]);

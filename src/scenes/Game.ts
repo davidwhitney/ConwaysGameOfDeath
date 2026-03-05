@@ -20,7 +20,7 @@ import { applyCRT } from '../ui/crtEffect';
 import { GameSystem } from '../systems/GameSystem';
 import { GameEvents } from '../systems/GameEvents';
 import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
-import { loadSettings } from '../ui/preferences';
+import { loadSettings } from '../ui/saveData';
 
 interface GameInitData {
   seed: number;

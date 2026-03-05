@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WORLD_WIDTH, WORLD_HEIGHT, CAMERA_ZOOM } from '../shared';
-import { loadSettings } from '../ui/preferences';
+import { loadSettings } from '../ui/saveData';
 
 export class CameraManager {
   private camera: Phaser.Cameras.Scene2D.Camera;

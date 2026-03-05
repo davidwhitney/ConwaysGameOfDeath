@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { loadSettings } from '../ui/preferences';
+import { loadSettings } from '../ui/saveData';
 
 /**
  * BootScene - Generate all placeholder sprites using Graphics API.

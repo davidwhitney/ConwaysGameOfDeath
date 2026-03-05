@@ -37,7 +37,7 @@ const BELL_POOLS: { steps: number[]; offsets: number[] }[][] = [
 ];
 
 export class AmbientStyle extends BaseMusicStyle {
-  private synths: AmbientSynths;
+  protected declare synths: AmbientSynths;
   private progression: number[][];
   private chordIndex = 0;
   private kickPattern: number[];
@@ -45,8 +45,7 @@ export class AmbientStyle extends BaseMusicStyle {
   private bellPattern: { steps: number[]; offsets: number[] };
 
   constructor(ctx: AudioContext, output: GainNode) {
-    super(ctx, BPM);
-    this.synths = new AmbientSynths(ctx, output);
+    super(ctx, BPM, new AmbientSynths(ctx, output));
     this.progression = pick(PROGRESSIONS);
     this.kickPattern = pick(KICK_POOLS[0]);
     this.shakerPattern = pick(SHAKER_POOLS[0]);
@@ -58,15 +57,10 @@ export class AmbientStyle extends BaseMusicStyle {
     this.bellPattern = pick(BELL_POOLS[3]);
   }
 
-  protected stopSynths(): void {
-    this.synths.stopAll();
-  }
-
   protected onBarEnd(): void {
     this.chordIndex = (this.chordIndex + 1) % this.progression.length;
 
-    const refreshChance = 0.1 + this.intensity * 0.3;
-    if (this.highlightBarsLeft <= 0 && this.barCount % 2 === 0 && Math.random() < refreshChance) {
+    if (this.shouldRefreshPatterns(0.1, 0.3)) {
       const t = this.tier();
       this.kickPattern = pick(KICK_POOLS[t]);
       this.shakerPattern = pick(SHAKER_POOLS[t]);
