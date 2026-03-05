@@ -1,4 +1,4 @@
-import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType } from '../../shared';
+import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType, distanceSq } from '../../shared';
 import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../shared/constants';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
@@ -79,12 +79,11 @@ export abstract class BaseWeapon {
 
   protected findNearestEnemy(px: number, py: number): Enemy | null {
     const enemies = this.ctx.enemyPool.getActive();
+    const point = { x: px, y: py };
     let nearest: Enemy | null = null;
     let nearDist = Infinity;
     for (const e of enemies) {
-      const dx = e.state.x - px;
-      const dy = e.state.y - py;
-      const d = dx * dx + dy * dy;
+      const d = distanceSq(e.state, point);
       if (d < nearDist) { nearDist = d; nearest = e; }
     }
     return nearest;

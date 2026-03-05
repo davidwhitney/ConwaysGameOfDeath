@@ -3,17 +3,10 @@ import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 import { GfxPool } from './GfxPool';
 import type { Enemy } from '../../entities/Enemy';
+import type { ActiveEffect } from './ActiveEffect';
 
-interface ActiveAoE {
-  weaponType: number;
-  x: number;
-  y: number;
-  radius: number;
-  damage: number;
-  duration: number;
-  age: number;
+interface ActiveAoE extends ActiveEffect {
   tickTimer: number;
-  gfx: Phaser.GameObjects.Graphics;
 }
 
 export class BaseAoEWeapon extends BaseWeapon {

@@ -1,4 +1,4 @@
-import type { WeaponInstance } from '../../../shared';
+import { type WeaponInstance, distanceSq } from '../../../shared';
 import type { Player } from '../../../entities/Player';
 import type { Enemy } from '../../../entities/Enemy';
 import { BaseAoEWeapon } from '../BaseAoEWeapon';
@@ -56,13 +56,12 @@ export class LightningWeapon extends BaseAoEWeapon {
 
   private findChainTarget(x: number, y: number, exclude: Set<number>): Enemy | null {
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(x, y, CHAIN_RANGE);
+    const point = { x, y };
     let best: Enemy | null = null;
     let bestDist = Infinity;
     for (const e of enemies) {
       if (exclude.has(e.state.id) || !e.state.alive) continue;
-      const dx = e.state.x - x;
-      const dy = e.state.y - y;
-      const d = dx * dx + dy * dy;
+      const d = distanceSq(e.state, point);
       if (d < bestDist) { bestDist = d; best = e; }
     }
     return best;

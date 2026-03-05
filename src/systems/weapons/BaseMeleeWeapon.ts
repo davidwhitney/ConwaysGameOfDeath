@@ -2,17 +2,10 @@ import type { WeaponInstance } from '../../shared';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
 import { GfxPool } from './GfxPool';
+import type { ActiveEffect } from './ActiveEffect';
 
-interface ActiveMelee {
-  weaponType: number;
-  x: number;
-  y: number;
-  radius: number;
-  damage: number;
-  duration: number;
-  age: number;
+interface ActiveMelee extends ActiveEffect {
   hitEnemies: Set<number>;
-  gfx: Phaser.GameObjects.Graphics;
 }
 
 export class BaseMeleeWeapon extends BaseWeapon {

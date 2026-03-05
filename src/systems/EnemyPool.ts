@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Enemy } from '../entities/Enemy';
-import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE, type TileMap, EnemyType } from '../shared';
+import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE, type TileMap, EnemyType, distanceSq } from '../shared';
 
 export class EnemyPool {
   private pool: Enemy[] = [];
@@ -98,10 +98,7 @@ export class EnemyPool {
   /** Get enemies near a point (brute force, use SpatialHash for better perf) */
   getEnemiesInRadius(x: number, y: number, radius: number): Enemy[] {
     const r2 = radius * radius;
-    return this.active.filter(e => {
-      const dx = e.state.x - x;
-      const dy = e.state.y - y;
-      return dx * dx + dy * dy < r2;
-    });
+    const point = { x, y };
+    return this.active.filter(e => distanceSq(e.state, point) < r2);
   }
 }
