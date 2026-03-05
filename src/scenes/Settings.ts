@@ -68,17 +68,17 @@ export class SettingsScene extends Phaser.Scene {
     label(rows[7], 'Zoom');
 
     this.volumeValueText = this.add.text(ctrlX, height * rows[4],
-      this.formatVolume(this.settings.musicVolume),
+      this.formatPercent(this.settings.musicVolume),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
     this.sfxVolumeValueText = this.add.text(ctrlX, height * rows[6],
-      this.formatVolume(this.settings.sfxVolume),
+      this.formatPercent(this.settings.sfxVolume),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
     this.zoomValueText = this.add.text(ctrlX, height * rows[7],
-      this.formatZoom(this.settings.gameZoom),
+      this.formatPercent(this.settings.gameZoom),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
@@ -161,10 +161,10 @@ export class SettingsScene extends Phaser.Scene {
     this.settings[key] = Math.max(0, Math.min(1, raw));
     saveSettings(this.settings);
     system.setVolume(this.settings[key]);
-    display.setText(this.formatVolume(this.settings[key]));
+    display.setText(this.formatPercent(this.settings[key]));
   }
 
-  private formatVolume(v: number): string {
+  private formatPercent(v: number): string {
     return `${Math.round(v * 100)}%`;
   }
 
@@ -172,11 +172,7 @@ export class SettingsScene extends Phaser.Scene {
     const raw = Math.round((this.settings.gameZoom + delta) * 100) / 100;
     this.settings.gameZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, raw));
     saveSettings(this.settings);
-    this.zoomValueText.setText(this.formatZoom(this.settings.gameZoom));
-  }
-
-  private formatZoom(z: number): string {
-    return `${Math.round(z * 100)}%`;
+    this.zoomValueText.setText(this.formatPercent(this.settings.gameZoom));
   }
 
   private clearData(): void {

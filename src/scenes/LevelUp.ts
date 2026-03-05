@@ -4,6 +4,9 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
 import { onResizeRestart } from '../ui/resizeHandler';
 
+const CARD_SELECTED = { fill: 0x333366, alpha: 1, stroke: 0x6666ff, scale: 1.05 } as const;
+const CARD_DEFAULT = { fill: 0x222244, alpha: 0.9, stroke: 0x4444aa, scale: 1 } as const;
+
 interface CardLayout {
   cardW: number;
   cardH: number;
@@ -217,15 +220,7 @@ export class LevelUpScene extends Phaser.Scene {
     const gpSel = this.gpNav.getSelected();
     const sel = pad ? gpSel : this.kbSelected;
     for (let i = 0; i < this.cardBgs.length; i++) {
-      if (i === sel) {
-        this.cardBgs[i].setFillStyle(0x333366, 1);
-        this.cardBgs[i].setStrokeStyle(2, 0x6666ff);
-        this.cards[i].setScale(1.05);
-      } else {
-        this.cardBgs[i].setFillStyle(0x222244, 0.9);
-        this.cardBgs[i].setStrokeStyle(2, 0x4444aa);
-        this.cards[i].setScale(1);
-      }
+      this.applyCardStyle(i, i === sel);
     }
   }
 
@@ -233,8 +228,8 @@ export class LevelUpScene extends Phaser.Scene {
     const option = this.options[i];
     const card = this.add.container(cx, cy);
 
-    const bg = this.add.rectangle(0, 0, cardW, cardH, 0x222244, 0.9)
-      .setStrokeStyle(2, 0x4444aa);
+    const bg = this.add.rectangle(0, 0, cardW, cardH, CARD_DEFAULT.fill, CARD_DEFAULT.alpha)
+      .setStrokeStyle(2, CARD_DEFAULT.stroke);
 
     let color: number;
     if (option.kind === 'weapon') {
@@ -296,19 +291,16 @@ export class LevelUpScene extends Phaser.Scene {
     this.cardBgs.push(bg);
 
     bg.setInteractive({ useHandCursor: true })
-      .on('pointerover', () => {
-        bg.setFillStyle(0x333366, 1);
-        bg.setStrokeStyle(2, 0x6666ff);
-        card.setScale(1.05);
-      })
-      .on('pointerout', () => {
-        bg.setFillStyle(0x222244, 0.9);
-        bg.setStrokeStyle(2, 0x4444aa);
-        card.setScale(1);
-      })
-      .on('pointerdown', () => {
-        this.selectOption(i);
-      });
+      .on('pointerover', () => this.applyCardStyle(i, true))
+      .on('pointerout', () => this.applyCardStyle(i, false))
+      .on('pointerdown', () => this.selectOption(i));
+  }
+
+  private applyCardStyle(index: number, selected: boolean): void {
+    const style = selected ? CARD_SELECTED : CARD_DEFAULT;
+    this.cardBgs[index].setFillStyle(style.fill, style.alpha);
+    this.cardBgs[index].setStrokeStyle(2, style.stroke);
+    this.cards[index].setScale(style.scale);
   }
 
   private skip(): void {
