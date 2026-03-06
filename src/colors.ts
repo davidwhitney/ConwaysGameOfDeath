@@ -70,6 +70,8 @@ export const Colors = {
   parallax: {
     bgStar: 0x115588,
     bgStarBright: 0x2299cc,
+    midStar: 0x224477,
+    midStarBright: 0x4488bb,
     fgDust: 0xffffff,
   },
 
