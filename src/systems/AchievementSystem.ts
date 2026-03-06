@@ -14,6 +14,7 @@ export class AchievementSystem implements GameSystem {
   private unlocked: Set<string>;
   private lastLevel = 0;
   private wasAlive = true;
+  private periodicTimer = 0;
 
   private persistedStats: Stats;
   private sessionTotalKills = 0;
@@ -43,6 +44,13 @@ export class AchievementSystem implements GameSystem {
     const currentLevel = ctx.player.state.level;
     if (currentLevel !== this.lastLevel) {
       this.lastLevel = currentLevel;
+      this.evaluate(ctx);
+    }
+
+    // Periodic check every 30s for time-based achievements
+    this.periodicTimer += ctx.time.deltaMs;
+    if (this.periodicTimer >= 30_000) {
+      this.periodicTimer = 0;
       this.evaluate(ctx);
     }
 
