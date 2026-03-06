@@ -305,32 +305,58 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private computeLayout(height: number, contentTop: number): void {
-    const startY = contentTop;
     const endY = height - 6;
-    const avail = endY - startY;
-
-    const keys: (keyof typeof this.layoutFracs)[] = this.isDebug
-      ? ['seed', 'play', 'endless', 'debugLevel', 'debugTime', 'scores', 'achievements', 'settings', 'hint']
-      : ['seed', 'play', 'endless', 'scores', 'achievements', 'settings', 'hint'];
+    const avail = endY - contentTop;
 
     const compact = height < 520;
     const btnH = compact ? 32 : 40;
     const playH = compact ? 38 : 46;
-    const heights = this.isDebug
-      ? [20, playH, 18, 18, 18, btnH, btnH, btnH, 12]
-      : [20, playH, 18, btnH, btnH, btnH, 12];
 
-    const totalItemH = heights.reduce((s, h) => s + h, 0);
-    const minGap = 2;
-    const totalMinGap = minGap * (keys.length - 1);
-    const extra = Math.max(0, avail - totalItemH - totalMinGap);
-    const gap = minGap + extra / (keys.length - 1);
+    // Top group: game config inputs
+    const topKeys: (keyof typeof this.layoutFracs)[] = this.isDebug
+      ? ['seed', 'play', 'endless', 'debugLevel', 'debugTime']
+      : ['seed', 'play', 'endless'];
+    const topHeights = this.isDebug
+      ? [20, playH, 18, 18, 18]
+      : [20, playH, 18];
 
-    let y = startY + heights[0] / 2;
-    for (let i = 0; i < keys.length; i++) {
-      this.layoutFracs[keys[i]] = y / height;
-      if (i < keys.length - 1) {
-        y += heights[i] / 2 + gap + heights[i + 1] / 2;
+    // Bottom group: nav buttons + hint (kept together)
+    const bottomKeys: (keyof typeof this.layoutFracs)[] = ['scores', 'achievements', 'settings', 'hint'];
+    const bottomHeights = [btnH, btnH, btnH, 12];
+
+    // Fixed inner gaps — capped so groups stay tight on tall screens
+    const maxTopGap = compact ? 10 : 16;
+    const bottomGap = compact ? 6 : 10;
+
+    const topItemH = topHeights.reduce((s, h) => s + h, 0);
+    const bottomItemH = bottomHeights.reduce((s, h) => s + h, 0);
+    const bottomFixedH = bottomItemH + bottomGap * (bottomKeys.length - 1);
+
+    const topSlots = topKeys.length - 1;
+    const spaceForTopGaps = avail - topItemH - bottomFixedH;
+    const topGap = Math.max(2, Math.min(maxTopGap, spaceForTopGaps / (topSlots + 1)));
+    const topFixedH = topItemH + topGap * topSlots;
+
+    // Remaining space goes between the two groups
+    const groupGap = Math.max(topGap, avail - topFixedH - bottomFixedH);
+
+    // Position top group
+    let y = contentTop + topHeights[0] / 2;
+    for (let i = 0; i < topKeys.length; i++) {
+      this.layoutFracs[topKeys[i]] = y / height;
+      if (i < topKeys.length - 1) {
+        y += topHeights[i] / 2 + topGap + topHeights[i + 1] / 2;
+      }
+    }
+
+    // Bridge to bottom group
+    y += topHeights[topKeys.length - 1] / 2 + groupGap + bottomHeights[0] / 2;
+
+    // Position bottom group
+    for (let i = 0; i < bottomKeys.length; i++) {
+      this.layoutFracs[bottomKeys[i]] = y / height;
+      if (i < bottomKeys.length - 1) {
+        y += bottomHeights[i] / 2 + bottomGap + bottomHeights[i + 1] / 2;
       }
     }
   }
