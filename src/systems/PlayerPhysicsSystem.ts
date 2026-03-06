@@ -7,6 +7,9 @@ import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 
+/** Max enemy effective radius (Dragon 24 × boss 4 = 96) + some margin */
+const MAX_ENEMY_RADIUS = 100;
+
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
   private inputManager: InputManager;
@@ -31,13 +34,14 @@ export class PlayerPhysicsSystem implements GameSystem {
       GameEvents.pauseGame(this.scene.scene);
     }
 
-    // Enemy collision & thorns
-    const enemies = enemyPool.getActive();
+    // Enemy collision & thorns — use spatial query instead of scanning all enemies
     const px = player.state.x;
     const py = player.state.y;
     const pr = PLAYER_SIZE / 2;
+    const contactRange = pr + MAX_ENEMY_RADIUS;
+    const nearby = enemyPool.getEnemiesInRadius(px, py, contactRange);
 
-    for (const enemy of enemies) {
+    for (const enemy of nearby) {
       if (!enemy.state.alive) continue;
       if (circlesOverlap(px, py, pr, enemy.state.x, enemy.state.y, enemy.effectiveSize)) {
         const dmg = player.takeDamage(enemy.state.damage, now);
@@ -62,8 +66,8 @@ export class PlayerPhysicsSystem implements GameSystem {
     if (slowValue > 0) {
       const slowFactor = 1 - slowValue;
       const range = 150 + slowValue * 100;
-      const nearby = enemyPool.getEnemiesInRadius(px, py, range);
-      for (const enemy of nearby) {
+      const slowNearby = enemyPool.getEnemiesInRadius(px, py, range);
+      for (const enemy of slowNearby) {
         enemy.applySlow(slowFactor, 200);
       }
     }

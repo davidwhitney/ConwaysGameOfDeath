@@ -9,7 +9,7 @@ import {
 } from '../constants';
 import { ENEMY_DEFS } from './enemies';
 import { isWalkable } from '../systems/map-generator';
-import { directionTo, distance } from '../utils/math';
+import { directionTo } from '../utils/math';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',
@@ -25,6 +25,9 @@ const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Death]: 'enemy-death',
 };
 
+const TINT_FLASH_MS = 50;
+const SPAWN_FLASH_MS = 60;
+
 export class Enemy {
   sprite: Phaser.GameObjects.Sprite;
   state: EnemyState;
@@ -39,6 +42,9 @@ export class Enemy {
   private slowFactor: number = 1;
   private slowUntil: number = 0;
   knockbackImmuneUntil: number = 0;
+
+  /** Timestamp-based tint clearing (replaces delayedCall) */
+  private tintUntil: number = 0;
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -88,14 +94,12 @@ export class Enemy {
     this.sprite.setAlpha(1);
     this.sprite.setScale(boss ? BOSS_SIZE_MULTIPLIER : 1);
 
-    // Spawn flash — bright pop then fade to normal
+    // Spawn flash — timestamp-based
     this.sprite.setTintFill(0xffffff);
-    this.scene.time.delayedCall(60, () => {
-      if (this.state.alive) this.sprite.clearTint();
-    });
+    this.tintUntil = this.scene.time.now + SPAWN_FLASH_MS;
 
     this.knockbackImmuneUntil = 0;
-    
+
     this.orbitAngle = Math.random() * Math.PI * 2;
     this.teleportTimer = 2000 + Math.random() * 3000;
 
@@ -114,18 +118,25 @@ export class Enemy {
     this.slowUntil = Math.max(this.slowUntil, this.scene.time.now + durationMs);
   }
 
-  update(dt: number, playerX: number, playerY: number, despawnRange?: number): boolean {
+  /** @param despawnRangeSq squared despawn distance (avoids sqrt) */
+  update(dt: number, playerX: number, playerY: number, despawnRangeSq: number, now: number): boolean {
     if (!this.state.alive) return false;
 
-    // Check despawn distance
-    const dist = distance(this.state, { x: playerX, y: playerY });
-    if (dist > (despawnRange ?? ENEMY_DESPAWN_RANGE)) {
+    // Check despawn distance (squared — no sqrt)
+    const ddx = this.state.x - playerX;
+    const ddy = this.state.y - playerY;
+    if (ddx * ddx + ddy * ddy > despawnRangeSq) {
       this.deactivate();
       return false;
     }
 
+    // Clear tint flash via timestamp
+    if (this.tintUntil > 0 && now >= this.tintUntil) {
+      this.tintUntil = 0;
+      if (this.state.alive) this.sprite.clearTint();
+    }
+
     // Apply slow effect
-    const now = this.scene.time.now;
     if (now >= this.slowUntil) this.slowFactor = 1;
     const effectiveDt = dt * this.slowFactor;
 
@@ -143,7 +154,7 @@ export class Enemy {
         this.behaviorTeleport(effectiveDt, playerX, playerY);
         break;
       case 'swarm':
-        this.behaviorSwarm(effectiveDt, playerX, playerY);
+        this.behaviorSwarm(effectiveDt, playerX, playerY, now);
         break;
     }
 
@@ -188,10 +199,10 @@ export class Enemy {
     }
   }
 
-  private behaviorSwarm(dt: number, px: number, py: number): void {
-    // Like chase but with slight weaving
+  private behaviorSwarm(dt: number, px: number, py: number, now: number): void {
+    // Like chase but with slight weaving — use scene time instead of Date.now()
     const dir = directionTo(this.state, { x: px, y: py });
-    const wobble = Math.sin(Date.now() * 0.003 + this.state.id) * 0.3;
+    const wobble = Math.sin(now * 0.003 + this.state.id) * 0.3;
     this.tryMove(
       (dir.x + dir.y * wobble) * this.state.speed * dt,
       (dir.y - dir.x * wobble) * this.state.speed * dt,
@@ -270,11 +281,9 @@ export class Enemy {
   takeDamage(damage: number): boolean {
     if (!this.state.alive) return false;
     this.state.hp -= damage;
-    // Flash white briefly
+    // Flash white briefly — timestamp-based (no heap allocation)
     this.sprite.setTint(0xffffff);
-    this.scene.time.delayedCall(50, () => {
-      if (this.state.alive) this.sprite.clearTint();
-    });
+    this.tintUntil = this.scene.time.now + TINT_FLASH_MS;
 
     if (this.state.hp <= 0) {
       this.deactivate();

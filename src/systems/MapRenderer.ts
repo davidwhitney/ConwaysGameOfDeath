@@ -4,16 +4,18 @@ import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT } from '../constants';
 
 /**
  * Renders the tilemap efficiently by only drawing tiles visible to the camera.
- * Uses a chunk-based approach for performance.
+ * Uses sprite pooling to avoid create/destroy churn on camera scroll.
  */
 export class MapRenderer {
   private scene: Phaser.Scene;
   private map: TileMap;
   private tileSprites: Map<number, Phaser.GameObjects.Image> = new Map();
+  private spritePool: Phaser.GameObjects.Image[] = [];
   private container: Phaser.GameObjects.Container;
   private lastCamX = -999;
   private lastCamY = -999;
   private padding = 2; // extra tiles beyond viewport
+  private needed: Set<number> = new Set();
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -39,37 +41,55 @@ export class MapRenderer {
     const endX = Math.min(MAP_WIDTH - 1, camTileX + Math.ceil(view.width / TILE_SIZE) + this.padding);
     const endY = Math.min(MAP_HEIGHT - 1, camTileY + Math.ceil(view.height / TILE_SIZE) + this.padding);
 
-    // Track which tiles we need
-    const needed = new Set<number>();
+    // Reuse Set to avoid per-frame allocation
+    this.needed.clear();
 
     for (let ty = startY; ty <= endY; ty++) {
       for (let tx = startX; tx <= endX; tx++) {
         const key = ty * MAP_WIDTH + tx;
-        needed.add(key);
+        this.needed.add(key);
 
         if (!this.tileSprites.has(key)) {
           const tileType = this.map[key];
           const texKey = tileType === TileType.Wall ? 'tile-wall' : 'tile-floor';
-          const sprite = this.scene.add.image(tx * TILE_SIZE + TILE_SIZE / 2, ty * TILE_SIZE + TILE_SIZE / 2, texKey);
-          this.container.add(sprite);
+          const sprite = this.acquireSprite(texKey, tx * TILE_SIZE + TILE_SIZE / 2, ty * TILE_SIZE + TILE_SIZE / 2);
           this.tileSprites.set(key, sprite);
         }
       }
     }
 
-    // Remove tiles that are no longer visible
+    // Recycle tiles that are no longer visible
     for (const [key, sprite] of this.tileSprites) {
-      if (!needed.has(key)) {
-        sprite.destroy();
+      if (!this.needed.has(key)) {
+        this.releaseSprite(sprite);
         this.tileSprites.delete(key);
       }
     }
   }
 
+  private acquireSprite(texture: string, x: number, y: number): Phaser.GameObjects.Image {
+    if (this.spritePool.length > 0) {
+      const sprite = this.spritePool.pop()!;
+      sprite.setTexture(texture);
+      sprite.setPosition(x, y);
+      sprite.setVisible(true);
+      return sprite;
+    }
+    const sprite = this.scene.add.image(x, y, texture);
+    this.container.add(sprite);
+    return sprite;
+  }
+
+  private releaseSprite(sprite: Phaser.GameObjects.Image): void {
+    sprite.setVisible(false);
+    sprite.setPosition(-1000, -1000);
+    this.spritePool.push(sprite);
+  }
+
   /** Force full re-render (call after map data mutation) */
   invalidate(): void {
     for (const [, sprite] of this.tileSprites) {
-      sprite.destroy();
+      this.releaseSprite(sprite);
     }
     this.tileSprites.clear();
     this.lastCamX = -999;
@@ -79,5 +99,6 @@ export class MapRenderer {
   destroy(): void {
     this.container.destroy(true);
     this.tileSprites.clear();
+    this.spritePool.length = 0;
   }
 }

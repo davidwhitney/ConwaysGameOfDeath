@@ -4,6 +4,12 @@ import { type TileMap, EnemyType } from '../types';
 import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE } from '../constants';
 import { distanceSq } from '../utils/math';
 import { CameraManager } from './CameraManager';
+import { SpatialHash, type SpatialEntity } from './physics';
+
+/** Adapter so Enemy can be inserted into the spatial hash */
+interface EnemySpatial extends SpatialEntity {
+  enemy: Enemy;
+}
 
 export class EnemyPool {
   private pool: Enemy[] = [];
@@ -11,6 +17,8 @@ export class EnemyPool {
   private scene: Phaser.Scene;
   private map: TileMap;
   private nextId: number = 1;
+  private hash = new SpatialHash();
+  private entityMap: Map<number, Enemy> = new Map();
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -39,14 +47,30 @@ export class EnemyPool {
 
   update(dt: number, playerX: number, playerY: number): void {
     const despawnRange = CameraManager.viewDiagonalRadius(this.scene.cameras.main) + 400;
+    const despawnRangeSq = despawnRange * despawnRange;
+    const now = this.scene.time.now;
 
     for (let i = this.active.length - 1; i >= 0; i--) {
       const enemy = this.active[i];
-      const stillActive = enemy.update(dt, playerX, playerY, despawnRange);
+      const stillActive = enemy.update(dt, playerX, playerY, despawnRangeSq, now);
       if (!stillActive) {
         this.active.splice(i, 1);
         this.pool.push(enemy);
       }
+    }
+
+    // Rebuild spatial hash after all enemies have moved
+    this.hash.clear();
+    this.entityMap.clear();
+    for (const enemy of this.active) {
+      if (!enemy.state.alive) continue;
+      this.entityMap.set(enemy.state.id, enemy);
+      this.hash.insert({
+        id: enemy.state.id,
+        x: enemy.state.x,
+        y: enemy.state.y,
+        radius: enemy.effectiveSize,
+      });
     }
   }
 
@@ -94,10 +118,19 @@ export class EnemyPool {
     return cleared;
   }
 
-  /** Get enemies near a point (brute force, use SpatialHash for better perf) */
+  /** Get enemies near a point using spatial hash */
   getEnemiesInRadius(x: number, y: number, radius: number): Enemy[] {
+    const candidates = this.hash.query(x, y, radius);
     const r2 = radius * radius;
-    const point = { x, y };
-    return this.active.filter(e => distanceSq(e.state, point) < r2);
+    const result: Enemy[] = [];
+    for (const c of candidates) {
+      const dx = c.x - x;
+      const dy = c.y - y;
+      if (dx * dx + dy * dy < r2) {
+        const enemy = this.entityMap.get(c.id);
+        if (enemy) result.push(enemy);
+      }
+    }
+    return result;
   }
 }
