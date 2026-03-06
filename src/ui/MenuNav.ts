@@ -54,8 +54,8 @@ export class MenuNav {
     );
   }
 
-  update(time: number): void {
-    this.gpNav.update(time);
+  update(): void {
+    this.gpNav.update();
     const sel = this.gpNav.getSelected();
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];

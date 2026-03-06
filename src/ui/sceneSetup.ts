@@ -16,8 +16,5 @@ export function setupMenuScene(
   const { width, height } = applyUIZoom(scene);
   if (options?.crt !== false) applyCRT(scene);
   onResizeRestart(scene, options?.initData);
-  scene.events.once('shutdown', () => {
-    scene.input.keyboard!.removeAllListeners();
-  });
   return { width, height };
 }

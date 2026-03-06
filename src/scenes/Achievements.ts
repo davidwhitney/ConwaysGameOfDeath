@@ -4,6 +4,7 @@ import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 import { getAchievements, loadStats } from '../ui/saveData';
 import { ACHIEVEMENTS } from '../achievements';
+import { InputSystem } from '../systems/InputSystem';
 
 const ROW_H = 36;
 
@@ -12,6 +13,7 @@ export class AchievementsScene extends Phaser.Scene {
   private scrollContainer!: Phaser.GameObjects.Container;
   private scrollY = 0;
   private maxScroll = 0;
+  private listTop = 0;
 
   constructor() {
     super({ key: 'Achievements' });
@@ -53,7 +55,8 @@ export class AchievementsScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     // Scrollable area
-    const listTop = height * 0.21;
+    this.listTop = height * 0.21;
+    const listTop = this.listTop;
     const listBottom = height * 0.82;
     const listH = listBottom - listTop;
 
@@ -109,26 +112,20 @@ export class AchievementsScene extends Phaser.Scene {
       this.scrollContainer.y = listTop - this.scrollY;
     });
 
-    // Keyboard scroll
-    this.input.keyboard!.on('keydown-DOWN', () => {
-      this.scrollY = Phaser.Math.Clamp(this.scrollY + ROW_H, 0, this.maxScroll);
-      this.scrollContainer.y = listTop - this.scrollY;
-    });
-    this.input.keyboard!.on('keydown-UP', () => {
-      this.scrollY = Phaser.Math.Clamp(this.scrollY - ROW_H, 0, this.maxScroll);
-      this.scrollContainer.y = listTop - this.scrollY;
-    });
-
     this.menuNav = new MenuNav(this, [
       { x: width / 2, y: height * 0.9, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
     ], () => this.goBack());
-
-    this.input.keyboard!.on('keydown-ESC', () => this.goBack());
-    this.input.keyboard!.on('keydown-ENTER', () => this.goBack());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
+
+    // Keyboard/gamepad scroll
+    const input = InputSystem.current;
+    if (input.scrollY !== 0) {
+      this.scrollY = Phaser.Math.Clamp(this.scrollY + input.scrollY * ROW_H, 0, this.maxScroll);
+      this.scrollContainer.y = this.listTop - this.scrollY;
+    }
   }
 
   private goBack(): void {

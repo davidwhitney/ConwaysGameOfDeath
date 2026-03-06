@@ -80,11 +80,10 @@ export class GameOverScene extends Phaser.Scene {
       { x: width / 2, y: height * 0.85, width: 220, height: 45, label: 'MAIN MENU', fontSize: '16px', textColor: '#aaaaaa', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.goToMenu() },
     ]);
 
-    this.input.keyboard!.on('keydown-ENTER', () => this.playAgain());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
   }
 
   private playAgain(): void {

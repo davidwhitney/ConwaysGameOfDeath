@@ -85,14 +85,6 @@ export class MainMenuScene extends Phaser.Scene {
       monoStyle('12px', '#666688'),
     ).setOrigin(0.5);
 
-    // Press Enter to start
-    this.input.keyboard!.on('keydown-ENTER', () => {
-      if (document.activeElement !== this.seedInput) this.startGame();
-    });
-    this.input.keyboard!.on('keydown-SPACE', () => {
-      if (document.activeElement !== this.seedInput) this.startGame();
-    });
-
     // Restart on resize so layout adapts
     onResizeRestart(this);
 
@@ -269,7 +261,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    this.menuNav.update(_time);
+    this.menuNav.update();
     this.bloodDrips.update(delta / 1000);
     this.gol.update(delta);
   }

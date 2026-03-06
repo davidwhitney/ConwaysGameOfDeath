@@ -62,12 +62,10 @@ export class HighScoresScene extends Phaser.Scene {
       { x: width / 2, y: height * 0.9, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
     ], () => this.goBack());
 
-    this.input.keyboard!.on('keydown-ESC', () => this.goBack());
-    this.input.keyboard!.on('keydown-ENTER', () => this.goBack());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
   }
 
   private goBack(): void {

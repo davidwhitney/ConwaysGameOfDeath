@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { EffectType, EnemyType } from '../types';
 import { PLAYER_SIZE } from '../constants';
 import { circlesOverlap } from '../utils/math';
-import { InputManager } from './InputManager';
+import { InputSystem } from './InputSystem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
@@ -12,12 +12,20 @@ const MAX_ENEMY_RADIUS = 100;
 
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
-  private inputManager: InputManager;
   private consumeDeathMask: (() => boolean) | null = null;
+
+  // Mouse drag state (scene-local — needs camera world position)
+  private mouseDown = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.inputManager = new InputManager(scene);
+
+    scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.wasTouch) this.mouseDown = true;
+    });
+    scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.wasTouch) this.mouseDown = false;
+    });
   }
 
   setDeathMaskConsumer(fn: () => boolean): void {
@@ -27,15 +35,24 @@ export class PlayerPhysicsSystem implements GameSystem {
   update(ctx: UpdateContext): void {
     const { delta: dt, now } = ctx.time;
     const { player, enemyPool } = ctx;
+    const input = InputSystem.current;
 
-    // Movement & regen
-    const movement = this.inputManager.getMovement();
-    player.move(movement.x, movement.y, dt, ctx.map);
+    // Movement — InputMap covers keyboard + gamepad + touch
+    let { x: dx, y: dy } = input.move;
+
+    // Mouse drag fallback (camera-dependent, scene-local)
+    if (dx === 0 && dy === 0) {
+      const m = this.getMouseMovement();
+      dx = m.x;
+      dy = m.y;
+    }
+
+    player.move(dx, dy, dt, ctx.map);
     player.applyRegen(dt);
     player.updateVisuals(dt);
 
     // Pause
-    if (this.inputManager.isMenuPressed()) {
+    if (input.menu) {
       GameEvents.pauseGame(this.scene.scene);
     }
 
@@ -90,4 +107,24 @@ export class PlayerPhysicsSystem implements GameSystem {
     }
   }
 
+  private getMouseMovement(): { x: number; y: number } {
+    if (!this.mouseDown) return { x: 0, y: 0 };
+    const pointer = this.scene.input.activePointer;
+    const cam = this.scene.cameras.main;
+    const worldX = pointer.x / cam.zoom + cam.worldView.x;
+    const worldY = pointer.y / cam.zoom + cam.worldView.y;
+    const playerX = cam.worldView.x + cam.worldView.width / 2;
+    const playerY = cam.worldView.y + cam.worldView.height / 2;
+    let dx = worldX - playerX;
+    let dy = worldY - playerY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len > 8) {
+      dx /= len;
+      dy /= len;
+    } else {
+      dx = 0;
+      dy = 0;
+    }
+    return { x: dx, y: dy };
+  }
 }

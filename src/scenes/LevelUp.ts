@@ -5,6 +5,7 @@ import { EFFECT_DEFS } from '../entities/effects';
 import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
 import { onResizeRestart } from '../ui/resizeHandler';
+import { InputSystem } from '../systems/InputSystem';
 
 const CARD_SELECTED = { fill: 0x333366, alpha: 1, stroke: 0x6666ff, scale: 1.05 } as const;
 const CARD_DEFAULT = { fill: 0x222244, alpha: 0.9, stroke: 0x4444aa, scale: 1 } as const;
@@ -21,13 +22,9 @@ export class LevelUpScene extends Phaser.Scene {
   private options: LevelUpOption[] = [];
   private cards: Phaser.GameObjects.Container[] = [];
   private cardBgs: Phaser.GameObjects.Rectangle[] = [];
-  private keyHandler: ((e: KeyboardEvent) => void) | null = null;
   private gpNav!: GamepadNav;
-  private isNarrow = false;
-  private kbSelected = 0;
   private gold = 0;
   private rerollCost = 0;
-  private prevY = false;
   private initData: { options: LevelUpOption[]; gold?: number; rerollCost?: number } = { options: [] };
 
   constructor() {
@@ -48,14 +45,11 @@ export class LevelUpScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
     const layout = this.computeLayout(width, height);
-    this.isNarrow = layout.isNarrow;
-
     const cardsBottomY = this.createCards(width, height, layout);
     this.createRerollSection(width, cardsBottomY);
     this.setupInput(layout);
 
     onResizeRestart(this, this.initData);
-    this.events.once('shutdown', () => this.shutdown());
   }
 
   private computeLayout(width: number, height: number): CardLayout {
@@ -180,47 +174,37 @@ export class LevelUpScene extends Phaser.Scene {
   }
 
   private setupInput(layout: CardLayout): void {
-    const n = this.options.length;
-
-    this.kbSelected = 0;
-    this.keyHandler = (e: KeyboardEvent) => {
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= n) {
-        this.selectOption(num - 1);
-        return;
-      }
-      const key = e.key.toLowerCase();
-      if (key === 'a' || key === 'arrowleft' || key === 'w' || key === 'arrowup') {
-        this.kbSelected = (this.kbSelected - 1 + n) % n;
-      } else if (key === 'd' || key === 'arrowright' || key === 's' || key === 'arrowdown') {
-        this.kbSelected = (this.kbSelected + 1) % n;
-      } else if (key === ' ' || key === 'enter') {
-        this.selectOption(this.kbSelected);
-      } else if (key === 'r') {
-        if (this.gold >= this.rerollCost) this.reroll();
-      } else if (key === 'e' || key === 'escape') {
-        this.skip();
-      }
-    };
-    window.addEventListener('keydown', this.keyHandler);
-
     const direction = layout.isNarrow ? 'vertical' as const : 'horizontal' as const;
-    this.gpNav = new GamepadNav(this, n, (i) => this.selectOption(i), () => this.skip(), direction);
+    this.gpNav = new GamepadNav(this, this.options.length, (i) => this.selectOption(i), () => this.skip(), direction);
   }
 
-  update(_time: number): void {
-    this.gpNav.update(_time);
+  update(): void {
+    const input = InputSystem.current;
+    const n = this.options.length;
 
-    // Gamepad Y button for reroll
-    const pad = this.input.gamepad?.pad1;
-    const yPressed = pad?.buttons[3]?.pressed ?? false;
-    if (yPressed && !this.prevY && this.gold >= this.rerollCost) {
-      this.reroll();
+    // Number key shortcuts (1-3)
+    if (input.numberPressed >= 1 && input.numberPressed <= n) {
+      this.selectOption(input.numberPressed - 1);
+      return;
     }
-    this.prevY = yPressed;
 
-    const gpSel = this.gpNav.getSelected();
-    const sel = pad ? gpSel : this.kbSelected;
+    // Reroll (R key / gamepad Y)
+    if (input.reroll && this.gold >= this.rerollCost) {
+      this.reroll();
+      return;
+    }
+
+    // Skip (E key — back/escape handled by GamepadNav)
+    if (input.skip) {
+      this.skip();
+      return;
+    }
+
+    // GamepadNav handles nav, confirm, and back
+    this.gpNav.update();
+
+    // Highlight selected card
+    const sel = this.gpNav.getSelected();
     for (let i = 0; i < this.cardBgs.length; i++) {
       this.applyCardStyle(i, i === sel);
     }
@@ -306,31 +290,17 @@ export class LevelUpScene extends Phaser.Scene {
   }
 
   private skip(): void {
-    this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
     GameEvents.emit(gameScene.events, 'levelup-skip');
   }
 
   private reroll(): void {
-    this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
     GameEvents.emit(gameScene.events, 'levelup-reroll');
   }
 
   private selectOption(index: number): void {
-    this.cleanupKeyHandler();
     const gameScene = this.scene.get('Game');
     GameEvents.emit(gameScene.events, 'levelup-choice', index);
-  }
-
-  private cleanupKeyHandler(): void {
-    if (this.keyHandler) {
-      window.removeEventListener('keydown', this.keyHandler);
-      this.keyHandler = null;
-    }
-  }
-
-  shutdown(): void {
-    this.cleanupKeyHandler();
   }
 }

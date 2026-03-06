@@ -30,11 +30,10 @@ export class PauseScene extends Phaser.Scene {
       { x: width / 2, y: height * 0.74, width: 200, height: 45, label: 'QUIT', fontSize: '20px', textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444, action: () => this.quit() },
     ], () => this.resume());
 
-    this.input.keyboard!.on('keydown-ESC', () => this.resume());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
   }
 
   private resume(): void {

@@ -11,6 +11,7 @@ import { GameOverScene } from './scenes/GameOver';
 import { HighScoresScene } from './scenes/HighScores';
 import { SettingsScene } from './scenes/Settings';
 import { AchievementsScene } from './scenes/Achievements';
+import { InputSystem } from './systems/InputSystem';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -41,4 +42,5 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+new InputSystem(game);

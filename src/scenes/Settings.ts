@@ -98,11 +98,10 @@ export class SettingsScene extends Phaser.Scene {
       /* 12 */ { x: cx, y: height * 0.87, width: 200, height: 45, label: 'BACK', fontSize: '18px', ...BTN, action: () => this.goBack() },
     ], () => this.goBack());
 
-    this.input.keyboard!.on('keydown-ESC', () => this.goBack());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
   }
 
   private toggleCRT(): void {

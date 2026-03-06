@@ -3,6 +3,7 @@ import { monoStyle } from '../ui/textStyles';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
 import { INTRO_DURATION_MS } from '../constants';
 import { setupMenuScene } from '../ui/sceneSetup';
+import { InputSystem } from '../systems/InputSystem';
 
 interface SnakeSegment {
   x: number;
@@ -54,10 +55,6 @@ export class IntroScene extends Phaser.Scene {
     this.snakeSpeed = totalDist / (INTRO_DURATION_MS / 1000);
     this.initSnake();
 
-    // Skip on any input
-    const skip = () => this.goToMenu();
-    this.input.keyboard!.on('keydown', skip);
-    this.input.on('pointerdown', skip);
   }
 
   update(_time: number, delta: number): void {
@@ -66,20 +63,10 @@ export class IntroScene extends Phaser.Scene {
     const dt = delta / 1000;
     this.elapsed += delta;
 
-    // Check for any held keys (catches keys pressed before scene started)
-    if (this.input.keyboard!.keys.some(k => k?.isDown)) {
+    // Skip on any input
+    if (InputSystem.current.anyJustPressed) {
       this.goToMenu();
       return;
-    }
-
-    // Check gamepad for skip
-    if (this.input.gamepad?.total) {
-      for (const pad of this.input.gamepad.gamepads) {
-        if (pad && pad.buttons.some(b => b.pressed)) {
-          this.goToMenu();
-          return;
-        }
-      }
     }
 
     this.bloodDrips.update(dt);

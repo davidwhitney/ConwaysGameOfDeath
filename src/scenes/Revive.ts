@@ -52,14 +52,10 @@ export class ReviveScene extends Phaser.Scene {
 
     this.menuNav = new MenuNav(this, items, () => this.decline());
 
-    // Keyboard
-    this.input.keyboard!.on('keydown-ENTER', () => { if (canAfford) this.accept(); });
-    this.input.keyboard!.on('keydown-SPACE', () => { if (canAfford) this.accept(); });
-    this.input.keyboard!.on('keydown-ESC', () => this.decline());
   }
 
-  update(_time: number): void {
-    this.menuNav.update(_time);
+  update(): void {
+    this.menuNav.update();
   }
 
   private accept(): void {
