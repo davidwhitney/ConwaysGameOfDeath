@@ -13,6 +13,8 @@ export interface ActiveAoE extends ActiveEffect {
 
 export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
   protected override appliesKnockback = false;
+  protected fillAlphaScale = 0.35;
+  protected strokeAlphaScale = 0.6;
 
   constructor(ctx: WeaponContext, def: WeaponDef) {
     super(ctx, def, 6);
@@ -60,7 +62,7 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
   protected updateEffect(a: ActiveAoE, dt: number, player: Player): void {
     const progress = a.age / a.duration;
     const alpha = progress < 0.1 ? progress * 10 : (progress > 0.8 ? (1 - progress) * 5 : 1);
-    drawEffectCircle(this.sharedGfx, a.x, a.y, a.radius, this.def.color, alpha * 0.35, alpha * 0.6);
+    drawEffectCircle(this.sharedGfx, a.x, a.y, a.radius, this.def.color, alpha * this.fillAlphaScale, alpha * this.strokeAlphaScale);
 
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(a.x, a.y, a.radius);
     this.onFrameHit(enemies, a, dt);
