@@ -51,6 +51,7 @@ export class GameScene extends Phaser.Scene {
   private awaitingRevive: boolean = false;
   private debugLevel: number = 0;
   private debugTimeMinutes: number = 0;
+  private deathDelayMs: number = 0;
 
   public constructor() {
     super({ key: 'Game' });
@@ -85,7 +86,7 @@ export class GameScene extends Phaser.Scene {
     this.subsystems = [
       new ParallaxSystem(this),
       new PlayerPhysicsSystem(this),
-      new GameWorldSystem(this, this.rng, this.map),
+      new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs),
       new BossSpawnSystem(this, this.rng),
       new DeathSpawnSystem(this, this.rng, !this.endless),
       new WeaponSystem(this),
@@ -164,11 +165,18 @@ export class GameScene extends Phaser.Scene {
 
     if (!this.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
-      this.scene.pause();
-      this.scene.launch('Revive', {
-        gold: this.player.state.gold,
-        cost: this.getReviveCost(),
-      });
+      this.deathDelayMs = 1000;
+    }
+
+    if (this.deathDelayMs > 0) {
+      this.deathDelayMs -= delta;
+      if (this.deathDelayMs <= 0) {
+        this.scene.pause();
+        this.scene.launch('Revive', {
+          gold: this.player.state.gold,
+          cost: this.getReviveCost(),
+        });
+      }
     }
   }
 

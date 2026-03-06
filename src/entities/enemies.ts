@@ -131,7 +131,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     size: 14,
     baseHp: 1,        // overridden at spawn
     baseDamage: 100,
-    baseSpeed: 45,
+    baseSpeed: 80,
     xpValue: 500,
     unlockAt: 1.0,     // never via normal spawner
     behavior: 'chase',

@@ -17,9 +17,9 @@ export class SpawnController {
   private map: TileMap;
   private scene: Phaser.Scene;
 
-  constructor(scene: Phaser.Scene, seed: number, enemyPool: EnemyPool, map: TileMap) {
+  constructor(scene: Phaser.Scene, seed: number, enemyPool: EnemyPool, map: TileMap, initialTimeMs: number = 0) {
     this.scene = scene;
-    this.spawnManager = new SpawnManager(seed);
+    this.spawnManager = new SpawnManager(seed, initialTimeMs);
     this.enemyPool = enemyPool;
     this.map = map;
   }

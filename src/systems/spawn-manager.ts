@@ -54,8 +54,9 @@ export class SpawnManager {
   private spawnCooldownMs: number = 1800;
   private spawnTimer: number = 0;
 
-  constructor(seed: number) {
+  constructor(seed: number, initialTimeMs: number = 0) {
     this.rng = new SeededRandom(seed);
+    this.gameTimeMs = initialTimeMs;
     this.ca = new CellularAutomaton(
       CA_SPAWN_WIDTH,
       CA_SPAWN_HEIGHT,

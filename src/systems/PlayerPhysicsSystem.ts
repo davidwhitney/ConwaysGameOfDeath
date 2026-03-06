@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EffectType } from '../types';
+import { EffectType, EnemyType } from '../types';
 import { PLAYER_SIZE } from '../constants';
 import { circlesOverlap } from '../utils/math';
 import { InputManager } from './InputManager';
@@ -49,12 +49,15 @@ export class PlayerPhysicsSystem implements GameSystem {
           GameEvents.emit(this.scene.events, 'show-damage', px, py - 20, dmg, '#ff4444');
           GameEvents.emit(this.scene.events, 'screen-shake', 80, 0.003);
 
-          const thorns = player.getEffectValue(EffectType.Thorns);
-          if (thorns > 0) {
-            const reflected = Math.floor(dmg * thorns);
-            if (reflected > 0) {
-              enemy.takeDamage(reflected);
-              GameEvents.emit(this.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
+          // Death is immune to reflected damage
+          if (enemy.state.type !== EnemyType.Death) {
+            const thorns = player.getEffectValue(EffectType.Thorns);
+            if (thorns > 0) {
+              const reflected = Math.floor(dmg * thorns);
+              if (reflected > 0) {
+                enemy.takeDamage(reflected);
+                GameEvents.emit(this.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
+              }
             }
           }
         }

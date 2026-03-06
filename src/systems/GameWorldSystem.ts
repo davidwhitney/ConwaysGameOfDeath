@@ -31,7 +31,7 @@ export class GameWorldSystem implements GameSystem {
   private prevPlayerX: number = 0;
   private prevPlayerY: number = 0;
 
-  constructor(scene: Phaser.Scene, rng: SeededRandom, map: TileMap) {
+  constructor(scene: Phaser.Scene, rng: SeededRandom, map: TileMap, initialTimeMs: number = 0) {
     this.scene = scene;
     this.rng = rng;
     this.mapRenderer = new MapRenderer(scene, map);
@@ -40,7 +40,7 @@ export class GameWorldSystem implements GameSystem {
     this.enemyPool = new EnemyPool(scene, map);
 
     const spawnSeed = this.rng.state + 1;
-    this.spawnController = new SpawnController(scene, spawnSeed, this.enemyPool, map);
+    this.spawnController = new SpawnController(scene, spawnSeed, this.enemyPool, map, initialTimeMs);
   }
 
   update(ctx: UpdateContext): void {

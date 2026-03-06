@@ -31,7 +31,7 @@ export class EnemyPool {
   }
 
   spawn(type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): Enemy | null {
-    if (this.active.length >= ENEMY_MAX_ACTIVE) return null;
+    if (this.active.length >= ENEMY_MAX_ACTIVE && type !== EnemyType.Death) return null;
 
     let enemy: Enemy;
     if (this.pool.length > 0) {

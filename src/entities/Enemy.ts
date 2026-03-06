@@ -289,12 +289,25 @@ export class Enemy {
     );
   }
 
-  takeDamage(damage: number): boolean {
+  takeDamage(damage: number, playerX?: number, playerY?: number): boolean {
     if (!this.state.alive) return false;
     this.state.hp -= damage;
     // Flash white briefly — timestamp-based (no heap allocation)
     this.sprite.setTint(0xffffff);
     this.tintUntil = this.scene.time.now + TINT_FLASH_MS;
+
+    // Death teleports toward the player when hit
+    if (this.state.type === EnemyType.Death && playerX !== undefined && playerY !== undefined) {
+      const dx = playerX - this.state.x;
+      const dy = playerY - this.state.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 60) {
+        // Teleport 40% closer to the player
+        this.state.x += dx * 0.4;
+        this.state.y += dy * 0.4;
+        this.sprite.setPosition(this.state.x, this.state.y);
+      }
+    }
 
     if (this.state.hp <= 0) {
       this.deactivate();
