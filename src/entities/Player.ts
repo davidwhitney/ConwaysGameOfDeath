@@ -3,6 +3,7 @@ import {
   EffectType,
   type PlayerState, type WeaponInstance, type EffectInstance, type TileMap,
 } from '../types';
+import type { GameConfig } from '../perks';
 import {
   PLAYER_BASE_HP, PLAYER_BASE_SPEED, PLAYER_SIZE, PLAYER_INVINCIBLE_MS,
   PLAYER_PICKUP_RANGE, TILE_SIZE, WORLD_WIDTH, WORLD_HEIGHT,
@@ -67,14 +68,21 @@ export class Player {
     };
   }
 
-  setBaseMaxHp(hp: number): void { this.baseMaxHp = hp; }
-  setPerkRegen(regen: number): void { this.perkRegen = regen; }
-  setPerkArmor(armor: number): void { this.perkArmor = armor; }
-  setPerkWeaponDmgMult(m: number): void { this.perkWeaponDmgMult = m; }
-  setPerkXpMult(m: number): void { this.perkXpMult = m; }
-  setPerkGoldMult(m: number): void { this.perkGoldMult = m; }
-  setPerkPickupRange(r: number): void { this.perkPickupRange = r; }
-  setPerkCooldownMult(m: number): void { this.perkCooldownMult = m; }
+  applyConfig(cfg: GameConfig): void {
+    this.state.hp = cfg.startingHp;
+    this.state.maxHp = cfg.startingHp;
+    this.state.speed = cfg.startingSpeed * cfg.playerSpeedMult;
+    this.state.gold = cfg.startingGold;
+    this.baseMaxHp = cfg.startingHp;
+    this.perkRegen = cfg.hpRegen;
+    this.perkArmor = cfg.armor;
+    this.perkWeaponDmgMult = cfg.weaponDmgMult;
+    this.perkXpMult = cfg.xpMult;
+    this.perkGoldMult = cfg.goldMult;
+    this.perkPickupRange = cfg.pickupRange;
+    this.perkCooldownMult = cfg.weaponCooldownMult;
+  }
+
   getPerkGoldMult(): number { return this.perkGoldMult; }
 
   getEffectValue(type: EffectType): number {

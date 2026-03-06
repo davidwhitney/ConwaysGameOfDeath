@@ -15,18 +15,12 @@ import { BaseMeleeWeapon } from './weapons/BaseMeleeWeapon';
 import { GarlicWeapon } from './weapons/aoe/GarlicWeapon';
 import { BaseAoEWeapon } from './weapons/BaseAoEWeapon';
 import { LightningWeapon } from './weapons/aoe/LightningWeapon';
-import { MagicMissileWeapon } from './weapons/projectile/MagicMissileWeapon';
-import { FireballWeapon } from './weapons/projectile/FireballWeapon';
-import { IceShardWeapon } from './weapons/projectile/IceShardWeapon';
 import { BaseForceFieldWeapon } from './weapons/BaseForceFieldWeapon';
-import { ShurikenWeapon } from './weapons/projectile/ShurikenWeapon';
-import { DeathRayWeapon } from './weapons/projectile/DeathRayWeapon';
-import { BoneTossWeapon } from './weapons/projectile/BoneTossWeapon';
+import { BaseProjectileWeapon } from './weapons/BaseProjectileWeapon';
 import { QuakeWeapon } from './weapons/aoe/QuakeWeapon';
 import { PlagueWeapon } from './weapons/aoe/PlagueWeapon';
 import { BloodAuraWeapon } from './weapons/forcefield/BloodAuraWeapon';
 import { GravityWellWeapon } from './weapons/forcefield/GravityWellWeapon';
-import { BaseProjectileWeapon } from './weapons/BaseProjectileWeapon';
 import { GameSystem } from './GameSystem';
 import type { LootSystem } from './LootSystem';
 
@@ -54,9 +48,9 @@ export class WeaponSystem implements GameSystem {
     [WeaponType.Meteor]: BaseAoEWeapon,
 
     // Projectile
-    [WeaponType.MagicMissile]: MagicMissileWeapon,
-    [WeaponType.Fireball]: FireballWeapon,
-    [WeaponType.IceShard]: IceShardWeapon,
+    [WeaponType.MagicMissile]: BaseProjectileWeapon,
+    [WeaponType.Fireball]: BaseProjectileWeapon,
+    [WeaponType.IceShard]: BaseProjectileWeapon,
     [WeaponType.Boomerang]: BoomerangWeapon,
     [WeaponType.Scythe]: ScytheWeapon,
 
@@ -79,9 +73,9 @@ export class WeaponSystem implements GameSystem {
     [WeaponType.PlagueCloud]: PlagueWeapon,
 
     // New Projectile
-    [WeaponType.Shuriken]: ShurikenWeapon,
-    [WeaponType.DeathRay]: DeathRayWeapon,
-    [WeaponType.BoneToss]: BoneTossWeapon,
+    [WeaponType.Shuriken]: BaseProjectileWeapon,
+    [WeaponType.DeathRay]: BaseProjectileWeapon,
+    [WeaponType.BoneToss]: BaseProjectileWeapon,
 
     // New Force Field
     [WeaponType.BloodAura]: BloodAuraWeapon,

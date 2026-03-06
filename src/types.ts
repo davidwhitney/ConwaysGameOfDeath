@@ -132,6 +132,7 @@ export interface EnemyDef {
   xpValue: number;
   unlockAt: number;     // game progress fraction (0–1) when this enemy starts spawning
   behavior: EnemyBehavior;
+  spawnable?: boolean;  // false = never spawned by regular/boss spawners (default: true)
 }
 
 export type EnemyBehavior = 'chase' | 'cross' | 'orbit' | 'teleport' | 'swarm';

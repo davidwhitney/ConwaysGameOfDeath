@@ -5,6 +5,7 @@ import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/s
 import { setupMenuScene } from '../ui/sceneSetup';
 import { LofiMusicSystem, STYLE_NAMES, ALL_STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
+import { formatPercent } from '../ui/format';
 
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -68,17 +69,17 @@ export class SettingsScene extends Phaser.Scene {
     label(rows[7], 'Zoom');
 
     this.volumeValueText = this.add.text(ctrlX, height * rows[4],
-      this.formatPercent(this.settings.musicVolume),
+      formatPercent(this.settings.musicVolume),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
     this.sfxVolumeValueText = this.add.text(ctrlX, height * rows[6],
-      this.formatPercent(this.settings.sfxVolume),
+      formatPercent(this.settings.sfxVolume),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
     this.zoomValueText = this.add.text(ctrlX, height * rows[7],
-      this.formatPercent(this.settings.gameZoom),
+      formatPercent(this.settings.gameZoom),
       monoStyle('16px', '#ffffff'),
     ).setOrigin(0.5);
 
@@ -104,24 +105,28 @@ export class SettingsScene extends Phaser.Scene {
     this.menuNav.update();
   }
 
-  private toggleCRT(): void {
-    this.settings.crtEnabled = !this.settings.crtEnabled;
+  private toggleBool(
+    key: 'crtEnabled' | 'skipIntro' | 'musicEnabled' | 'sfxEnabled',
+    menuIndex: number,
+    onToggle?: (value: boolean) => void,
+  ): void {
+    this.settings[key] = !this.settings[key];
     saveSettings(this.settings);
-    this.menuNav.getText(0).setText(this.settings.crtEnabled ? 'ON' : 'OFF');
+    this.menuNav.getText(menuIndex).setText(this.settings[key] ? 'ON' : 'OFF');
+    onToggle?.(this.settings[key]);
+  }
+
+  private toggleCRT(): void {
+    this.toggleBool('crtEnabled', 0);
     this.scene.restart({ returnTo: this.returnTo });
   }
 
   private toggleSkipIntro(): void {
-    this.settings.skipIntro = !this.settings.skipIntro;
-    saveSettings(this.settings);
-    this.menuNav.getText(1).setText(this.settings.skipIntro ? 'ON' : 'OFF');
+    this.toggleBool('skipIntro', 1);
   }
 
   private toggleMusic(): void {
-    this.settings.musicEnabled = !this.settings.musicEnabled;
-    saveSettings(this.settings);
-    LofiMusicSystem.instance.setEnabled(this.settings.musicEnabled);
-    this.menuNav.getText(2).setText(this.settings.musicEnabled ? 'ON' : 'OFF');
+    this.toggleBool('musicEnabled', 2, (v) => LofiMusicSystem.instance.setEnabled(v));
   }
 
   private cycleStyle(): void {
@@ -141,10 +146,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   private toggleSfx(): void {
-    this.settings.sfxEnabled = !this.settings.sfxEnabled;
-    saveSettings(this.settings);
-    SfxSystem.instance.setEnabled(this.settings.sfxEnabled);
-    this.menuNav.getText(6).setText(this.settings.sfxEnabled ? 'ON' : 'OFF');
+    this.toggleBool('sfxEnabled', 6, (v) => SfxSystem.instance.setEnabled(v));
   }
 
   private adjustSfxVolume(delta: number): void {
@@ -160,18 +162,14 @@ export class SettingsScene extends Phaser.Scene {
     this.settings[key] = Math.max(0, Math.min(1, raw));
     saveSettings(this.settings);
     system.setVolume(this.settings[key]);
-    display.setText(this.formatPercent(this.settings[key]));
-  }
-
-  private formatPercent(v: number): string {
-    return `${Math.round(v * 100)}%`;
+    display.setText(formatPercent(this.settings[key]));
   }
 
   private adjustZoom(delta: number): void {
     const raw = Math.round((this.settings.gameZoom + delta) * 100) / 100;
     this.settings.gameZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, raw));
     saveSettings(this.settings);
-    this.zoomValueText.setText(this.formatPercent(this.settings.gameZoom));
+    this.zoomValueText.setText(formatPercent(this.settings.gameZoom));
   }
 
   private clearData(): void {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EffectType, EnemyType } from '../types';
+import { EffectType } from '../types';
 import { GAME_DURATION_MS } from '../constants';
 import { ENEMY_DEFS } from '../entities/enemies';
 import { SeededRandom } from '../utils/seeded-random';
@@ -44,7 +44,7 @@ export class BossSpawnSystem implements GameSystem {
     const progress = gameTimeMs / GAME_DURATION_MS;
 
     if (progress !== this.cachedProgress) {
-      this.cachedAvailableTypes = ENEMY_DEFS.filter(d => d.type !== EnemyType.Death && progress >= d.unlockAt);
+      this.cachedAvailableTypes = ENEMY_DEFS.filter(d => d.spawnable !== false && progress >= d.unlockAt);
       this.cachedProgress = progress;
     }
 

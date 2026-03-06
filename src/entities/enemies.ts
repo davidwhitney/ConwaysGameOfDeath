@@ -133,7 +133,8 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseDamage: 100,
     baseSpeed: 120,     // overridden at runtime to 80% of player speed
     xpValue: 500,
-    unlockAt: 1.0,     // never via normal spawner
+    unlockAt: Infinity, // only spawned by EndgameSystem
+    spawnable: false,
     behavior: 'chase',
   },
 ];

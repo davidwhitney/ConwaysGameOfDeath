@@ -1,8 +1,67 @@
-import type { WeaponInstance } from '../../types';
+import { WeaponType, type WeaponInstance } from '../../types';
 import { ENEMY_MAX_ACTIVE } from '../../constants';
 import { circlesOverlap } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
+import { Colors } from '../../colors';
+
+export type AngleMode = 'facing' | 'nearest' | 'spread360' | 'random' | 'wideFacing';
+
+export interface ProjectileConfig {
+  texture?: string;
+  trail?: TrailConfig;
+  angleMode?: AngleMode;
+}
+
+const PROJECTILE_CONFIGS: Partial<Record<WeaponType, ProjectileConfig>> = {
+  [WeaponType.Fireball]: {
+    texture: 'proj-fire',
+    trail: {
+      count: 5, spacing: 6, jitter: 4,
+      layers: [
+        { color: Colors.trails.fire[0], alpha: 0.4, radiusScale: 1.5, radiusTaper: 0.9 },
+        { color: Colors.trails.fire[1], alpha: 0.6, radiusScale: 1.0, radiusTaper: 0.6 },
+      ],
+    },
+  },
+  [WeaponType.IceShard]: {
+    texture: 'proj-ice',
+    angleMode: 'wideFacing',
+    trail: {
+      count: 4, spacing: 5, jitter: 3,
+      layers: [
+        { color: Colors.trails.ice[0], alpha: 0.3, radiusScale: 1.0, radiusTaper: 0.5 },
+        { color: Colors.trails.ice[1], alpha: 0.4, radiusScale: 0.4, radiusTaper: 0.2 },
+      ],
+    },
+  },
+  [WeaponType.MagicMissile]: {
+    texture: 'proj-magic',
+    angleMode: 'nearest',
+    trail: {
+      count: 4, spacing: 5, jitter: 5,
+      layers: [
+        { color: Colors.trails.magic[0], alpha: 0.4, radiusScale: 0.8, radiusTaper: 0.4 },
+        { color: Colors.trails.magic[1], alpha: 0.3, radiusScale: 0.2 },
+      ],
+    },
+  },
+  [WeaponType.Shuriken]: {
+    angleMode: 'spread360',
+  },
+  [WeaponType.BoneToss]: {
+    angleMode: 'random',
+  },
+  [WeaponType.DeathRay]: {
+    angleMode: 'nearest',
+    trail: {
+      count: 6, spacing: 4, jitter: 0,
+      layers: [
+        { color: Colors.trails.deathRay, alpha: 0.3, radiusScale: 1.0, radiusTaper: 0.5 },
+      ],
+    },
+  },
+};
 
 export interface TrailLayer {
   color: number;
@@ -46,12 +105,12 @@ export class BaseProjectileWeapon extends BaseWeapon {
   protected trailGfx: Phaser.GameObjects.Graphics | null = null;
 
   protected getTexture(): string {
-    return 'projectile';
+    return PROJECTILE_CONFIGS[this.def.type]?.texture ?? 'projectile';
   }
 
   /** Override to return a trail config for data-driven trail rendering. */
   protected getTrailConfig(): TrailConfig | null {
-    return null;
+    return PROJECTILE_CONFIGS[this.def.type]?.trail ?? null;
   }
 
   /** Override for custom trail rendering (e.g. ScytheWeapon's angle-based trail). */
@@ -88,7 +147,19 @@ export class BaseProjectileWeapon extends BaseWeapon {
   }
 
   protected computeAngle(index: number, total: number, player: Player): number {
-    return Math.atan2(player.facingY, player.facingX) + (index - (total - 1) / 2) * 0.2;
+    const mode = PROJECTILE_CONFIGS[this.def.type]?.angleMode;
+    switch (mode) {
+      case 'nearest':
+        return this.angleToNearest(player);
+      case 'spread360':
+        return (index / total) * Math.PI * 2;
+      case 'random':
+        return Math.random() * Math.PI * 2;
+      case 'wideFacing':
+        return Math.atan2(player.facingY, player.facingX) + (index - (total - 1) / 2) * 0.3;
+      default: // 'facing' or undefined
+        return Math.atan2(player.facingY, player.facingX) + (index - (total - 1) / 2) * 0.2;
+    }
   }
 
   protected angleToNearest(player: Player): number {

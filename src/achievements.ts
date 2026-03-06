@@ -4,6 +4,7 @@ import { EFFECT_DEFS } from './entities/effects';
 import { ENEMY_DEFS } from './entities/enemies';
 import { EnemyType } from './types';
 import { MAX_WEAPONS, MAX_EFFECTS, MAX_WEAPON_LEVEL } from './constants';
+import { formatNumber } from './ui/format';
 
 export interface AchievementDef {
   id: string;
@@ -53,11 +54,10 @@ function buildAchievements(): AchievementDef[] {
     [1_000_000, 'Apocalypse'],
   ];
   for (const [threshold, name] of killMilestones) {
-    const label = threshold >= 1_000_000 ? `${threshold / 1_000_000}M` : `${threshold / 1_000}k`;
     defs.push({
       id: `kills-${threshold}`,
       name,
-      description: `Kill ${label} enemies total`,
+      description: `Kill ${formatNumber(threshold)} enemies total`,
       evaluateWithStats: (_ctx, stats) => stats.totalKills >= threshold,
     });
   }

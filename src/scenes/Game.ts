@@ -92,20 +92,7 @@ export class GameScene extends Phaser.Scene {
     const cfg = this.gameConfig;
 
     this.player = new Player(this, centerX, centerY);
-
-    // Apply perk config to player
-    this.player.state.hp = cfg.startingHp;
-    this.player.state.maxHp = cfg.startingHp;
-    this.player.state.speed = cfg.startingSpeed * cfg.playerSpeedMult;
-    this.player.state.gold = cfg.startingGold;
-    this.player.setBaseMaxHp(cfg.startingHp);
-    this.player.setPerkRegen(cfg.hpRegen);
-    this.player.setPerkArmor(cfg.armor);
-    this.player.setPerkWeaponDmgMult(cfg.weaponDmgMult);
-    this.player.setPerkXpMult(cfg.xpMult);
-    this.player.setPerkGoldMult(cfg.goldMult);
-    this.player.setPerkPickupRange(cfg.pickupRange);
-    this.player.setPerkCooldownMult(cfg.weaponCooldownMult);
+    this.player.applyConfig(cfg);
 
     // Starting weapon from config
     this.player.state.weapons.push({
