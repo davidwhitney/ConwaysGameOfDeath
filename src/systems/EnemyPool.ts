@@ -46,15 +46,19 @@ export class EnemyPool {
   }
 
   update(dt: number, playerX: number, playerY: number): void {
-    const despawnRange = CameraManager.viewDiagonalRadius(this.scene.cameras.main) + 400;
+    const cam = this.scene.cameras.main;
+    const despawnRange = CameraManager.viewDiagonalRadius(cam) + 400;
     const despawnRangeSq = despawnRange * despawnRange;
     const now = this.scene.time.now;
+    const camView = cam.worldView;
 
     for (let i = this.active.length - 1; i >= 0; i--) {
       const enemy = this.active[i];
-      const stillActive = enemy.update(dt, playerX, playerY, despawnRangeSq, now);
+      const stillActive = enemy.update(dt, playerX, playerY, despawnRangeSq, now, camView);
       if (!stillActive) {
-        this.active.splice(i, 1);
+        // Swap-and-pop: O(1) removal instead of O(n) splice
+        this.active[i] = this.active[this.active.length - 1];
+        this.active.pop();
         this.pool.push(enemy);
       }
     }
@@ -86,7 +90,8 @@ export class EnemyPool {
   returnToPool(enemy: Enemy): void {
     const idx = this.active.indexOf(enemy);
     if (idx !== -1) {
-      this.active.splice(idx, 1);
+      this.active[idx] = this.active[this.active.length - 1];
+      this.active.pop();
       enemy.deactivate();
       this.pool.push(enemy);
     }

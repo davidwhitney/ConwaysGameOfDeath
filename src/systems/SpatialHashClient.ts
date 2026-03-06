@@ -19,7 +19,7 @@ export class SpatialHashClient {
     this.hash.insert(entity);
   }
 
-  query(x: number, y: number, radius: number): SpatialEntity[] {
+  query(x: number, y: number, radius: number): readonly SpatialEntity[] {
     return this.hash.query(x, y, radius);
   }
 

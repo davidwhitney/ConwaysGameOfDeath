@@ -10,10 +10,15 @@ export interface SpatialEntity {
 /**
  * Spatial hash grid for fast collision queries.
  * Divides world into cells and stores entity references.
+ * Uses reusable internal buffers to avoid per-query allocations.
  */
 export class SpatialHash {
   private cellSize: number;
   private cells: Map<number, SpatialEntity[]>;
+  /** Reusable dedup set — cleared on each query */
+  private readonly _seen = new Set<number>();
+  /** Reusable result buffer — valid only until next query call */
+  private readonly _result: SpatialEntity[] = [];
 
   constructor(cellSize: number = SPATIAL_CELL_SIZE) {
     this.cellSize = cellSize;
@@ -52,15 +57,21 @@ export class SpatialHash {
     }
   }
 
-  /** Query all entities that could overlap with given circle */
-  query(x: number, y: number, radius: number): SpatialEntity[] {
+  /**
+   * Query all entities that could overlap with given circle.
+   * WARNING: Returns a shared internal buffer — do NOT hold a reference
+   * across calls. Copy the result if needed beyond the current frame.
+   */
+  query(x: number, y: number, radius: number): readonly SpatialEntity[] {
     const minCx = this.getCellCoord(x - radius);
     const maxCx = this.getCellCoord(x + radius);
     const minCy = this.getCellCoord(y - radius);
     const maxCy = this.getCellCoord(y + radius);
 
-    const seen = new Set<number>();
-    const result: SpatialEntity[] = [];
+    const seen = this._seen;
+    const result = this._result;
+    seen.clear();
+    result.length = 0;
 
     for (let cy = minCy; cy <= maxCy; cy++) {
       for (let cx = minCx; cx <= maxCx; cx++) {
@@ -82,11 +93,13 @@ export class SpatialHash {
   /** Query and filter to actual circle overlaps */
   queryOverlapping(x: number, y: number, radius: number): SpatialEntity[] {
     const candidates = this.query(x, y, radius);
-    return candidates.filter(e => {
+    const out: SpatialEntity[] = [];
+    for (const e of candidates) {
       const dx = e.x - x;
       const dy = e.y - y;
       const rSum = e.radius + radius;
-      return dx * dx + dy * dy < rSum * rSum;
-    });
+      if (dx * dx + dy * dy < rSum * rSum) out.push(e);
+    }
+    return out;
   }
 }

@@ -1,7 +1,9 @@
-import { directionTo } from '../../../utils/math';
+import { directionToInto } from '../../../utils/math';
 import type { Player } from '../../../entities/Player';
 import { BaseProjectileWeapon, type ActiveProjectile, type TrailConfig } from '../BaseProjectileWeapon';
 import { Colors } from '../../../colors';
+
+const _dir = { x: 0, y: 0 };
 
 export class BoomerangWeapon extends BaseProjectileWeapon {
   protected getTexture(): string {
@@ -14,10 +16,10 @@ export class BoomerangWeapon extends BaseProjectileWeapon {
     }
 
     if (proj.returning) {
-      const dir = directionTo(proj, { x: player.state.x, y: player.state.y });
+      directionToInto(proj.x, proj.y, player.state.x, player.state.y, _dir);
       const speed = 350;
-      proj.vx = dir.x * speed;
-      proj.vy = dir.y * speed;
+      proj.vx = _dir.x * speed;
+      proj.vy = _dir.y * speed;
 
       const dx = proj.x - player.state.x;
       const dy = proj.y - player.state.y;

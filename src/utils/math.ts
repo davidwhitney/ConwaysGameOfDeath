@@ -20,6 +20,16 @@ export function directionTo(from: Vec2, to: Vec2): Vec2 {
   return normalize({ x: to.x - from.x, y: to.y - from.y });
 }
 
+/** Zero-allocation direction: writes normalized (from→to) into `out`. */
+export function directionToInto(fromX: number, fromY: number, toX: number, toY: number, out: Vec2): void {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) { out.x = 0; out.y = 0; return; }
+  out.x = dx / len;
+  out.y = dy / len;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

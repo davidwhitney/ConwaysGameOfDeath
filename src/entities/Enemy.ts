@@ -9,7 +9,7 @@ import {
 } from '../constants';
 import { ENEMY_DEFS } from './enemies';
 import { isWalkable } from '../systems/map-generator';
-import { directionTo } from '../utils/math';
+import { directionToInto } from '../utils/math';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',
@@ -45,6 +45,9 @@ export class Enemy {
 
   /** Timestamp-based tint clearing (replaces delayedCall) */
   private tintUntil: number = 0;
+
+  /** Reusable direction vector — avoids per-frame allocation */
+  private readonly _dir: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
@@ -119,7 +122,7 @@ export class Enemy {
   }
 
   /** @param despawnRangeSq squared despawn distance (avoids sqrt) */
-  update(dt: number, playerX: number, playerY: number, despawnRangeSq: number, now: number): boolean {
+  update(dt: number, playerX: number, playerY: number, despawnRangeSq: number, now: number, camView: Phaser.Geom.Rectangle): boolean {
     if (!this.state.alive) return false;
 
     // Check despawn distance (squared — no sqrt)
@@ -158,14 +161,22 @@ export class Enemy {
         break;
     }
 
-    this.sprite.setPosition(this.state.x, this.state.y);
-    this.sprite.setFlipX(playerX < this.state.x);
+    // Only call Phaser sprite APIs for on-screen enemies
+    const pad = 64;
+    if (this.state.x >= camView.x - pad && this.state.x <= camView.right + pad &&
+        this.state.y >= camView.y - pad && this.state.y <= camView.bottom + pad) {
+      this.sprite.setPosition(this.state.x, this.state.y);
+      this.sprite.setFlipX(playerX < this.state.x);
+      this.sprite.setVisible(true);
+    } else {
+      this.sprite.setVisible(false);
+    }
     return true;
   }
 
   private behaviorChase(dt: number, px: number, py: number): void {
-    const dir = directionTo(this.state, { x: px, y: py });
-    this.tryMove(dir.x * this.state.speed * dt, dir.y * this.state.speed * dt);
+    directionToInto(this.state.x, this.state.y, px, py, this._dir);
+    this.tryMove(this._dir.x * this.state.speed * dt, this._dir.y * this.state.speed * dt);
   }
 
   private behaviorCross(dt: number): void {
@@ -179,8 +190,8 @@ export class Enemy {
     this.orbitAngle += this.state.speed * dt * 0.005;
     const targetX = px + Math.cos(this.orbitAngle) * orbitDist;
     const targetY = py + Math.sin(this.orbitAngle) * orbitDist;
-    const dir = directionTo(this.state, { x: targetX, y: targetY });
-    this.tryMove(dir.x * this.state.speed * dt, dir.y * this.state.speed * dt);
+    directionToInto(this.state.x, this.state.y, targetX, targetY, this._dir);
+    this.tryMove(this._dir.x * this.state.speed * dt, this._dir.y * this.state.speed * dt);
   }
 
   private behaviorTeleport(dt: number, px: number, py: number): void {
@@ -194,18 +205,18 @@ export class Enemy {
       this.teleportTimer = 2000 + Math.random() * 2000;
     } else {
       // Slowly approach
-      const dir = directionTo(this.state, { x: px, y: py });
-      this.tryMove(dir.x * this.state.speed * 0.3 * dt, dir.y * this.state.speed * 0.3 * dt);
+      directionToInto(this.state.x, this.state.y, px, py, this._dir);
+      this.tryMove(this._dir.x * this.state.speed * 0.3 * dt, this._dir.y * this.state.speed * 0.3 * dt);
     }
   }
 
   private behaviorSwarm(dt: number, px: number, py: number, now: number): void {
     // Like chase but with slight weaving — use scene time instead of Date.now()
-    const dir = directionTo(this.state, { x: px, y: py });
+    directionToInto(this.state.x, this.state.y, px, py, this._dir);
     const wobble = Math.sin(now * 0.003 + this.state.id) * 0.3;
     this.tryMove(
-      (dir.x + dir.y * wobble) * this.state.speed * dt,
-      (dir.y - dir.x * wobble) * this.state.speed * dt,
+      (this._dir.x + this._dir.y * wobble) * this.state.speed * dt,
+      (this._dir.y - this._dir.x * wobble) * this.state.speed * dt,
     );
   }
 

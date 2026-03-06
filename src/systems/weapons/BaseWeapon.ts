@@ -1,6 +1,6 @@
 import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType } from '../../types';
 import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../constants';
-import { distanceSq, directionTo } from '../../utils/math';
+import { distanceSq, directionToInto } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
 import type { WeaponContext } from './WeaponContext';
@@ -10,6 +10,8 @@ export abstract class BaseWeapon {
   protected ctx: WeaponContext;
   protected def: WeaponDef;
   protected appliesKnockback = true;
+  /** Reusable direction vector for knockback */
+  private readonly _kbDir = { x: 0, y: 0 };
 
   constructor(ctx: WeaponContext, def: WeaponDef) {
     this.ctx = ctx;
@@ -65,10 +67,10 @@ export abstract class BaseWeapon {
     const knockback = player.getEffectValue(EffectType.Knockback);
     const now = this.ctx.scene.time.now;
     if (this.appliesKnockback && knockback > 0 && enemy.state.alive && now >= enemy.knockbackImmuneUntil) {
-      const dir = directionTo(player.state, enemy.state);
+      directionToInto(player.state.x, player.state.y, enemy.state.x, enemy.state.y, this._kbDir);
       const mult = enemy.state.type === EnemyType.Death ? DEATH_KNOCKBACK_MULT : 1;
-      enemy.state.x += dir.x * knockback * mult;
-      enemy.state.y += dir.y * knockback * mult;
+      enemy.state.x += this._kbDir.x * knockback * mult;
+      enemy.state.y += this._kbDir.y * knockback * mult;
       enemy.knockbackImmuneUntil = now + 500;
     }
 
@@ -80,11 +82,12 @@ export abstract class BaseWeapon {
 
   protected findNearestEnemy(px: number, py: number): Enemy | null {
     const enemies = this.ctx.enemyPool.getActive();
-    const point = { x: px, y: py };
     let nearest: Enemy | null = null;
     let nearDist = Infinity;
     for (const e of enemies) {
-      const d = distanceSq(e.state, point);
+      const dx = e.state.x - px;
+      const dy = e.state.y - py;
+      const d = dx * dx + dy * dy;
       if (d < nearDist) { nearDist = d; nearest = e; }
     }
     return nearest;

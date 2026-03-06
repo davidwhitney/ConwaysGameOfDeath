@@ -279,7 +279,9 @@ export class XPGemPool {
           totalXp += gem.value;
         }
         this.recycleGem(gem);
-        this.active.splice(i, 1);
+        // Swap-and-pop: O(1) removal
+        this.active[i] = this.active[this.active.length - 1];
+        this.active.pop();
       }
     }
 

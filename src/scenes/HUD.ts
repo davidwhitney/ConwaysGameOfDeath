@@ -8,12 +8,6 @@ import { applyUIZoom } from '../ui/uiScale';
 
 const SLOT_SIZE = 32;
 const SLOT_GAP = 4;
-const TOTAL_SLOTS = MAX_WEAPONS + MAX_EFFECTS;
-
-interface SlotLabel {
-  name: Phaser.GameObjects.Text;
-  level: Phaser.GameObjects.Text;
-}
 
 export class HUDScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
@@ -26,7 +20,7 @@ export class HUDScene extends Phaser.Scene {
   private goldText!: Phaser.GameObjects.Text;
   private seedText!: Phaser.GameObjects.Text;
   private inventoryGfx!: Phaser.GameObjects.Graphics;
-  private slotLabels: SlotLabel[] = [];
+  private inventoryTexts: Phaser.GameObjects.Text[] = [];
   private seed: number = 0;
   private invBounds = { x: 0, y: 0, w: 0, h: 0 };
 
@@ -109,28 +103,6 @@ export class HUDScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 1,
     }).setOrigin(0.5, 0);
-
-    // Pre-create text labels for all inventory slots
-    for (let i = 0; i < TOTAL_SLOTS; i++) {
-      const name = this.add.text(0, 0, '', {
-        fontSize: '8px',
-        fontFamily: 'monospace',
-        color: '#aaaacc',
-        stroke: '#000000',
-        strokeThickness: 1,
-      }).setOrigin(0.5, 1).setVisible(false);
-
-      const level = this.add.text(0, 0, '', {
-        fontSize: '10px',
-        fontFamily: 'monospace',
-        color: '#ffffff',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 2,
-      }).setOrigin(1, 1).setVisible(false);
-
-      this.slotLabels.push({ name, level });
-    }
 
     // Tap inventory area on touch devices to pause
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -216,6 +188,10 @@ export class HUDScene extends Phaser.Scene {
   private drawInventory(weapons: WeaponInstance[], effects: EffectInstance[], screenW: number, screenH: number): void {
     this.inventoryGfx.clear();
 
+    // Destroy old labels (only runs on inventory change, not every frame)
+    for (const t of this.inventoryTexts) t.destroy();
+    this.inventoryTexts = [];
+
     // 6x2 grid: weapons on top row, effects on bottom row (always show all slots)
     const COLS = 6;
     const xpBarH = 8;
@@ -233,18 +209,15 @@ export class HUDScene extends Phaser.Scene {
       h: (rowBottom + SLOT_SIZE) - (rowTop - 12) + pad * 2,
     };
 
-    let slotIdx = 0;
-
     // Draw all weapon slots (top row)
     for (let i = 0; i < MAX_WEAPONS; i++) {
       const x = startX + i * (SLOT_SIZE + SLOT_GAP);
       if (i < weapons.length) {
         const def = WEAPON_DEFS[weapons[i].type];
-        this.drawSlot(x, rowTop, def.color, def.name, weapons[i].level, slotIdx);
+        this.drawSlot(x, rowTop, def.color, def.name, weapons[i].level);
       } else {
-        this.drawEmptySlot(x, rowTop, slotIdx);
+        this.drawEmptySlot(x, rowTop);
       }
-      slotIdx++;
     }
 
     // Draw all effect slots (bottom row)
@@ -252,27 +225,21 @@ export class HUDScene extends Phaser.Scene {
       const x = startX + i * (SLOT_SIZE + SLOT_GAP);
       if (i < effects.length) {
         const def = EFFECT_DEFS[effects[i].type];
-        this.drawSlot(x, rowBottom, def.color, def.name, effects[i].level, slotIdx);
+        this.drawSlot(x, rowBottom, def.color, def.name, effects[i].level);
       } else {
-        this.drawEmptySlot(x, rowBottom, slotIdx);
+        this.drawEmptySlot(x, rowBottom);
       }
-      slotIdx++;
     }
   }
 
-  private drawEmptySlot(x: number, y: number, slotIdx: number): void {
+  private drawEmptySlot(x: number, y: number): void {
     this.inventoryGfx.fillStyle(0x111122, 0.4);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
     this.inventoryGfx.lineStyle(1, 0x333344, 0.6);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
-
-    // Hide labels for empty slots
-    const labels = this.slotLabels[slotIdx];
-    labels.name.setVisible(false);
-    labels.level.setVisible(false);
   }
 
-  private drawSlot(x: number, y: number, color: number, name: string, level: number, slotIdx: number): void {
+  private drawSlot(x: number, y: number, color: number, name: string, level: number): void {
     // Background
     this.inventoryGfx.fillStyle(0x111122, 0.85);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
@@ -285,9 +252,25 @@ export class HUDScene extends Phaser.Scene {
     this.inventoryGfx.lineStyle(1, 0x555577, 1);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
 
-    // Reuse pre-created text labels
-    const labels = this.slotLabels[slotIdx];
-    labels.level.setText(`${level}`).setPosition(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2).setVisible(true);
-    labels.name.setText(name.slice(0, 3).toUpperCase()).setPosition(x + SLOT_SIZE / 2, y - 2).setVisible(true);
+    // Level number
+    const lvlText = this.add.text(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2, `${level}`, {
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(1, 1);
+    this.inventoryTexts.push(lvlText);
+
+    // Name abbreviation (first 3 chars)
+    const label = this.add.text(x + SLOT_SIZE / 2, y - 2, name.slice(0, 3).toUpperCase(), {
+      fontSize: '8px',
+      fontFamily: 'monospace',
+      color: '#aaaacc',
+      stroke: '#000000',
+      strokeThickness: 1,
+    }).setOrigin(0.5, 1);
+    this.inventoryTexts.push(label);
   }
 }
