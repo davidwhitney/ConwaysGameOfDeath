@@ -34,7 +34,8 @@ export abstract class BaseEffectWeapon<T extends ActiveEffect> extends BaseWeapo
       e.age += dt * 1000;
 
       if (e.age >= e.duration) {
-        this.effects.splice(i, 1);
+        this.effects[i] = this.effects[this.effects.length - 1];
+        this.effects.pop();
         continue;
       }
 

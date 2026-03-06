@@ -6,6 +6,7 @@ import {
   BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT, ENEMY_MAX_ACTIVE,
 } from '../constants';
 import type { Player } from '../entities/Player';
+import type { Enemy } from '../entities/Enemy';
 import { XPGemPool } from '../entities/XPGem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
@@ -112,10 +113,7 @@ export class LootSystem implements GameSystem {
     this.activeBursts.length = 0;
   }
 
-  private handleEnemyKilled(
-    enemy: import('../entities/Enemy').Enemy,
-    weaponType?: WeaponType,
-  ): void {
+  private handleEnemyKilled(enemy: Enemy, weaponType?: WeaponType): void {
     this.kills++;
     this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def.color, enemy.state.boss);
 
@@ -203,7 +201,8 @@ export class LootSystem implements GameSystem {
       const t = Math.min(burst.elapsed / burst.duration, 1);
 
       if (t >= 1) {
-        this.activeBursts.splice(i, 1);
+        this.activeBursts[i] = this.activeBursts[this.activeBursts.length - 1];
+        this.activeBursts.pop();
         continue;
       }
 

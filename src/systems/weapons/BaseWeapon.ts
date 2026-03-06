@@ -1,5 +1,5 @@
 import { type WeaponDef, type WeaponInstance, type WeaponType, EffectType, EnemyType } from '../../types';
-import { CRIT_DAMAGE_MULTIPLIER, DEATH_KNOCKBACK_MULT } from '../../constants';
+import { CRIT_DAMAGE_MULTIPLIER, DEATH_EFFECTIVENESS_MULT, KNOCKBACK_IMMUNITY_MS } from '../../constants';
 import { distanceSq, directionToInto } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import type { Enemy } from '../../entities/Enemy';
@@ -56,7 +56,7 @@ export abstract class BaseWeapon {
     // Lifesteal: heal player for % of damage dealt (10% effectiveness vs Death)
     const lifesteal = player.getEffectValue(EffectType.Lifesteal);
     if (lifesteal > 0) {
-      const deathPenalty = enemy.state.type === EnemyType.Death ? 0.1 : 1;
+      const deathPenalty = enemy.state.type === EnemyType.Death ? DEATH_EFFECTIVENESS_MULT : 1;
       const heal = Math.floor(finalDamage * lifesteal * deathPenalty);
       if (heal > 0) {
         player.state.hp = Math.min(player.state.maxHp, player.state.hp + heal);
@@ -69,10 +69,10 @@ export abstract class BaseWeapon {
     const now = this.ctx.scene.time.now;
     if (this.appliesKnockback && knockback > 0 && enemy.state.alive && now >= enemy.knockbackImmuneUntil) {
       directionToInto(player.state.x, player.state.y, enemy.state.x, enemy.state.y, this._kbDir);
-      const mult = enemy.state.type === EnemyType.Death ? 0.1 : 1;
+      const mult = enemy.state.type === EnemyType.Death ? DEATH_EFFECTIVENESS_MULT : 1;
       enemy.state.x += this._kbDir.x * knockback * mult;
       enemy.state.y += this._kbDir.y * knockback * mult;
-      enemy.knockbackImmuneUntil = now + 500;
+      enemy.knockbackImmuneUntil = now + KNOCKBACK_IMMUNITY_MS;
     }
 
     if (killed) {

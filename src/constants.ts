@@ -64,8 +64,11 @@ export const XP_GROWTH = 0.2; // quadratic coefficient
 // ─── Death Boss ───
 export const DEATH_BASE_HP = 655350;
 export const DEATH_SIZE_MULTIPLIER = 5;
-export const DEATH_KNOCKBACK_MULT = -0.5;
 export const DEATH_SPAWN_INTERVAL = 60000; // 60s between Death spawns
+export const DEATH_EFFECTIVENESS_MULT = 0.1; // lifesteal, knockback, blood aura at 10%
+export const DEATH_SPEED_RATIO = 0.5;        // 50% of player speed
+export const DEATH_TELEPORT_RATIO = 0.1;     // teleports 10% closer on hit
+export const DEATH_TELEPORT_MIN_DIST = 60;   // only teleport if > 60 units away
 
 // ─── Boss ───
 export const BOSS_HP_MULTIPLIER = 25;
@@ -96,6 +99,7 @@ export const ENEMY_DMG_SCALING = 3.6;
 // ─── Combat ───
 export const CRIT_DAMAGE_MULTIPLIER = 2.0;
 export const WEAPON_TICK_INTERVAL_MS = 200;
+export const KNOCKBACK_IMMUNITY_MS = 500;
 
 // ─── Intro ───
 export const INTRO_DURATION_MS = 3000;

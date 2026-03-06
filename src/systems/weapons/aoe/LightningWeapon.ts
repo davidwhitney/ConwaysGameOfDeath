@@ -114,7 +114,8 @@ export class LightningWeapon extends BaseAoEWeapon {
       bolt.age += dt * 1000;
 
       if (bolt.age >= BOLT_DURATION) {
-        this.bolts.splice(i, 1);
+        this.bolts[i] = this.bolts[this.bolts.length - 1];
+        this.bolts.pop();
         continue;
       }
 

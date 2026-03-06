@@ -153,14 +153,16 @@ export class BaseProjectileWeapon extends BaseWeapon {
 
       if (p.age >= p.lifetime || p.pierce <= 0) {
         this.returnSprite(p);
-        this.projectiles.splice(i, 1);
+        this.projectiles[i] = this.projectiles[this.projectiles.length - 1];
+        this.projectiles.pop();
         continue;
       }
 
       const alive = this.moveProjectile(p, dt, player);
       if (!alive) {
         this.returnSprite(p);
-        this.projectiles.splice(i, 1);
+        this.projectiles[i] = this.projectiles[this.projectiles.length - 1];
+        this.projectiles.pop();
         continue;
       }
 

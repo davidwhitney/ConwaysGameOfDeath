@@ -70,7 +70,8 @@ export class DamageNumbersUiComponent {
         d.text.setVisible(false);
         d.text.setPosition(-1000, -1000);
         this.pool.push(d.text);
-        this.active.splice(i, 1);
+        this.active[i] = this.active[this.active.length - 1];
+        this.active.pop();
       }
     }
   }

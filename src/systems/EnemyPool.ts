@@ -116,7 +116,8 @@ export class EnemyPool {
       const enemy = this.active[i];
       if (enemy.state.type === EnemyType.Death) continue;
       enemy.deactivate();
-      this.active.splice(i, 1);
+      this.active[i] = this.active[this.active.length - 1];
+      this.active.pop();
       this.pool.push(enemy);
       cleared++;
     }

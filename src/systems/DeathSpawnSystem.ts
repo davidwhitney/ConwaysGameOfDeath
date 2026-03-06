@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { EnemyType } from '../types';
 import {
   GAME_DURATION_MS, BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
-  DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL,
+  DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL, DEATH_SPEED_RATIO,
 } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import type { UpdateContext } from './UpdateContext';
@@ -30,7 +30,7 @@ export class DeathSpawnSystem implements GameSystem {
     if (!this.enabled) return;
 
     // Keep all Death enemies at 80% of the player's current speed
-    const deathSpeed = ctx.player.getSpeed() * 0.5;
+    const deathSpeed = ctx.player.getSpeed() * DEATH_SPEED_RATIO;
     for (const enemy of ctx.enemyPool.getActive()) {
       if (enemy.state.type === EnemyType.Death && enemy.state.alive) {
         enemy.state.speed = deathSpeed;

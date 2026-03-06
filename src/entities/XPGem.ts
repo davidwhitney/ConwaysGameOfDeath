@@ -150,7 +150,8 @@ export class XPGemPool {
       const gem = this.active[nearby[j]];
       totalValue += gem.value;
       this.recycleGem(gem);
-      this.active.splice(nearby[j], 1);
+      this.active[nearby[j]] = this.active[this.active.length - 1];
+      this.active.pop();
     }
     target.value += totalValue;
     target.mergeBoost = Math.min(target.mergeBoost + 1, 4);
@@ -315,7 +316,8 @@ export class XPGemPool {
 
     for (const idx of removeIndices) {
       this.recycleGem(this.active[idx]);
-      this.active.splice(idx, 1);
+      this.active[idx] = this.active[this.active.length - 1];
+      this.active.pop();
     }
   }
 

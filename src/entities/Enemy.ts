@@ -6,6 +6,7 @@ import {
   ENEMY_DESPAWN_RANGE, GAME_DURATION_MS, TILE_SIZE,
   ENEMY_HP_SCALING, ENEMY_DMG_SCALING,
   BOSS_HP_MULTIPLIER, BOSS_SIZE_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER,
+  DEATH_TELEPORT_RATIO, DEATH_TELEPORT_MIN_DIST,
 } from '../constants';
 import { ENEMY_DEFS } from './enemies';
 import { isWalkable } from '../systems/map-generator';
@@ -301,10 +302,9 @@ export class Enemy {
       const dx = playerX - this.state.x;
       const dy = playerY - this.state.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 60) {
-        // Teleport 10% closer to the player
-        this.state.x += dx * 0.1;
-        this.state.y += dy * 0.1;
+      if (dist > DEATH_TELEPORT_MIN_DIST) {
+        this.state.x += dx * DEATH_TELEPORT_RATIO;
+        this.state.y += dy * DEATH_TELEPORT_RATIO;
         this.sprite.setPosition(this.state.x, this.state.y);
       }
     }
