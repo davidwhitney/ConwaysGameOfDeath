@@ -198,7 +198,7 @@ export class LevelUpScene extends Phaser.Scene {
         this.selectOption(this.kbSelected);
       } else if (key === 'r') {
         if (this.gold >= this.rerollCost) this.reroll();
-      } else if (key === 'e') {
+      } else if (key === 'e' || key === 'escape') {
         this.skip();
       }
     };
