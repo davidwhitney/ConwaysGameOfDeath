@@ -21,10 +21,13 @@ import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
 import { loadSettings } from '../ui/saveData';
 import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
+import { applyDebugProgression } from '../systems/leveling';
 
 interface GameInitData {
   seed: number;
   endless?: boolean;
+  debugLevel?: number;
+  debugTimeMinutes?: number;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -46,6 +49,8 @@ export class GameScene extends Phaser.Scene {
   private lootSystem!: LootSystem;
   private reviveCount: number = 0;
   private awaitingRevive: boolean = false;
+  private debugLevel: number = 0;
+  private debugTimeMinutes: number = 0;
 
   public constructor() {
     super({ key: 'Game' });
@@ -54,6 +59,8 @@ export class GameScene extends Phaser.Scene {
   public init(data: GameInitData): void {
     this.seed = data.seed || Date.now();
     this.endless = data.endless ?? false;
+    this.debugLevel = data.debugLevel ?? 0;
+    this.debugTimeMinutes = data.debugTimeMinutes ?? 0;
     this.gameTimeMs = 0;
     this.gameOver = false;
     this.reviveCount = 0;
@@ -69,6 +76,11 @@ export class GameScene extends Phaser.Scene {
 
     this.player = new Player(this, centerX, centerY);
     this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
+
+    if (this.debugLevel > 1) {
+      applyDebugProgression(this.player.state, () => this.rng.next(), this.debugLevel);
+      this.gameTimeMs = this.debugTimeMinutes * 60 * 1000;
+    }
 
     this.subsystems = [
       new ParallaxSystem(this),

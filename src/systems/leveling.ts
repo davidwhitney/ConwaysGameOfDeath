@@ -134,6 +134,27 @@ export function generatePostMaxOptions(level: number): LevelUpOption[] {
   ];
 }
 
+/**
+ * Simulate leveling from 2 to targetLevel, auto-picking the first option each time.
+ * This fills weapons/effects naturally, mimicking a real playthrough.
+ */
+export function applyDebugProgression(
+  state: PlayerState,
+  rng: () => number,
+  targetLevel: number,
+): void {
+  for (let lvl = 2; lvl <= targetLevel; lvl++) {
+    state.level = lvl;
+    state.xpToNext = xpForLevel(lvl + 1);
+    const options = generateLevelUpOptions(state.weapons, state.effects, rng);
+    if (options.length > 0) {
+      applyLevelUpChoice(state, options[0]);
+    }
+  }
+  state.xp = 0;
+  state.xpToNext = xpForLevel(targetLevel + 1);
+}
+
 /** Apply a level-up choice to player state */
 export function applyLevelUpChoice(state: PlayerState, choice: LevelUpOption): void {
   switch (choice.kind) {
