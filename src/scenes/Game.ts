@@ -164,6 +164,10 @@ export class GameScene extends Phaser.Scene {
       Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
     );
 
+    this.processDeath(delta);
+  }
+
+  private processDeath(delta: number): void {
     if (!this.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
       this.deathDelayMs = 1000;
