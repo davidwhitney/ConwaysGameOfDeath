@@ -13,10 +13,15 @@ const MAX_ENEMY_RADIUS = 100;
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
   private inputManager: InputManager;
+  private consumeDeathMask: (() => boolean) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.inputManager = new InputManager(scene);
+  }
+
+  setDeathMaskConsumer(fn: () => boolean): void {
+    this.consumeDeathMask = fn;
   }
 
   update(ctx: UpdateContext): void {
@@ -44,6 +49,15 @@ export class PlayerPhysicsSystem implements GameSystem {
     for (const enemy of nearby) {
       if (!enemy.state.alive) continue;
       if (circlesOverlap(px, py, pr, enemy.state.x, enemy.state.y, enemy.effectiveSize)) {
+        // Death mask: consume a mask to insta-kill Death on contact
+        if (enemy.state.type === EnemyType.Death && this.consumeDeathMask?.()) {
+          enemy.state.hp = 0;
+          GameEvents.emit(this.scene.events, 'enemy-killed', enemy);
+          GameEvents.sfx('death-mask-collect');
+          GameEvents.emit(this.scene.events, 'screen-shake', 400, 0.02);
+          continue;
+        }
+
         const dmg = player.takeDamage(enemy.state.damage, now);
         if (dmg > 0) {
           GameEvents.emit(this.scene.events, 'show-damage', px, py - 20, dmg, '#ff4444');

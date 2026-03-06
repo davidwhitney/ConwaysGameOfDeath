@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { EnemyType } from '../types';
+import { EnemyType, EffectType } from '../types';
 import {
   GAME_DURATION_MS, BOSS_SPAWN_DISTANCE, DEATH_BASE_HP,
   DEATH_SIZE_MULTIPLIER, DEATH_SPAWN_INTERVAL, DEATH_SPEED_RATIO,
+  DEATH_MASK_START_MS, DEATH_MASK_INTERVAL_MS, DEATH_MASK_BASE_DIST,
 } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import type { UpdateContext } from './UpdateContext';
@@ -15,6 +16,8 @@ export class DeathSpawnSystem implements GameSystem {
   private rng: SeededRandom;
   private timer: number = 0;
   private enabled: boolean = true;
+  private maskTimer: number = 0;
+  private masksSpawned: number = 0;
 
   constructor(scene: Phaser.Scene, rng: SeededRandom, enabled: boolean = true) {
     this.scene = scene;
@@ -37,6 +40,16 @@ export class DeathSpawnSystem implements GameSystem {
       }
     }
 
+    // Spawn death masks between minutes 20 and 30
+    if (ctx.time.elapsed >= DEATH_MASK_START_MS && ctx.time.elapsed < GAME_DURATION_MS && this.masksSpawned < 10) {
+      this.maskTimer -= ctx.time.deltaMs;
+      if (this.maskTimer <= 0) {
+        this.maskTimer = DEATH_MASK_INTERVAL_MS;
+        this.masksSpawned++;
+        this.spawnMask(ctx);
+      }
+    }
+
     if (ctx.time.elapsed < GAME_DURATION_MS) return;
 
     this.timer -= ctx.time.deltaMs;
@@ -44,6 +57,17 @@ export class DeathSpawnSystem implements GameSystem {
       this.timer = DEATH_SPAWN_INTERVAL;
       this.spawnDeath(ctx);
     }
+  }
+
+  private spawnMask(ctx: UpdateContext): void {
+    const { player } = ctx;
+    const luckValue = player.getEffectValue(EffectType.Luck);
+    const angle = this.rng.next() * Math.PI * 2;
+    const dist = 200 + this.rng.next() * DEATH_MASK_BASE_DIST * (1 - luckValue * 0.6);
+    const mx = player.state.x + Math.cos(angle) * dist;
+    const my = player.state.y + Math.sin(angle) * dist;
+    GameEvents.emit(this.scene.events, 'scatter-death-mask', { x: mx, y: my });
+    GameEvents.sfx('death-mask-spawn');
   }
 
   private spawnDeath(ctx: UpdateContext): void {
@@ -70,6 +94,8 @@ export class DeathSpawnSystem implements GameSystem {
 
   reset(): void {
     this.timer = 0;
+    this.maskTimer = 0;
+    this.masksSpawned = 0;
   }
 
 }

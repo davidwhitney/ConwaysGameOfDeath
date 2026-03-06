@@ -6,7 +6,8 @@ export type SfxName =
   | 'player-hit' | 'player-death' | 'boss-spawn'
   | 'enemy-hit' | 'enemy-kill' | 'weapon-fire'
   | 'menu-click' | 'menu-nav' | 'revive' | 'revive-decline'
-  | 'weapon-upgrade' | 'reroll' | 'pause' | 'unpause';
+  | 'weapon-upgrade' | 'reroll' | 'pause' | 'unpause'
+  | 'death-mask-spawn' | 'death-mask-collect';
 
 const DEBOUNCE: Record<SfxName, number> = {
   'gem-collect': 50,
@@ -30,6 +31,8 @@ const DEBOUNCE: Record<SfxName, number> = {
   'reroll': 300,
   'pause': 500,
   'unpause': 500,
+  'death-mask-spawn': 500,
+  'death-mask-collect': 500,
 };
 
 export class SfxSystem {
@@ -324,5 +327,21 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
   'unpause'(ctx, dest) {
     // Quick bright chirp
     playOsc(ctx, dest, 'sine', 400, 800, 0.05, 0.2);
+  },
+
+  'death-mask-spawn'(ctx, dest) {
+    // Doom-ey chime: low bell tone + minor third + descending overtone + rumble
+    playOsc(ctx, dest, 'sine', 110, 110, 0.8, 0.3);
+    playOsc(ctx, dest, 'sine', 131, 131, 0.8, 0.2);
+    playOsc(ctx, dest, 'sine', 330, 165, 0.6, 0.12);
+    playNoise(ctx, dest, 0.8, 0.08, 80, 40);
+  },
+
+  'death-mask-collect'(ctx, dest) {
+    // Powerful pickup: ascending power chord + impact noise
+    playOsc(ctx, dest, 'sawtooth', 110, 220, 0.3, 0.2);
+    playOsc(ctx, dest, 'sawtooth', 165, 330, 0.3, 0.15);
+    playOsc(ctx, dest, 'sine', 220, 440, 0.3, 0.2);
+    playNoise(ctx, dest, 0.15, 0.2, 200, 2000);
   },
 };

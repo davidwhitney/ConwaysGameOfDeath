@@ -5,6 +5,7 @@ import { WEAPON_DEFS } from '../entities/weapons';
 import { EFFECT_DEFS } from '../entities/effects';
 import { GameEvents } from '../systems/GameEvents';
 import { applyUIZoom } from '../ui/uiScale';
+import { Colors } from '../colors';
 
 const SLOT_SIZE = 32;
 const SLOT_GAP = 4;
@@ -24,6 +25,9 @@ export class HUDScene extends Phaser.Scene {
   private inventoryTexts: Phaser.GameObjects.Text[] = [];
   private seed: number = 0;
   private pauseBtn: Phaser.GameObjects.Container | null = null;
+  private deathMaskGfx!: Phaser.GameObjects.Graphics;
+  private deathMaskText!: Phaser.GameObjects.Text;
+  private lastDeathMasks = -1;
 
   // Dirty tracking to avoid redraws when nothing changed
   private lastHp = -1;
@@ -49,6 +53,7 @@ export class HUDScene extends Phaser.Scene {
     this.lastMaxHp = -1;
     this.lastXp = -1;
     this.lastXpToNext = -1;
+    this.lastDeathMasks = -1;
 
     this.hpBar = this.add.graphics();
     this.xpBar = this.add.graphics();
@@ -100,6 +105,16 @@ export class HUDScene extends Phaser.Scene {
       fontSize: '14px',
       fontFamily: 'monospace',
       color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+
+    this.deathMaskGfx = this.add.graphics();
+    this.deathMaskText = this.add.text(28, 70, '', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#dd66ff',
+      fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 2,
     });
@@ -161,7 +176,7 @@ export class HUDScene extends Phaser.Scene {
     });
   }
 
-  updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number): void {
+  updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number, deathMasks: number = 0): void {
     const { width, height } = applyUIZoom(this);
 
     // HP bar — only redraw when values change
@@ -219,6 +234,28 @@ export class HUDScene extends Phaser.Scene {
 
     // Gold (only show once player has some)
     this.goldText.setText(player.gold > 0 ? `Gold: ${player.gold}` : '');
+
+    // Death mask counter
+    if (deathMasks !== this.lastDeathMasks) {
+      this.lastDeathMasks = deathMasks;
+      this.deathMaskGfx.clear();
+      if (deathMasks > 0) {
+        // Draw small purple diamond icon
+        const ix = 14, iy = 78, half = 7;
+        const c = Colors.gems.deathMask;
+        this.deathMaskGfx.fillStyle(c.main, 1);
+        this.deathMaskGfx.fillTriangle(ix, iy - half, ix + half, iy, ix, iy + half);
+        this.deathMaskGfx.fillTriangle(ix, iy - half, ix - half, iy, ix, iy + half);
+        this.deathMaskGfx.fillStyle(c.bright, 0.7);
+        const ih = half * 0.5;
+        this.deathMaskGfx.fillTriangle(ix, iy - ih, ix + ih, iy, ix, iy + ih);
+        this.deathMaskGfx.fillTriangle(ix, iy - ih, ix - ih, iy, ix, iy + ih);
+        this.deathMaskText.setText(`x${deathMasks}`);
+        this.deathMaskText.setVisible(true);
+      } else {
+        this.deathMaskText.setVisible(false);
+      }
+    }
 
     // Inventory bar — only redraw when contents change
     const invKey = this.computeInvKey(player.weapons, player.effects);

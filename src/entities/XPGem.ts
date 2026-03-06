@@ -14,7 +14,7 @@ const MERGE_RADIUS_SQ = 40 * 40;
 /** Number of overlapping gems required to trigger a merge */
 const MERGE_THRESHOLD = 3;
 
-export type GemKind = 'xp' | 'heal' | 'gold' | 'vortex';
+export type GemKind = 'xp' | 'heal' | 'gold' | 'vortex' | 'death-mask';
 
 export interface GemData {
   sprite: Phaser.GameObjects.Sprite;
@@ -39,6 +39,7 @@ const TEX_MAP: Record<GemKind, string> = {
   heal: 'healing-gem',
   gold: 'gold-gem',
   vortex: 'vortex-gem',
+  'death-mask': 'death-mask-gem',
 };
 
 const GEM_TRAIL_COLORS: Record<GemKind, number> = {
@@ -46,6 +47,7 @@ const GEM_TRAIL_COLORS: Record<GemKind, number> = {
   heal: Colors.gems.heal.trail,
   gold: Colors.gems.gold.trail,
   vortex: Colors.gems.vortex.trail,
+  'death-mask': Colors.gems.deathMask.trail,
 };
 
 export class XPGemPool {
@@ -87,8 +89,12 @@ export class XPGemPool {
     this.spawnGem(x, y, 0, 'vortex');
   }
 
+  spawnDeathMask(x: number, y: number): void {
+    this.spawnGem(x, y, 0, 'death-mask');
+  }
+
   private spawnGem(x: number, y: number, value: number, kind: GemKind): void {
-    // Try to merge with nearby same-kind gems
+    // Try to merge with nearby same-kind gems (skip for special gems)
     if (kind === 'xp' || kind === 'gold') {
       const merged = this.tryMergeNearby(x, y, value, kind);
       if (merged) return;
@@ -165,6 +171,7 @@ export class XPGemPool {
   }
 
   private getBaseScale(kind: GemKind, value: number): number {
+    if (kind === 'death-mask') return 2.0;
     if (kind === 'vortex') return 1.8;
     if (kind === 'xp') return Math.min(2, 0.8 + value * 0.1);
     return 1.4;
@@ -189,11 +196,12 @@ export class XPGemPool {
     this.pool.push(gem.sprite);
   }
 
-  update(dt: number, playerX: number, playerY: number, pickupRange: number, enemyPressure: number = 0): { xp: number; heals: number; gold: number; vortex: number } {
+  update(dt: number, playerX: number, playerY: number, pickupRange: number, enemyPressure: number = 0): { xp: number; heals: number; gold: number; vortex: number; deathMasks: number } {
     let totalXp = 0;
     let heals = 0;
     let gold = 0;
     let vortex = 0;
+    let deathMasks = 0;
     const magnetRange = pickupRange * 3;
     const magnetRangeSq = magnetRange * magnetRange;
     const pickupRangeSq = pickupRange * pickupRange;
@@ -270,7 +278,9 @@ export class XPGemPool {
 
       // Pickup
       if (dSq < pickupRangeSq) {
-        if (gem.kind === 'vortex') {
+        if (gem.kind === 'death-mask') {
+          deathMasks++;
+        } else if (gem.kind === 'vortex') {
           vortex++;
           this.triggerVortex();
         } else if (gem.kind === 'heal') {
@@ -287,12 +297,12 @@ export class XPGemPool {
       }
     }
 
-    return { xp: totalXp, heals, gold, vortex };
+    return { xp: totalXp, heals, gold, vortex, deathMasks };
   }
 
   /** Remove xp gems furthest from the player until under the cap */
   private cullFurthest(playerX: number, playerY: number): void {
-    // Collect indices of xp gems (only cull xp, not heal/gold/vortex)
+    // Collect indices of xp gems (only cull xp, not heal/gold/vortex/death-mask)
     const xpIndices: { idx: number; distSq: number }[] = [];
     for (let i = 0; i < this.active.length; i++) {
       const gem = this.active[i];

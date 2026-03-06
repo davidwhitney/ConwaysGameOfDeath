@@ -98,6 +98,12 @@ export class GameScene extends Phaser.Scene {
 
     this.gameWorldSystem = this.subsystems.find(s => s instanceof GameWorldSystem) as GameWorldSystem;
     this.lootSystem = this.subsystems.find(s => s instanceof LootSystem) as LootSystem;
+    const playerPhysics = this.subsystems.find(s => s instanceof PlayerPhysicsSystem) as PlayerPhysicsSystem;
+    playerPhysics.setDeathMaskConsumer(() => this.lootSystem.consumeMask());
+
+    if (this.debugLevel > 1) {
+      this.lootSystem.addDeathMasks(1);
+    }
 
     // Events
     GameEvents.on(this.events, 'show-damage', (x, y, amount, color, crit) => this.damageNumbersUi.show(x, y, amount, color, crit));
@@ -158,6 +164,7 @@ export class GameScene extends Phaser.Scene {
       this.gameTimeMs,
       this.lootSystem.getKills(),
       this.gameWorldSystem.getActiveEnemyCount(),
+      this.lootSystem.getDeathMasksHeld(),
     );
 
     GameEvents.intensity(

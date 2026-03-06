@@ -61,6 +61,11 @@ export const SPATIAL_CELL_SIZE = 64;
 export const XP_BASE = 5;
 export const XP_GROWTH = 0.2; // quadratic coefficient
 
+// ─── Death Mask ───
+export const DEATH_MASK_START_MS = 20 * 60 * 1000;
+export const DEATH_MASK_INTERVAL_MS = 60 * 1000;
+export const DEATH_MASK_BASE_DIST = 3000;
+
 // ─── Death Boss ───
 export const DEATH_BASE_HP = 655350;
 export const DEATH_SIZE_MULTIPLIER = 5;

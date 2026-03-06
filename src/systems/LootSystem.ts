@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EffectType, WeaponType } from '../types';
+import { EnemyType, EffectType, WeaponType } from '../types';
 import {
   MAX_WEAPON_LEVEL, XP_DROP_BASE_CHANCE, XP_DROP_LUCK_BONUS,
   GOLD_DROP_BASE_CHANCE, GOLD_DROP_LUCK_BONUS,
@@ -8,6 +8,7 @@ import {
 import type { Player } from '../entities/Player';
 import type { Enemy } from '../entities/Enemy';
 import { XPGemPool } from '../entities/XPGem';
+import type { EnemyPool } from './EnemyPool';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
@@ -34,6 +35,8 @@ export class LootSystem implements GameSystem {
   private player: Player;
   private xpGemPool: XPGemPool;
   private kills: number = 0;
+  private deathMasksHeld: number = 0;
+  private enemyPool: EnemyPool | null = null;
   private burstGfx: Phaser.GameObjects.Graphics;
   private activeBursts: ActiveBurst[] = [];
 
@@ -55,12 +58,17 @@ export class LootSystem implements GameSystem {
       this.xpGemPool.spawnVortex(pos.x, pos.y);
     });
 
+    GameEvents.on(this.scene.events, 'scatter-death-mask', (pos) => {
+      this.xpGemPool.spawnDeathMask(pos.x, pos.y);
+    });
+
     GameEvents.on(this.scene.events, 'clear-gems', () => {
       this.xpGemPool.clearAll();
     });
   }
 
   update(ctx: UpdateContext): void {
+    this.enemyPool = ctx.enemyPool;
     const dt = ctx.time.delta;
     const enemyPressure = ctx.enemyPool.getActiveCount() / ENEMY_MAX_ACTIVE;
     this.updateBursts(dt, enemyPressure);
@@ -93,20 +101,42 @@ export class LootSystem implements GameSystem {
       this.player.state.gold += gemResult.gold;
       GameEvents.sfx('gold-collect');
     }
+
+    if (gemResult.deathMasks > 0) {
+      GameEvents.sfx('death-mask-collect');
+      GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.015);
+      this.deathMasksHeld += gemResult.deathMasks;
+    }
   }
 
   getKills(): number {
     return this.kills;
   }
 
+  getDeathMasksHeld(): number {
+    return this.deathMasksHeld;
+  }
+
+  consumeMask(): boolean {
+    if (this.deathMasksHeld <= 0) return false;
+    this.deathMasksHeld--;
+    return true;
+  }
+
+  addDeathMasks(count: number): void {
+    this.deathMasksHeld += count;
+  }
+
   reset(): void {
     this.kills = 0;
+    this.deathMasksHeld = 0;
   }
 
   destroy(): void {
     GameEvents.off(this.scene.events, 'enemy-killed');
     GameEvents.off(this.scene.events, 'scatter-health-gems');
     GameEvents.off(this.scene.events, 'scatter-vortex-gem');
+    GameEvents.off(this.scene.events, 'scatter-death-mask');
     GameEvents.off(this.scene.events, 'clear-gems');
     this.xpGemPool.destroy();
     this.burstGfx.destroy();
@@ -116,6 +146,12 @@ export class LootSystem implements GameSystem {
   private handleEnemyKilled(enemy: Enemy, weaponType?: WeaponType): void {
     this.kills++;
     this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def.color, enemy.state.boss);
+
+    // Death killed — wipe all non-Death enemies
+    if (enemy.state.type === EnemyType.Death && this.enemyPool) {
+      this.enemyPool.clearNonDeath();
+      GameEvents.emit(this.scene.events, 'screen-shake', 600, 0.03);
+    }
 
     const luckValue = this.player.getEffectValue(EffectType.Luck);
     const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));

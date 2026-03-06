@@ -13,6 +13,7 @@ export interface GameEventMap {
   'enemy-killed': [enemy: Enemy, weaponType?: WeaponType];
   'scatter-health-gems': [positions: { x: number; y: number }[]];
   'scatter-vortex-gem': [pos: { x: number; y: number }];
+  'scatter-death-mask': [pos: { x: number; y: number }];
   'clear-gems': [];
   'revive-accept': [];
   'revive-decline': [];

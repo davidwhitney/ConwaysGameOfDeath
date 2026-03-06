@@ -34,7 +34,7 @@ export class DangerOverlaySystem implements GameSystem {
     const cam = this.scene.cameras.main;
     const w = cam.width;
     const h = cam.height;
-    const thickness = 120 + intensity * 80;
+    const thickness = Math.min(w, h) * 0.2;
 
     this.overlay.fillStyle(Colors.effects.danger, alpha);
     this.overlay.fillRect(0, 0, w, thickness); // top

@@ -55,6 +55,7 @@ export const Colors = {
     heal:   { main: 0xff2222, bright: 0xffaaaa, trail: 0xff2222 },
     gold:   { main: 0xffcc00, bright: 0xffee88, trail: 0xffcc00 },
     vortex: { main: 0x2288ff, bright: 0xaaccff, trail: 0x2288ff },
+    deathMask: { main: 0x9900ff, bright: 0xdd66ff, trail: 0x9900ff },
   },
 
   tiles: {

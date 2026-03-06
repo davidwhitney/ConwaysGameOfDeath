@@ -83,6 +83,9 @@ export class BootScene extends Phaser.Scene {
     // Vortex Gem - blazing blue diamond
     this.createGemTexture('vortex-gem', 12, Colors.gems.vortex.main, Colors.gems.vortex.bright);
 
+    // Death Mask Gem - large purple diamond
+    this.createGemTexture('death-mask-gem', 14, Colors.gems.deathMask.main, Colors.gems.deathMask.bright);
+
     // Projectile - white hot
     this.createCircleTexture('projectile', 6, Colors.projectiles.base.main, Colors.projectiles.base.inner);
 
