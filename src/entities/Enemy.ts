@@ -302,9 +302,9 @@ export class Enemy {
       const dy = playerY - this.state.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > 60) {
-        // Teleport 40% closer to the player
-        this.state.x += dx * 0.4;
-        this.state.y += dy * 0.4;
+        // Teleport 10% closer to the player
+        this.state.x += dx * 0.1;
+        this.state.y += dy * 0.1;
         this.sprite.setPosition(this.state.x, this.state.y);
       }
     }

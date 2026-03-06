@@ -53,14 +53,13 @@ export abstract class BaseWeapon {
     GameEvents.emit(this.ctx.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
     GameEvents.sfx('enemy-hit');
 
-    // Lifesteal: heal player for % of damage dealt (Death is immune — no siphoning)
-    if (enemy.state.type !== EnemyType.Death) {
-      const lifesteal = player.getEffectValue(EffectType.Lifesteal);
-      if (lifesteal > 0) {
-        const heal = Math.floor(finalDamage * lifesteal);
-        if (heal > 0) {
-          player.state.hp = Math.min(player.state.maxHp, player.state.hp + heal);
-        }
+    // Lifesteal: heal player for % of damage dealt (10% effectiveness vs Death)
+    const lifesteal = player.getEffectValue(EffectType.Lifesteal);
+    if (lifesteal > 0) {
+      const deathPenalty = enemy.state.type === EnemyType.Death ? 0.1 : 1;
+      const heal = Math.floor(finalDamage * lifesteal * deathPenalty);
+      if (heal > 0) {
+        player.state.hp = Math.min(player.state.maxHp, player.state.hp + heal);
       }
     }
 
@@ -70,7 +69,7 @@ export abstract class BaseWeapon {
     const now = this.ctx.scene.time.now;
     if (this.appliesKnockback && knockback > 0 && enemy.state.alive && now >= enemy.knockbackImmuneUntil) {
       directionToInto(player.state.x, player.state.y, enemy.state.x, enemy.state.y, this._kbDir);
-      const mult = enemy.state.type === EnemyType.Death ? DEATH_KNOCKBACK_MULT : 1;
+      const mult = enemy.state.type === EnemyType.Death ? 0.1 : 1;
       enemy.state.x += this._kbDir.x * knockback * mult;
       enemy.state.y += this._kbDir.y * knockback * mult;
       enemy.knockbackImmuneUntil = now + 500;

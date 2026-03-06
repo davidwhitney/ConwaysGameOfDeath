@@ -28,6 +28,15 @@ export class DeathSpawnSystem implements GameSystem {
 
   update(ctx: UpdateContext): void {
     if (!this.enabled) return;
+
+    // Keep all Death enemies at 80% of the player's current speed
+    const deathSpeed = ctx.player.getSpeed() * 0.5;
+    for (const enemy of ctx.enemyPool.getActive()) {
+      if (enemy.state.type === EnemyType.Death && enemy.state.alive) {
+        enemy.state.speed = deathSpeed;
+      }
+    }
+
     if (ctx.time.elapsed < GAME_DURATION_MS) return;
 
     this.timer -= ctx.time.deltaMs;
