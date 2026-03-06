@@ -32,6 +32,7 @@ export class SettingsScene extends Phaser.Scene {
   init(data?: { returnTo?: string }): void {
     this.initData = data;
     this.returnTo = data?.returnTo ?? 'MainMenu';
+    this.clearConfirm = false;
   }
 
   create(): void {
