@@ -21,10 +21,27 @@ export interface ScoreEntry {
   seed?: number;
 }
 
+export interface Stats {
+  totalKills: number;
+  killsByType: Record<number, number>;
+  deathKills: number;
+  totalPlayTimeMs: number;
+  victories: number;
+}
+
+export const DEFAULT_STATS: Stats = {
+  totalKills: 0,
+  killsByType: {},
+  deathKills: 0,
+  totalPlayTimeMs: 0,
+  victories: 0,
+};
+
 export interface SaveData {
   settings: Settings;
   highScores: ScoreEntry[];
   achievements?: string[];
+  stats?: Stats;
 }
 
 const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'random', musicVolume: 0.5, sfxEnabled: true, sfxVolume: 0.5 };
@@ -38,11 +55,12 @@ export function loadSave(): SaveData {
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         highScores: Array.isArray(parsed.highScores) ? parsed.highScores : [],
         achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
+        stats: parsed.stats ? { ...DEFAULT_STATS, ...parsed.stats } : { ...DEFAULT_STATS },
       };
     }
     return migrate();
   } catch {
-    return { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [] };
+    return { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [], stats: { ...DEFAULT_STATS } };
   }
 }
 
@@ -70,7 +88,7 @@ export function clearAllData(): void {
 
 /** Migrate legacy per-key storage into the unified blob. */
 function migrate(): SaveData {
-  const data: SaveData = { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [] };
+  const data: SaveData = { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [], stats: { ...DEFAULT_STATS } };
   try {
     const raw = localStorage.getItem('cgod-settings');
     if (raw) data.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
@@ -107,4 +125,23 @@ export function hasAchievement(id: string): boolean {
 
 export function getAchievements(): string[] {
   return loadSave().achievements ?? [];
+}
+
+export function loadStats(): Stats {
+  return loadSave().stats ?? { ...DEFAULT_STATS };
+}
+
+export function mergeStats(session: Stats): void {
+  const data = loadSave();
+  const persisted = data.stats ?? { ...DEFAULT_STATS };
+  persisted.totalKills += session.totalKills;
+  persisted.deathKills += session.deathKills;
+  persisted.totalPlayTimeMs += session.totalPlayTimeMs;
+  persisted.victories += session.victories;
+  for (const [key, val] of Object.entries(session.killsByType)) {
+    const k = Number(key);
+    persisted.killsByType[k] = (persisted.killsByType[k] ?? 0) + val;
+  }
+  data.stats = persisted;
+  writeSave(data);
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { monoStyle } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
-import { getAchievements } from '../ui/saveData';
+import { getAchievements, loadStats } from '../ui/saveData';
 import { ACHIEVEMENTS } from '../achievements';
 
 const ROW_H = 36;
@@ -22,14 +22,38 @@ export class AchievementsScene extends Phaser.Scene {
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
 
-    this.add.text(width / 2, height * 0.08, 'ACHIEVEMENTS',
+    this.add.text(width / 2, height * 0.05, 'ACHIEVEMENTS',
       monoStyle('36px', '#ffcc00', { fontStyle: 'bold' }),
     ).setOrigin(0.5);
 
     const unlocked = new Set(getAchievements());
+    const stats = loadStats();
+
+    // Stats section
+    const statsY = height * 0.10;
+    const statsGap = width / 5;
+    const statsStartX = width / 2 - statsGap * 1.5;
+    const statItems: [string, string][] = [
+      ['KILLS', formatNumber(stats.totalKills)],
+      ['DEATH KILLS', formatNumber(stats.deathKills)],
+      ['PLAY TIME', formatTime(stats.totalPlayTimeMs)],
+      ['VICTORIES', formatNumber(stats.victories)],
+    ];
+    for (let i = 0; i < statItems.length; i++) {
+      const x = statsStartX + i * statsGap;
+      this.add.text(x, statsY, statItems[i][0], monoStyle('10px', '#888899')).setOrigin(0.5, 0);
+      this.add.text(x, statsY + 14, statItems[i][1], monoStyle('16px', '#ffffff', { fontStyle: 'bold' })).setOrigin(0.5, 0);
+    }
+
+    // Achievement count header
+    const headerY = height * 0.17;
+    this.add.text(width / 2, headerY,
+      `${unlocked.size} / ${ACHIEVEMENTS.length} UNLOCKED`,
+      monoStyle('14px', '#aaaacc'),
+    ).setOrigin(0.5);
 
     // Scrollable area
-    const listTop = height * 0.17;
+    const listTop = height * 0.21;
     const listBottom = height * 0.82;
     const listH = listBottom - listTop;
 
@@ -110,4 +134,18 @@ export class AchievementsScene extends Phaser.Scene {
   private goBack(): void {
     this.scene.start('MainMenu');
   }
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+function formatTime(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 }

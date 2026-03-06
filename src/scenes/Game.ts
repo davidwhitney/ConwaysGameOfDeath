@@ -230,6 +230,7 @@ export class GameScene extends Phaser.Scene {
       map: this.map,
     };
     this.achievementSystem.evaluate(ctx);
+    this.achievementSystem.flushStats(this.gameTimeMs, victory);
 
     this.scene.stop('HUD');
     this.scene.stop('LevelUp');

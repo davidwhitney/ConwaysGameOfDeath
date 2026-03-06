@@ -28,6 +28,8 @@ export class GameWorldSystem implements GameSystem {
   private evolutionTimer: number = 0;
   private scatterTimer: number = SCATTER_INTERVAL_MS;
   private followInitialised: boolean = false;
+  private lastShakeTime: number = 0;
+  private static readonly SHAKE_DEBOUNCE_MS = 5000;
   private prevPlayerX: number = 0;
   private prevPlayerY: number = 0;
 
@@ -74,6 +76,9 @@ export class GameWorldSystem implements GameSystem {
   }
 
   cameraShake(duration: number, intensity: number): void {
+    const now = performance.now();
+    if (now - this.lastShakeTime < GameWorldSystem.SHAKE_DEBOUNCE_MS) return;
+    this.lastShakeTime = now;
     this.cameraManager.shake(duration, intensity);
   }
 

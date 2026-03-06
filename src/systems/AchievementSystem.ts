@@ -3,7 +3,10 @@ import type { GameSystem } from './GameSystem';
 import type { UpdateContext } from './UpdateContext';
 import { GameEvents } from './GameEvents';
 import { ACHIEVEMENTS } from '../achievements';
-import { getAchievements, unlockAchievement } from '../ui/saveData';
+import { getAchievements, unlockAchievement, loadStats, mergeStats, type Stats } from '../ui/saveData';
+import { EnemyType } from '../types';
+import { WEAPON_DEFS } from '../entities/weapons';
+import type { Player } from '../entities/Player';
 
 const BANNER_SLIDE_MS = 400;
 const BANNER_HOLD_MS = 3000;
@@ -16,14 +19,29 @@ export class AchievementSystem implements GameSystem {
   private wasAlive = true;
   private static readonly INTERVAL = 10_000;
 
+  private sessionTotalKills = 0;
+  private sessionKillsByType: Record<number, number> = {};
+  private sessionDeathKills = 0;
+  private player: Player | null = null;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.unlocked = new Set(getAchievements());
 
     GameEvents.on(scene.events, 'achievement', (id) => this.grant(id));
+    GameEvents.on(scene.events, 'enemy-killed', (enemy) => {
+      this.sessionTotalKills++;
+      this.sessionKillsByType[enemy.state.type] = (this.sessionKillsByType[enemy.state.type] ?? 0) + 1;
+      if (enemy.state.type === EnemyType.Death) {
+        this.sessionDeathKills++;
+        this.checkDeathConditionals();
+      }
+    });
   }
 
   update(ctx: UpdateContext): void {
+    if (!this.player) this.player = ctx.player;
+
     // Detect level-up
     const currentLevel = ctx.player.state.level;
     if (currentLevel !== this.lastLevel) {
@@ -49,9 +67,55 @@ export class AchievementSystem implements GameSystem {
 
   /** Run all state-based achievement checks. */
   evaluate(ctx: UpdateContext): void {
+    const cumulativeStats = this.buildCumulativeStats(0, false);
     for (const def of ACHIEVEMENTS) {
-      if (!def.evaluate || this.unlocked.has(def.id)) continue;
-      if (def.evaluate(ctx)) this.grant(def.id);
+      if (this.unlocked.has(def.id)) continue;
+      if (def.evaluate && def.evaluate(ctx)) {
+        this.grant(def.id);
+      } else if (def.evaluateWithStats && def.evaluateWithStats(ctx, cumulativeStats)) {
+        this.grant(def.id);
+      }
+    }
+  }
+
+  /** Flush session stats into persistent storage. Call at end of game. */
+  flushStats(elapsedMs: number, victory: boolean): void {
+    const session: Stats = {
+      totalKills: this.sessionTotalKills,
+      killsByType: { ...this.sessionKillsByType },
+      deathKills: this.sessionDeathKills,
+      totalPlayTimeMs: elapsedMs,
+      victories: victory ? 1 : 0,
+    };
+    mergeStats(session);
+  }
+
+  private buildCumulativeStats(elapsedMs: number, victory: boolean): Stats {
+    const persisted = loadStats();
+    return {
+      totalKills: persisted.totalKills + this.sessionTotalKills,
+      killsByType: mergeKillsByType(persisted.killsByType, this.sessionKillsByType),
+      deathKills: persisted.deathKills + this.sessionDeathKills,
+      totalPlayTimeMs: persisted.totalPlayTimeMs + elapsedMs,
+      victories: persisted.victories + (victory ? 1 : 0),
+    };
+  }
+
+  private checkDeathConditionals(): void {
+    if (!this.player) return;
+    const weapons = this.player.state.weapons;
+
+    // Minimalist: kill Death with fewer than 4 weapons
+    if (!this.unlocked.has('death-undergeared') && weapons.length < 4) {
+      this.grant('death-undergeared');
+    }
+
+    // Hands Only: kill Death with no AoE weapons
+    if (!this.unlocked.has('death-no-aoe')) {
+      const hasAoe = weapons.some(w => WEAPON_DEFS[w.type]?.category === 'aoe');
+      if (!hasAoe) {
+        this.grant('death-no-aoe');
+      }
     }
   }
 
@@ -67,7 +131,16 @@ export class AchievementSystem implements GameSystem {
 
   destroy(): void {
     GameEvents.off(this.scene.events, 'achievement');
+    GameEvents.off(this.scene.events, 'enemy-killed');
   }
+}
+
+function mergeKillsByType(a: Record<number, number>, b: Record<number, number>): Record<number, number> {
+  const result: Record<number, number> = { ...a };
+  for (const [key, val] of Object.entries(b)) {
+    result[key as unknown as number] = (result[key as unknown as number] ?? 0) + val;
+  }
+  return result;
 }
 
 function showAchievementBanner(name: string, description: string): void {
