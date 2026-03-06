@@ -31,7 +31,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     type: EnemyType.Zombie,
     name: 'Zombie',
-    color: 0x556b2f,
+    color: 0x6b3f2f,
     size: 14,
     baseHp: 50,
     baseDamage: 20,
