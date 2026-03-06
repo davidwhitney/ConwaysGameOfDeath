@@ -8,6 +8,7 @@ import { applyUIZoom } from '../ui/uiScale';
 
 const SLOT_SIZE = 32;
 const SLOT_GAP = 4;
+let detectedTouch = false;
 
 export class HUDScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
@@ -22,7 +23,7 @@ export class HUDScene extends Phaser.Scene {
   private inventoryGfx!: Phaser.GameObjects.Graphics;
   private inventoryTexts: Phaser.GameObjects.Text[] = [];
   private seed: number = 0;
-  private invBounds = { x: 0, y: 0, w: 0, h: 0 };
+  private pauseBtn: Phaser.GameObjects.Container | null = null;
 
   // Dirty tracking to avoid redraws when nothing changed
   private lastHp = -1;
@@ -41,6 +42,13 @@ export class HUDScene extends Phaser.Scene {
 
   create(): void {
     const { width } = applyUIZoom(this);
+
+    this.pauseBtn = null;
+    this.lastInvKey = '';
+    this.lastHp = -1;
+    this.lastMaxHp = -1;
+    this.lastXp = -1;
+    this.lastXpToNext = -1;
 
     this.hpBar = this.add.graphics();
     this.xpBar = this.add.graphics();
@@ -104,14 +112,51 @@ export class HUDScene extends Phaser.Scene {
       strokeThickness: 1,
     }).setOrigin(0.5, 0);
 
-    // Tap inventory area on touch devices to pause
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.wasTouch) return;
-      const { x, y, w, h } = this.invBounds;
-      if (w > 0 && pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h) {
-        if (!this.scene.isPaused('Game')) {
-          GameEvents.pauseGame(this.scene);
+    // Show pause button on touch devices (immediately if already detected, otherwise on first touch)
+    if (detectedTouch) {
+      this.createPauseButton();
+    } else {
+      this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (pointer.wasTouch && !detectedTouch) {
+          detectedTouch = true;
+          this.createPauseButton();
         }
+      });
+    }
+  }
+
+  private createPauseButton(): void {
+    if (this.pauseBtn && this.pauseBtn.active) return;
+    const { width } = applyUIZoom(this);
+
+    const size = 34;
+    const margin = 8;
+    const btnX = width - margin - size / 2;
+    const btnY = margin + size / 2;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x222244, 0.7);
+    bg.fillRoundedRect(-size / 2, -size / 2, size, size, 6);
+    bg.lineStyle(1, 0x555577, 0.8);
+    bg.strokeRoundedRect(-size / 2, -size / 2, size, size, 6);
+
+    // Draw pause icon (two vertical bars)
+    const icon = this.add.graphics();
+    const barW = 5;
+    const barH = 16;
+    const gap = 4;
+    icon.fillStyle(0xffffff, 0.9);
+    icon.fillRect(-gap / 2 - barW, -barH / 2, barW, barH);
+    icon.fillRect(gap / 2, -barH / 2, barW, barH);
+
+    this.pauseBtn = this.add.container(btnX, btnY, [bg, icon]);
+
+    // Make interactive with a generous hit area
+    const hitZone = new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size);
+    this.pauseBtn.setInteractive(hitZone, Phaser.Geom.Rectangle.Contains);
+    this.pauseBtn.on('pointerdown', () => {
+      if (!this.scene.isPaused('Game')) {
+        GameEvents.pauseGame(this.scene);
       }
     });
   }
@@ -160,11 +205,17 @@ export class HUDScene extends Phaser.Scene {
     // Seed (reposition for resize)
     this.seedText.setX(width / 2);
 
-    // Kills (reposition for resize)
+    // Kills (reposition for resize — shift left on touch to avoid pause button)
+    const rightMargin = detectedTouch ? 52 : 10;
     this.killText.setText(`Kills: ${kills}`);
-    this.killText.setX(width - 10);
+    this.killText.setX(width - rightMargin);
     this.enemyCountText.setText(`Enemies: ${enemyCount}`);
-    this.enemyCountText.setX(width - 10);
+    this.enemyCountText.setX(width - rightMargin);
+
+    // Reposition pause button on resize
+    if (this.pauseBtn) {
+      this.pauseBtn.setPosition(width - 8 - 17, 8 + 17);
+    }
 
     // Gold (only show once player has some)
     this.goldText.setText(player.gold > 0 ? `Gold: ${player.gold}` : '');
@@ -199,15 +250,6 @@ export class HUDScene extends Phaser.Scene {
     const startX = (screenW - barWidth) / 2;
     const rowBottom = screenH - xpBarH - SLOT_SIZE - 6;
     const rowTop = rowBottom - SLOT_SIZE - 14;
-
-    // Touch hit-area for the inventory (with padding for easy tapping)
-    const pad = 10;
-    this.invBounds = {
-      x: startX - pad,
-      y: rowTop - 12 - pad,
-      w: barWidth + pad * 2,
-      h: (rowBottom + SLOT_SIZE) - (rowTop - 12) + pad * 2,
-    };
 
     // Draw all weapon slots (top row)
     for (let i = 0; i < MAX_WEAPONS; i++) {

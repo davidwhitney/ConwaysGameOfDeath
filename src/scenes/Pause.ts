@@ -3,6 +3,7 @@ import { monoStyle } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 import { GameEvents } from '../systems/GameEvents';
+import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 
 export class PauseScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -13,6 +14,8 @@ export class PauseScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = setupMenuScene(this, { bringToTop: true, crt: false });
+
+    LofiMusicSystem.instance.pause();
 
     // Overlay
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
@@ -35,6 +38,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private resume(): void {
+    LofiMusicSystem.instance.unpause();
     if (this.scene.isPaused('Game')) {
       GameEvents.sfx('unpause');
       this.scene.resume('Game');
@@ -49,6 +53,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private quit(): void {
+    LofiMusicSystem.instance.unpause();
     this.scene.stop('Game');
     this.scene.stop('HUD');
     this.scene.start('MainMenu');

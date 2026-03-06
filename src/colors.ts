@@ -15,7 +15,7 @@ export const Colors = {
   enemies: {
     bat:      { main: 0xff8800, inner: 0xffcc44 },
     skeleton: { main: 0xffdd44, inner: 0xffff88 },
-    zombie:   { main: 0x44ff00, inner: 0x88ff44 },
+    zombie:   { main: 0xaa6644, inner: 0xddaa77 },
     ghost:    { main: 0xaaaaff, inner: 0xddddff },
     werewolf: { main: 0xcccccc, inner: 0xffffff },
     mummy:    { main: 0xffee44, inner: 0xffff99 },
