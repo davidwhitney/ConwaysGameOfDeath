@@ -130,7 +130,7 @@ export class GameScene extends Phaser.Scene {
       this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
       new DeathSpawnSystem(this, this.rng, !this.endless),
-      new WeaponSystem(this, enemyPool),
+      new WeaponSystem(this, enemyPool, this.lootSystem),
       this.lootSystem,
       new LevelUpSystem(this, this.rng, this.player),
       new DangerOverlaySystem(this),

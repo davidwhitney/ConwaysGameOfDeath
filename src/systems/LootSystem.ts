@@ -123,6 +123,10 @@ export class LootSystem implements GameSystem {
     return true;
   }
 
+  getActiveGems() {
+    return this.xpGemPool.getActive();
+  }
+
   addDeathMasks(count: number): void {
     this.deathMasksHeld += count;
   }

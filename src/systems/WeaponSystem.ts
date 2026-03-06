@@ -28,6 +28,7 @@ import { BloodAuraWeapon } from './weapons/forcefield/BloodAuraWeapon';
 import { GravityWellWeapon } from './weapons/forcefield/GravityWellWeapon';
 import { BaseProjectileWeapon } from './weapons/BaseProjectileWeapon';
 import { GameSystem } from './GameSystem';
+import type { LootSystem } from './LootSystem';
 
 type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number]) => BaseWeapon;
 
@@ -87,7 +88,7 @@ export class WeaponSystem implements GameSystem {
     [WeaponType.GravityWell]: GravityWellWeapon,
   };
 
-  constructor(scene: Phaser.Scene, enemyPool: EnemyPool) {
+  constructor(scene: Phaser.Scene, enemyPool: EnemyPool, lootSystem: LootSystem) {
     this.scene = scene;
 
     for (let i = 0; i < 50; i++) {
@@ -102,6 +103,7 @@ export class WeaponSystem implements GameSystem {
       enemyPool,
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
+      getActiveGems: () => lootSystem.getActiveGems(),
     };
   }
 
