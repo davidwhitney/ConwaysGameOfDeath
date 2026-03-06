@@ -1,4 +1,5 @@
 import type { WeaponInstance } from '../../types';
+import { ENEMY_MAX_ACTIVE } from '../../constants';
 import { circlesOverlap } from '../../utils/math';
 import type { Player } from '../../entities/Player';
 import { BaseWeapon } from './BaseWeapon';
@@ -60,8 +61,11 @@ export class BaseProjectileWeapon extends BaseWeapon {
     const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
     const nx = -p.vx / speed;
     const ny = -p.vy / speed;
-    for (let i = 1; i <= config.count; i++) {
-      const t = i / config.count;
+    // Reduce trail points when enemy count is high
+    const enemyPressure = this.ctx.enemyPool.getActiveCount() / ENEMY_MAX_ACTIVE;
+    const count = enemyPressure > 0.5 ? Math.ceil(config.count * 0.6) : config.count;
+    for (let i = 1; i <= count; i++) {
+      const t = i / count;
       const ox = p.x + nx * i * config.spacing;
       const oy = p.y + ny * i * config.spacing;
       const jx = config.jitter ? (Math.random() - 0.5) * config.jitter : 0;

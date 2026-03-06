@@ -188,7 +188,7 @@ export class XPGemPool {
     this.pool.push(gem.sprite);
   }
 
-  update(dt: number, playerX: number, playerY: number, pickupRange: number): { xp: number; heals: number; gold: number; vortex: number } {
+  update(dt: number, playerX: number, playerY: number, pickupRange: number, enemyPressure: number = 0): { xp: number; heals: number; gold: number; vortex: number } {
     let totalXp = 0;
     let heals = 0;
     let gold = 0;
@@ -201,6 +201,7 @@ export class XPGemPool {
     const view = cam.worldView;
     const pad = 60;
     this.trailGfx.clear();
+    const skipTrails = enemyPressure > 0.5;
 
     // Cap: cull furthest xp gems when over limit
     if (this.active.length > MAX_GEMS) {
@@ -248,8 +249,8 @@ export class XPGemPool {
           gem.y += (dy / len) * speed * dt;
           gem.sprite.setPosition(gem.x, gem.y);
 
-          // Magnetism trail streak (skip if off-screen)
-          if (onScreen) {
+          // Magnetism trail streak (skip if off-screen or too many gems)
+          if (onScreen && !skipTrails) {
             const trailColor = GEM_TRAIL_COLORS[gem.kind];
             const nx = -dx / len;
             const ny = -dy / len;

@@ -3,7 +3,7 @@ import { EffectType, WeaponType } from '../types';
 import {
   MAX_WEAPON_LEVEL, XP_DROP_BASE_CHANCE, XP_DROP_LUCK_BONUS,
   GOLD_DROP_BASE_CHANCE, GOLD_DROP_LUCK_BONUS,
-  BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT,
+  BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT, ENEMY_MAX_ACTIVE,
 } from '../constants';
 import type { Player } from '../entities/Player';
 import { XPGemPool } from '../entities/XPGem';
@@ -13,7 +13,7 @@ import { GameEvents } from './GameEvents';
 import { Colors } from '../colors';
 import { drawGlowCircle } from './weapons/GfxPool';
 
-const MAX_BURSTS = 100;
+const MAX_BURSTS = 30;
 
 interface BurstParticle {
   ax: number; ay: number; dx: number; dy: number; size: number; color: number;
@@ -61,9 +61,10 @@ export class LootSystem implements GameSystem {
 
   update(ctx: UpdateContext): void {
     const dt = ctx.time.delta;
-    this.updateBursts(dt);
+    const enemyPressure = ctx.enemyPool.getActiveCount() / ENEMY_MAX_ACTIVE;
+    this.updateBursts(dt, enemyPressure);
     const gemResult = this.xpGemPool.update(
-      dt, this.player.state.x, this.player.state.y, this.player.getPickupRange(),
+      dt, this.player.state.x, this.player.state.y, this.player.getPickupRange(), enemyPressure,
     );
 
     if (gemResult.xp > 0) {
@@ -189,11 +190,12 @@ export class LootSystem implements GameSystem {
     this.activeBursts.push({ x, y, elapsed: 0, duration: 500, particles, boss });
   }
 
-  private updateBursts(dt: number): void {
+  private updateBursts(dt: number, enemyPressure: number): void {
     if (this.activeBursts.length === 0) return;
 
     const gfx = this.burstGfx;
     gfx.clear();
+    const cheap = enemyPressure > 0.5;
 
     for (let i = this.activeBursts.length - 1; i >= 0; i--) {
       const burst = this.activeBursts[i];
@@ -210,8 +212,8 @@ export class LootSystem implements GameSystem {
       const s = 1 - t * 0.4;
       const radius = burst.boss ? 8 : 5;
 
-      // Central flash
-      if (t < 0.35) {
+      // Central flash (skip under pressure)
+      if (!cheap && t < 0.35) {
         const flashAlpha = (1 - t / 0.35);
         const bf = Colors.effects.burstFlash;
         gfx.fillStyle(bf.white, flashAlpha * 0.8);
@@ -226,7 +228,12 @@ export class LootSystem implements GameSystem {
         const px = p.ax + (p.dx - p.ax) * ease;
         const py = p.ay + (p.dy - p.ay) * ease;
         const pSize = p.size * s;
-        drawGlowCircle(gfx, px, py, pSize, p.color, alpha, 2.5);
+        if (cheap) {
+          gfx.fillStyle(p.color, alpha);
+          gfx.fillCircle(px, py, pSize);
+        } else {
+          drawGlowCircle(gfx, px, py, pSize, p.color, alpha, 2.5);
+        }
       }
     }
   }

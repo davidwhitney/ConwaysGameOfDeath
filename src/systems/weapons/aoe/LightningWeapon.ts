@@ -138,10 +138,8 @@ export class LightningWeapon extends BaseAoEWeapon {
     seg: BoltSegment,
     alpha: number,
   ): void {
-    // Wide outer glow
-    this.drawJaggedLine(gfx, seg, 8, 0xffff44, alpha * 0.15, 24);
-    // Mid glow
-    this.drawJaggedLine(gfx, seg, 4, 0xffff88, alpha * 0.5, 20);
+    // Glow
+    this.drawJaggedLine(gfx, seg, 5, 0xffff88, alpha * 0.4, 20);
     // Hot bright core
     this.drawJaggedLine(gfx, seg, 2, 0xffffcc, alpha * 1.0, 12);
   }

@@ -81,6 +81,7 @@ export class GameScene extends Phaser.Scene {
     if (this.debugLevel > 1) {
       applyDebugProgression(this.player.state, () => this.rng.next(), this.debugLevel);
       this.gameTimeMs = this.debugTimeMinutes * 60 * 1000;
+      this.player.state.gold = 10000;
     }
 
     this.subsystems = [
