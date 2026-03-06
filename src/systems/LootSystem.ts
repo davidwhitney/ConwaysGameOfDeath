@@ -151,6 +151,7 @@ export class LootSystem implements GameSystem {
     if (enemy.state.type === EnemyType.Death && this.enemyPool) {
       this.enemyPool.clearNonDeath();
       GameEvents.emit(this.scene.events, 'screen-shake', 600, 0.03);
+      GameEvents.emit(this.scene.events, 'achievement', 'killed-death');
     }
 
     const luckValue = this.player.getEffectValue(EffectType.Luck);

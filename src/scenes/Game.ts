@@ -22,6 +22,7 @@ import { loadSettings } from '../ui/saveData';
 import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { applyDebugProgression } from '../systems/leveling';
+import { AchievementSystem } from '../systems/AchievementSystem';
 
 interface GameInitData {
   seed: number;
@@ -47,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private visibilityChangeHandler: (() => void) | null = null;
   private gameWorldSystem!: GameWorldSystem;
   private lootSystem!: LootSystem;
+  private achievementSystem!: AchievementSystem;
   private reviveCount: number = 0;
   private awaitingRevive: boolean = false;
   private debugLevel: number = 0;
@@ -94,10 +96,12 @@ export class GameScene extends Phaser.Scene {
       new LootSystem(this, this.player),
       new LevelUpSystem(this, this.rng, this.player),
       new DangerOverlaySystem(this),
+      new AchievementSystem(this),
     ];
 
     this.gameWorldSystem = this.subsystems.find(s => s instanceof GameWorldSystem) as GameWorldSystem;
     this.lootSystem = this.subsystems.find(s => s instanceof LootSystem) as LootSystem;
+    this.achievementSystem = this.subsystems.find(s => s instanceof AchievementSystem) as AchievementSystem;
     const playerPhysics = this.subsystems.find(s => s instanceof PlayerPhysicsSystem) as PlayerPhysicsSystem;
     playerPhysics.setDeathMaskConsumer(() => this.lootSystem.consumeMask());
 
@@ -217,6 +221,16 @@ export class GameScene extends Phaser.Scene {
 
   private endGame(victory: boolean): void {
     this.gameOver = true;
+
+    // Final achievement evaluation before leaving
+    const ctx: UpdateContext = {
+      time: { delta: 0, deltaMs: 0, now: performance.now(), elapsed: this.gameTimeMs },
+      player: this.player,
+      enemyPool: this.gameWorldSystem.getEnemyPool(),
+      map: this.map,
+    };
+    this.achievementSystem.evaluate(ctx);
+
     this.scene.stop('HUD');
     this.scene.stop('LevelUp');
     this.scene.stop('Pause');

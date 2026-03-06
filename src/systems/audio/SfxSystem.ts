@@ -7,7 +7,8 @@ export type SfxName =
   | 'enemy-hit' | 'enemy-kill' | 'weapon-fire'
   | 'menu-click' | 'menu-nav' | 'revive' | 'revive-decline'
   | 'weapon-upgrade' | 'reroll' | 'pause' | 'unpause'
-  | 'death-mask-spawn' | 'death-mask-collect';
+  | 'death-mask-spawn' | 'death-mask-collect'
+  | 'achievement-unlocked';
 
 const DEBOUNCE: Record<SfxName, number> = {
   'gem-collect': 50,
@@ -33,6 +34,7 @@ const DEBOUNCE: Record<SfxName, number> = {
   'unpause': 500,
   'death-mask-spawn': 500,
   'death-mask-collect': 500,
+  'achievement-unlocked': 1000,
 };
 
 export class SfxSystem {
@@ -343,5 +345,35 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
     playOsc(ctx, dest, 'sawtooth', 165, 330, 0.3, 0.15);
     playOsc(ctx, dest, 'sine', 220, 440, 0.3, 0.2);
     playNoise(ctx, dest, 0.15, 0.2, 200, 2000);
+  },
+
+  'achievement-unlocked'(ctx, dest) {
+    // Triumphant fanfare: ascending major arpeggio C5→E5→G5→C6 with sustain
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = notes[i];
+      const start = ctx.currentTime + i * 0.1;
+      g.gain.setValueAtTime(0.001, ctx.currentTime);
+      g.gain.setValueAtTime(0.25, start);
+      g.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+      osc.connect(g).connect(dest);
+      osc.start(start);
+      osc.stop(start + 0.3);
+    }
+    // Shimmer overtone on final note
+    const shimmer = ctx.createOscillator();
+    const sg = ctx.createGain();
+    shimmer.type = 'sine';
+    shimmer.frequency.value = 2093;
+    const sStart = ctx.currentTime + 0.3;
+    sg.gain.setValueAtTime(0.001, ctx.currentTime);
+    sg.gain.setValueAtTime(0.08, sStart);
+    sg.gain.exponentialRampToValueAtTime(0.001, sStart + 0.5);
+    shimmer.connect(sg).connect(dest);
+    shimmer.start(sStart);
+    shimmer.stop(sStart + 0.5);
   },
 };

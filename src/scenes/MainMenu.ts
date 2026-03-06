@@ -20,7 +20,7 @@ export class MainMenuScene extends Phaser.Scene {
   private debugContainer!: HTMLDivElement | null;
   private bloodDrips!: BloodDripEffect;
   private gol!: BackgroundGameOfLife;
-  private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, debugLevel: 0.68, debugTime: 0.73, scores: 0.72, settings: 0.82, hint: 0.92 };
+  private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, debugLevel: 0.68, debugTime: 0.73, scores: 0.72, achievements: 0.78, settings: 0.84, hint: 0.92 };
   private currentSeed = '';
   private readonly isDebug = import.meta.env.VITE_DEBUG === 'true';
 
@@ -33,24 +33,29 @@ export class MainMenuScene extends Phaser.Scene {
 
     applyCRT(this);
 
-    // Compute flow-based layout so elements never overlap on short screens
-    this.computeLayout(height);
-    const ly = this.layoutFracs;
-
     // Game of Life background
     this.gol = new BackgroundGameOfLife(this, width, height);
 
-    // Title
-    const title = this.add.text(width / 2, height * 0.25, "CONWAY'S GAME\nOF DEATH",
-      monoStyle('48px', '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
+    // Title — scale font to fit screen
+    const titleFontSize = height < 450 ? '32px' : height < 550 ? '40px' : '48px';
+    const subFontSize = height < 450 ? '14px' : '18px';
+    const titleY = Math.min(height * 0.20, 120);
+    const title = this.add.text(width / 2, titleY, "CONWAY'S GAME\nOF DEATH",
+      monoStyle(titleFontSize, '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
     ).setOrigin(0.5);
 
     // Blood drip effect
     this.bloodDrips = new BloodDripEffect(this, title, { count: 18, delayRange: 5, fromLine1: true });
 
-    this.add.text(width / 2, height * 0.40, 'Survive the Automaton',
-      monoStyle('20px', '#aaaacc'),
+    const subtitleY = title.y + title.height / 2 + 12;
+    const subtitle = this.add.text(width / 2, subtitleY, 'Survive the Automaton',
+      monoStyle(subFontSize, '#aaaacc'),
     ).setOrigin(0.5);
+
+    // Compute flow-based layout starting below actual title content
+    const contentTop = subtitle.y + subtitle.height / 2 + 10;
+    this.computeLayout(height, contentTop);
+    const ly = this.layoutFracs;
 
     // Seed input (HTML element for editable text)
     this.createSeedInput();
@@ -63,10 +68,15 @@ export class MainMenuScene extends Phaser.Scene {
       this.createDebugInputs();
     }
 
+    const compact = height < 520;
+    const btnH = compact ? 32 : 40;
+    const playH = compact ? 38 : 46;
+    const btnFont = compact ? '13px' : '15px';
     this.menuNav = new MenuNav(this, [
-      { x: width / 2, y: height * ly.play, width: 220, height: 50, label: 'PLAY', fontSize: '24px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.startGame() },
-      { x: width / 2, y: height * ly.scores, width: 200, height: 45, label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('HighScores') },
-      { x: width / 2, y: height * ly.settings, width: 200, height: 45, label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
+      { x: width / 2, y: height * ly.play, width: 200, height: playH, label: 'PLAY', fontSize: compact ? '18px' : '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.startGame() },
+      { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('HighScores') },
+      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Achievements') },
+      { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
     ]);
 
     // Controls hint
@@ -294,20 +304,24 @@ export class MainMenuScene extends Phaser.Scene {
     this.seedInput.style.top = `${y}px`;
   }
 
-  private computeLayout(height: number): void {
-    const startY = height * 0.45;
-    const endY = height * 0.97;
+  private computeLayout(height: number, contentTop: number): void {
+    const startY = contentTop;
+    const endY = height - 6;
     const avail = endY - startY;
 
     const keys: (keyof typeof this.layoutFracs)[] = this.isDebug
-      ? ['seed', 'play', 'endless', 'debugLevel', 'debugTime', 'scores', 'settings', 'hint']
-      : ['seed', 'play', 'endless', 'scores', 'settings', 'hint'];
+      ? ['seed', 'play', 'endless', 'debugLevel', 'debugTime', 'scores', 'achievements', 'settings', 'hint']
+      : ['seed', 'play', 'endless', 'scores', 'achievements', 'settings', 'hint'];
+
+    const compact = height < 520;
+    const btnH = compact ? 32 : 40;
+    const playH = compact ? 38 : 46;
     const heights = this.isDebug
-      ? [28, 50, 22, 22, 22, 45, 45, 16]
-      : [28, 50, 22, 45, 45, 16];
+      ? [20, playH, 18, 18, 18, btnH, btnH, btnH, 12]
+      : [20, playH, 18, btnH, btnH, btnH, 12];
 
     const totalItemH = heights.reduce((s, h) => s + h, 0);
-    const minGap = 4;
+    const minGap = 2;
     const totalMinGap = minGap * (keys.length - 1);
     const extra = Math.max(0, avail - totalItemH - totalMinGap);
     const gap = minGap + extra / (keys.length - 1);

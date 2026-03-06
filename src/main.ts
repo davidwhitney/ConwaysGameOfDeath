@@ -10,6 +10,7 @@ import { ReviveScene } from './scenes/Revive';
 import { GameOverScene } from './scenes/GameOver';
 import { HighScoresScene } from './scenes/HighScores';
 import { SettingsScene } from './scenes/Settings';
+import { AchievementsScene } from './scenes/Achievements';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -28,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, IntroScene, MainMenuScene, SettingsScene, GameScene, HUDScene, LevelUpScene, PauseScene, ReviveScene, GameOverScene, HighScoresScene],
+  scene: [BootScene, IntroScene, MainMenuScene, SettingsScene, AchievementsScene, GameScene, HUDScene, LevelUpScene, PauseScene, ReviveScene, GameOverScene, HighScoresScene],
   render: {
     pixelArt: false,
     antialias: true,

@@ -24,6 +24,7 @@ export interface ScoreEntry {
 export interface SaveData {
   settings: Settings;
   highScores: ScoreEntry[];
+  achievements?: string[];
 }
 
 const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'random', musicVolume: 0.5, sfxEnabled: true, sfxVolume: 0.5 };
@@ -36,11 +37,12 @@ export function loadSave(): SaveData {
       return {
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
         highScores: Array.isArray(parsed.highScores) ? parsed.highScores : [],
+        achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
       };
     }
     return migrate();
   } catch {
-    return { settings: { ...DEFAULT_SETTINGS }, highScores: [] };
+    return { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [] };
   }
 }
 
@@ -68,7 +70,7 @@ export function clearAllData(): void {
 
 /** Migrate legacy per-key storage into the unified blob. */
 function migrate(): SaveData {
-  const data: SaveData = { settings: { ...DEFAULT_SETTINGS }, highScores: [] };
+  const data: SaveData = { settings: { ...DEFAULT_SETTINGS }, highScores: [], achievements: [] };
   try {
     const raw = localStorage.getItem('cgod-settings');
     if (raw) data.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
@@ -86,4 +88,23 @@ function migrate(): SaveData {
     localStorage.removeItem('cgod-highscores');
   }
   return data;
+}
+
+export function unlockAchievement(id: string): boolean {
+  const data = loadSave();
+  const list = data.achievements ?? [];
+  if (list.includes(id)) return false;
+  list.push(id);
+  data.achievements = list;
+  writeSave(data);
+  return true;
+}
+
+export function hasAchievement(id: string): boolean {
+  const data = loadSave();
+  return (data.achievements ?? []).includes(id);
+}
+
+export function getAchievements(): string[] {
+  return loadSave().achievements ?? [];
 }

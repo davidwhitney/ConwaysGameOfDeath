@@ -17,6 +17,7 @@ export interface GameEventMap {
   'clear-gems': [];
   'revive-accept': [];
   'revive-decline': [];
+  'achievement': [id: string];
 }
 
 type GameEventName = keyof GameEventMap;

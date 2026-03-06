@@ -92,11 +92,11 @@ export class GameWorldSystem implements GameSystem {
     this.evolutionTimer += ctx.time.deltaMs * evoSpeed;
     if (this.evolutionTimer >= MAP_EVOLUTION_INTERVAL_MS) {
       this.evolutionTimer -= MAP_EVOLUTION_INTERVAL_MS;
-      this.evolve(ctx.player);
+      this.evolve(ctx.player, evoSpeed);
     }
   }
 
-  private evolve(player: Player): void {
+  private evolve(player: Player, evoSpeed: number): void {
     iterateMap(this.map, player.state.x, player.state.y);
 
     const safe = ensureWalkable(this.map, player.state.x, player.state.y);
@@ -105,7 +105,13 @@ export class GameWorldSystem implements GameSystem {
     player.sprite.setPosition(safe.x, safe.y);
 
     this.mapRenderer.invalidate();
-    GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.01);
+
+    // Skip screen shake when evolution is fast enough to be routine
+    if (evoSpeed <= 3) {
+      const intensity = evoSpeed <= 1.5 ? 0.01 : 0.01 * (3 - evoSpeed) / 1.5;
+      GameEvents.emit(this.scene.events, 'screen-shake', 300, intensity);
+    }
+
     GameEvents.highlight('map-evolve');
 
     // Housekeeping: chance to clear enemies on map evolution
