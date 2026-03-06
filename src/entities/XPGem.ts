@@ -10,9 +10,9 @@ const SCATTER_SPEED = 120;
 /** Max active gems before culling the furthest */
 const MAX_GEMS = 1000;
 /** Merge radius — gems within this distance merge on spawn */
-const MERGE_RADIUS_SQ = 20 * 20;
+const MERGE_RADIUS_SQ = 40 * 40;
 /** Number of overlapping gems required to trigger a merge */
-const MERGE_THRESHOLD = 5;
+const MERGE_THRESHOLD = 3;
 
 export type GemKind = 'xp' | 'heal' | 'gold' | 'vortex';
 
