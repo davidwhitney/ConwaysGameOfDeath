@@ -44,6 +44,11 @@ export class Enemy {
   private slowUntil: number = 0;
   knockbackImmuneUntil: number = 0;
 
+  /** Poison DoT: damage per tick, ticks remaining, tick interval timer */
+  private poisonDps: number = 0;
+  private poisonUntil: number = 0;
+  private poisonTickTimer: number = 0;
+
   /** Timestamp-based tint clearing (replaces delayedCall) */
   private tintUntil: number = 0;
 
@@ -104,6 +109,9 @@ export class Enemy {
     this.tintUntil = this.scene.time.now + SPAWN_FLASH_MS;
 
     this.knockbackImmuneUntil = 0;
+    this.poisonDps = 0;
+    this.poisonUntil = 0;
+    this.poisonTickTimer = 0;
 
     this.orbitAngle = Math.random() * Math.PI * 2;
     this.teleportTimer = 2000 + Math.random() * 3000;
@@ -121,6 +129,12 @@ export class Enemy {
   applySlow(factor: number, durationMs: number): void {
     this.slowFactor = Math.min(this.slowFactor, factor);
     this.slowUntil = Math.max(this.slowUntil, this.scene.time.now + durationMs);
+  }
+
+  /** Apply a poison DoT. Stacks refresh duration and take the max DPS. */
+  applyPoison(dps: number, durationMs: number): void {
+    this.poisonDps = Math.max(this.poisonDps, dps);
+    this.poisonUntil = Math.max(this.poisonUntil, this.scene.time.now + durationMs);
   }
 
   /** @param despawnRangeSq squared despawn distance (avoids sqrt) */
@@ -142,6 +156,24 @@ export class Enemy {
     // Apply slow effect
     if (now >= this.slowUntil) this.slowFactor = 1;
     const effectiveDt = dt * this.slowFactor;
+
+    // Process poison DoT
+    if (this.poisonDps > 0 && now < this.poisonUntil) {
+      this.poisonTickTimer += dt * 1000;
+      if (this.poisonTickTimer >= 250) {
+        this.poisonTickTimer -= 250;
+        const dmg = Math.max(1, Math.floor(this.poisonDps * 0.25));
+        this.state.hp -= dmg;
+        this.sprite.setTint(0x88aa22);
+        this.tintUntil = now + 100;
+        if (this.state.hp <= 0) {
+          this.deactivate();
+          return false;
+        }
+      }
+    } else if (this.poisonDps > 0) {
+      this.poisonDps = 0;
+    }
 
     switch (this.def.behavior) {
       case 'chase':

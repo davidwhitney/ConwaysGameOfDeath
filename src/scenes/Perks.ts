@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import { monoStyle, BTN_PRIMARY, BTN_SECONDARY, BTN_WARNING } from '../ui/textStyles';
+import { monoStyle, BTN_PRIMARY, BTN_WARNING } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 import { getAchievements, loadPerks, savePerks } from '../ui/saveData';
 import { PERK_DEFS, totalPointsSpent, type PerkAllocation } from '../perks';
 import { InputSystem } from '../systems/InputSystem';
+import { ScrollableList } from '../ui/ScrollableList';
 
 const ROW_H = 48;
 const DOT_SIZE = 8;
@@ -15,10 +16,7 @@ export class PerksScene extends Phaser.Scene {
   private alloc!: PerkAllocation;
   private totalPoints = 0;
   private spentPoints = 0;
-  private scrollContainer!: Phaser.GameObjects.Container;
-  private scrollY = 0;
-  private maxScroll = 0;
-  private listTop = 0;
+  private scrollList!: ScrollableList;
   private pointsText!: Phaser.GameObjects.Text;
   private perkRows: PerkRow[] = [];
   private selectedRow = 0;
@@ -46,15 +44,9 @@ export class PerksScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     // Scrollable perk list
-    this.listTop = height * 0.18;
+    const listTop = height * 0.18;
     const listBottom = height * 0.80;
-    const listH = listBottom - this.listTop;
-
-    this.scrollContainer = this.add.container(0, this.listTop);
-
-    const contentH = PERK_DEFS.length * ROW_H;
-    this.maxScroll = Math.max(0, contentH - listH);
-    this.scrollY = 0;
+    this.scrollList = new ScrollableList(this, listTop, listBottom, PERK_DEFS.length * ROW_H, ROW_H);
     this.perkRows = [];
     this.selectedRow = 0;
 
@@ -62,34 +54,8 @@ export class PerksScene extends Phaser.Scene {
       const def = PERK_DEFS[i];
       const y = i * ROW_H + ROW_H / 2;
       const currentLevel = this.alloc[def.id] ?? 0;
-
-      const row = this.buildPerkRow(width, y, def.id, def.name, def.description, def.maxLevel, currentLevel, def.levelDesc);
-      this.perkRows.push(row);
+      this.perkRows.push(this.buildPerkRow(width, y, def.id, def.name, def.description, def.maxLevel, currentLevel, def.levelDesc));
     }
-
-    // Clip mask
-    const maskShape = this.add.rectangle(width / 2, this.listTop + listH / 2, width, listH, 0x000000).setVisible(false);
-    this.scrollContainer.setMask(maskShape.createGeometryMask());
-
-    // Mouse wheel scroll
-    this.input.on('wheel', (_p: unknown, _go: unknown[], _dx: number, dy: number) => {
-      this.scrollY = Phaser.Math.Clamp(this.scrollY + dy * 0.5, 0, this.maxScroll);
-      this.scrollContainer.y = this.listTop - this.scrollY;
-    });
-
-    // Touch drag scroll
-    let dragStartY = 0;
-    let dragStartScroll = 0;
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      dragStartY = pointer.y;
-      dragStartScroll = this.scrollY;
-    });
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.isDown) return;
-      const dy = dragStartY - pointer.y;
-      this.scrollY = Phaser.Math.Clamp(dragStartScroll + dy, 0, this.maxScroll);
-      this.scrollContainer.y = this.listTop - this.scrollY;
-    });
 
     // Bottom buttons
     const btnY = height * 0.86;
@@ -100,7 +66,6 @@ export class PerksScene extends Phaser.Scene {
       { x: width / 2 + 100, y: btnY, width: 160, height: btnH, label: 'BACK', fontSize: btnFont, ...BTN_PRIMARY, action: () => this.goBack() },
     ], () => this.goBack());
 
-    // Hint
     this.add.text(width / 2, height * 0.94,
       'LEFT/RIGHT or click dots to allocate  |  Perks apply next run',
       monoStyle('10px', '#555577'),
@@ -109,29 +74,15 @@ export class PerksScene extends Phaser.Scene {
 
   update(): void {
     this.menuNav.update();
+    this.scrollList.updateScroll();
 
     const input = InputSystem.current;
-
-    // Keyboard/gamepad scroll
-    if (input.scrollY !== 0) {
-      this.scrollY = Phaser.Math.Clamp(this.scrollY + input.scrollY * ROW_H, 0, this.maxScroll);
-      this.scrollContainer.y = this.listTop - this.scrollY;
-    }
 
     // Keyboard/gamepad nav for perk rows
     if (input.nav.y !== 0) {
       this.selectedRow = Phaser.Math.Clamp(this.selectedRow + input.nav.y, 0, PERK_DEFS.length - 1);
       this.updateHighlight();
-      // Auto-scroll to keep selected visible
-      const rowTop = this.selectedRow * ROW_H;
-      const listH = (this.cameras.main.height * 0.80) - (this.cameras.main.height * 0.18);
-      if (rowTop < this.scrollY) {
-        this.scrollY = rowTop;
-      } else if (rowTop + ROW_H > this.scrollY + listH) {
-        this.scrollY = rowTop + ROW_H - listH;
-      }
-      this.scrollY = Phaser.Math.Clamp(this.scrollY, 0, this.maxScroll);
-      this.scrollContainer.y = this.listTop - this.scrollY;
+      this.scrollList.scrollToRow(this.selectedRow);
     }
 
     // Left/right to adjust selected perk
@@ -154,37 +105,25 @@ export class PerksScene extends Phaser.Scene {
   ): PerkRow {
     const nameX = width * 0.05;
     const dotsX = width * 0.55;
+    const container = this.scrollList.container;
 
-    // Highlight bg (for keyboard nav)
-    const highlightBg = this.add.rectangle(width / 2, y, width - 20, ROW_H - 4, 0x333366, 0)
-      .setOrigin(0.5);
-    this.scrollContainer.add(highlightBg);
+    const highlightBg = this.add.rectangle(width / 2, y, width - 20, ROW_H - 4, 0x333366, 0).setOrigin(0.5);
+    container.add(highlightBg);
 
-    // Name
-    const nameText = this.add.text(nameX, y - 8, name,
-      monoStyle('14px', '#ccccee'),
-    ).setOrigin(0, 0.5);
-    this.scrollContainer.add(nameText);
-
-    // Description
-    const descText = this.add.text(nameX, y + 10, description,
-      monoStyle('10px', '#666688'),
-    ).setOrigin(0, 0.5);
-    this.scrollContainer.add(descText);
+    container.add(this.add.text(nameX, y - 8, name, monoStyle('14px', '#ccccee')).setOrigin(0, 0.5));
+    container.add(this.add.text(nameX, y + 10, description, monoStyle('10px', '#666688')).setOrigin(0, 0.5));
 
     // Level dots
     const dots: Phaser.GameObjects.Rectangle[] = [];
     for (let i = 0; i < maxLevel; i++) {
       const dx = dotsX + i * (DOT_SIZE + DOT_GAP);
-      const filled = i < currentLevel;
       const dot = this.add.rectangle(dx, y - 4, DOT_SIZE, DOT_SIZE,
-        filled ? 0x44ff44 : 0x444466,
+        i < currentLevel ? 0x44ff44 : 0x444466,
       ).setInteractive({ useHandCursor: true });
       dot.on('pointerdown', () => {
         const cur = this.alloc[id] ?? 0;
         const targetLevel = i + 1;
         if (targetLevel === cur) {
-          // Click same level = remove it
           this.setPerkLevel(id, targetLevel - 1);
         } else if (targetLevel > cur && this.spentPoints + (targetLevel - cur) <= this.totalPoints) {
           this.setPerkLevel(id, targetLevel);
@@ -192,41 +131,32 @@ export class PerksScene extends Phaser.Scene {
           this.setPerkLevel(id, targetLevel);
         }
       });
-      this.scrollContainer.add(dot);
+      container.add(dot);
       dots.push(dot);
     }
 
-    // Level description text
-    const lvlDescText = this.add.text(
-      dotsX, y + 10,
+    const lvlDescText = this.add.text(dotsX, y + 10,
       currentLevel > 0 ? levelDesc[currentLevel - 1] : '',
       monoStyle('10px', '#44ff44'),
     ).setOrigin(0, 0.5);
-    this.scrollContainer.add(lvlDescText);
+    container.add(lvlDescText);
 
-    // Minus/plus buttons
-    const minusBtnX = dotsX - 28;
-    const plusBtnX = dotsX + maxLevel * (DOT_SIZE + DOT_GAP) + 16;
-
-    const minusBtn = this.add.text(minusBtnX, y - 4, '-',
-      monoStyle('18px', '#ff8888', { fontStyle: 'bold' }),
-    ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // +/- buttons
+    const minusBtn = this.add.text(dotsX - 28, y - 4, '-', monoStyle('18px', '#ff8888', { fontStyle: 'bold' }))
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
     minusBtn.on('pointerdown', () => {
       const cur = this.alloc[id] ?? 0;
       if (cur > 0) this.setPerkLevel(id, cur - 1);
     });
-    this.scrollContainer.add(minusBtn);
+    container.add(minusBtn);
 
-    const plusBtn = this.add.text(plusBtnX, y - 4, '+',
-      monoStyle('18px', '#44ff44', { fontStyle: 'bold' }),
-    ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const plusBtn = this.add.text(dotsX + maxLevel * (DOT_SIZE + DOT_GAP) + 16, y - 4, '+', monoStyle('18px', '#44ff44', { fontStyle: 'bold' }))
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
     plusBtn.on('pointerdown', () => {
       const cur = this.alloc[id] ?? 0;
-      if (cur < maxLevel && this.spentPoints < this.totalPoints) {
-        this.setPerkLevel(id, cur + 1);
-      }
+      if (cur < maxLevel && this.spentPoints < this.totalPoints) this.setPerkLevel(id, cur + 1);
     });
-    this.scrollContainer.add(plusBtn);
+    container.add(plusBtn);
 
     return { id, dots, lvlDescText, highlightBg, maxLevel };
   }
@@ -245,7 +175,6 @@ export class PerksScene extends Phaser.Scene {
     if (!row) return;
     const level = this.alloc[id] ?? 0;
     const def = PERK_DEFS.find(p => p.id === id)!;
-
     for (let i = 0; i < row.dots.length; i++) {
       row.dots[i].setFillStyle(i < level ? 0x44ff44 : 0x444466);
     }
@@ -262,15 +191,11 @@ export class PerksScene extends Phaser.Scene {
   }
 
   private refundAll(): void {
-    for (const key of Object.keys(this.alloc)) {
-      this.alloc[key] = 0;
-    }
+    for (const key of Object.keys(this.alloc)) this.alloc[key] = 0;
     this.spentPoints = 0;
     this.pointsText.setText(this.pointsLabel());
     savePerks(this.alloc);
-    for (const row of this.perkRows) {
-      this.refreshRow(row.id);
-    }
+    for (const row of this.perkRows) this.refreshRow(row.id);
   }
 
   private pointsLabel(): string {

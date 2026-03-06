@@ -7,7 +7,7 @@ import type { Enemy } from '../../entities/Enemy';
 import type { ActiveEffect } from './ActiveEffect';
 import type { WeaponContext } from './WeaponContext';
 
-interface ActiveAoE extends ActiveEffect {
+export interface ActiveAoE extends ActiveEffect {
   tickTimer: number;
 }
 
