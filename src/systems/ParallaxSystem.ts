@@ -20,6 +20,8 @@ export class ParallaxSystem implements GameSystem {
   private fgGfx: Phaser.GameObjects.Graphics;
   private bgDots: ParallaxDot[];
   private fgDots: ParallaxDot[];
+  private lastScrollX = -Infinity;
+  private lastScrollY = -Infinity;
 
   private static readonly BG_SCROLL = 0.5;
   private static readonly FG_SCROLL = 1.3;
@@ -62,6 +64,10 @@ export class ParallaxSystem implements GameSystem {
 
   update(ctx: UpdateContext): void {
     const cam = ctx.player.sprite.scene.cameras.main;
+    // Skip redraw when camera hasn't moved
+    if (cam.scrollX === this.lastScrollX && cam.scrollY === this.lastScrollY) return;
+    this.lastScrollX = cam.scrollX;
+    this.lastScrollY = cam.scrollY;
     this.drawLayer(this.bgGfx, this.bgDots, cam, ParallaxSystem.BG_SCROLL, ParallaxSystem.BG_REGION);
     this.drawLayer(this.fgGfx, this.fgDots, cam, ParallaxSystem.FG_SCROLL, ParallaxSystem.FG_REGION);
   }

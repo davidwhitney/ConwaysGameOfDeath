@@ -23,6 +23,7 @@ export class BaseMeleeWeapon extends BaseEffectWeapon<ActiveMelee> {
     const dmgMul = player.getDamageMultiplier();
 
     for (let i = 0; i < stats.amount; i++) {
+      if (!this.canAddEffect()) break;
       const angle = Math.atan2(player.facingY, player.facingX) + (i - (stats.amount - 1) / 2) * 0.5;
 
       this.effects.push({
@@ -34,15 +35,13 @@ export class BaseMeleeWeapon extends BaseEffectWeapon<ActiveMelee> {
         duration: stats.duration * player.getDurationMultiplier(),
         age: 0,
         hitEnemies: new Set(),
-        gfx: this.pool.acquire(),
       });
     }
   }
 
   protected updateEffect(m: ActiveMelee, _dt: number, player: Player): void {
     const alpha = 1 - m.age / m.duration;
-    m.gfx.clear();
-    drawEffectCircle(m.gfx, m.x, m.y, m.radius * alpha, this.def.color, alpha * 0.4, alpha * 0.7);
+    drawEffectCircle(this.sharedGfx, m.x, m.y, m.radius * alpha, this.def.color, alpha * 0.4, alpha * 0.7);
 
     const enemies = this.ctx.enemyPool.getEnemiesInRadius(m.x, m.y, m.radius);
     for (const enemy of enemies) {

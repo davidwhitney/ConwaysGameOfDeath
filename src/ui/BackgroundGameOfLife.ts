@@ -62,11 +62,11 @@ export class BackgroundGameOfLife {
 
   private draw(): void {
     this.gfx.clear();
+    this.gfx.fillStyle(FILL_COLOR, FILL_ALPHA);
     const { cols, rows, cells } = this;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         if (cells[y * cols + x]) {
-          this.gfx.fillStyle(FILL_COLOR, FILL_ALPHA);
           this.gfx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
         }
       }

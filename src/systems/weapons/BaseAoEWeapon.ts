@@ -37,6 +37,7 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
     const auraMul = player.getAuraMultiplier();
 
     for (let i = 0; i < stats.amount; i++) {
+      if (!this.canAddEffect()) break;
       const target = this.pickTarget(player);
 
       this.effects.push({
@@ -48,7 +49,6 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
         duration: Math.max(stats.duration * player.getDurationMultiplier(), 300),
         age: 0,
         tickTimer: 0,
-        gfx: this.pool.acquire(),
       });
     }
   }
@@ -56,8 +56,7 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
   protected updateEffect(a: ActiveAoE, dt: number, player: Player): void {
     const progress = a.age / a.duration;
     const alpha = progress < 0.1 ? progress * 10 : (progress > 0.8 ? (1 - progress) * 5 : 1);
-    a.gfx.clear();
-    drawEffectCircle(a.gfx, a.x, a.y, a.radius, this.def.color, alpha * 0.35, alpha * 0.6);
+    drawEffectCircle(this.sharedGfx, a.x, a.y, a.radius, this.def.color, alpha * 0.35, alpha * 0.6);
 
     a.tickTimer += dt * 1000;
     if (a.tickTimer >= WEAPON_TICK_INTERVAL_MS) {

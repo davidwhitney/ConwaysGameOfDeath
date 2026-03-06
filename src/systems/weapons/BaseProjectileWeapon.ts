@@ -140,6 +140,9 @@ export class BaseProjectileWeapon extends BaseWeapon {
     const gfx = this.ensureTrailGfx();
     gfx.clear();
 
+    const view = this.ctx.scene.cameras.main.worldView;
+    const pad = 80;
+
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.age += dt * 1000;
@@ -157,9 +160,14 @@ export class BaseProjectileWeapon extends BaseWeapon {
         continue;
       }
 
+      // Check if on-screen for rendering (still do collision regardless)
+      const onScreen = p.x >= view.x - pad && p.x <= view.right + pad &&
+                       p.y >= view.y - pad && p.y <= view.bottom + pad;
+
       p.sprite.setPosition(p.x, p.y);
       p.sprite.setRotation(Math.atan2(p.vy, p.vx));
-      this.drawTrail(gfx, p);
+      p.sprite.setVisible(onScreen);
+      if (onScreen) this.drawTrail(gfx, p);
 
       const enemies = this.ctx.enemyPool.getEnemiesInRadius(p.x, p.y, p.radius + 20);
       for (const enemy of enemies) {

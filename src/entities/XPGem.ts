@@ -117,6 +117,10 @@ export class XPGemPool {
     let vortex = 0;
     const magnetRange = pickupRange * 3;
 
+    const cam = this.scene.cameras.main;
+    const view = cam.worldView;
+    const pad = 60;
+    let anyTrailDrawn = false;
     this.trailGfx.clear();
 
     for (let i = this.active.length - 1; i >= 0; i--) {
@@ -155,18 +159,22 @@ export class XPGemPool {
           gem.y += (dy / len) * speed * dt;
           gem.sprite.setPosition(gem.x, gem.y);
 
-          // Magnetism trail streak
-          const trailColor = GEM_TRAIL_COLORS[gem.kind];
-          const nx = -dx / len;
-          const ny = -dy / len;
-          for (let ti = 1; ti <= 3; ti++) {
-            const tt = ti / 3;
-            drawGlowCircle(
-              this.trailGfx,
-              gem.x + nx * ti * 6, gem.y + ny * ti * 6,
-              3 * (1 - tt * 0.5), trailColor, (1 - tt) * 0.35,
-              2.0, 0.3, false,
-            );
+          // Magnetism trail streak (skip if off-screen)
+          if (gem.x >= view.x - pad && gem.x <= view.right + pad &&
+              gem.y >= view.y - pad && gem.y <= view.bottom + pad) {
+            anyTrailDrawn = true;
+            const trailColor = GEM_TRAIL_COLORS[gem.kind];
+            const nx = -dx / len;
+            const ny = -dy / len;
+            for (let ti = 1; ti <= 3; ti++) {
+              const tt = ti / 3;
+              drawGlowCircle(
+                this.trailGfx,
+                gem.x + nx * ti * 6, gem.y + ny * ti * 6,
+                3 * (1 - tt * 0.5), trailColor, (1 - tt) * 0.35,
+                2.0, 0.3, false,
+              );
+            }
           }
         }
       }

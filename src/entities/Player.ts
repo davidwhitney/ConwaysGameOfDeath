@@ -262,6 +262,7 @@ export class Player {
     } else {
       this.trailTimer = 0;
     }
+    if (this.trailPositions.length === 0) return;
     this.trailGfx.clear();
     const len = this.trailPositions.length;
     for (let i = 0; i < len - 1; i++) { // skip last (it's under the player)

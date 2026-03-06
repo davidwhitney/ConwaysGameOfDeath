@@ -8,6 +8,12 @@ import { applyUIZoom } from '../ui/uiScale';
 
 const SLOT_SIZE = 32;
 const SLOT_GAP = 4;
+const TOTAL_SLOTS = MAX_WEAPONS + MAX_EFFECTS;
+
+interface SlotLabel {
+  name: Phaser.GameObjects.Text;
+  level: Phaser.GameObjects.Text;
+}
 
 export class HUDScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
@@ -20,9 +26,16 @@ export class HUDScene extends Phaser.Scene {
   private goldText!: Phaser.GameObjects.Text;
   private seedText!: Phaser.GameObjects.Text;
   private inventoryGfx!: Phaser.GameObjects.Graphics;
-  private inventoryTexts: Phaser.GameObjects.Text[] = [];
+  private slotLabels: SlotLabel[] = [];
   private seed: number = 0;
   private invBounds = { x: 0, y: 0, w: 0, h: 0 };
+
+  // Dirty tracking to avoid redraws when nothing changed
+  private lastHp = -1;
+  private lastMaxHp = -1;
+  private lastXp = -1;
+  private lastXpToNext = -1;
+  private lastInvKey = '';
 
   constructor() {
     super({ key: 'HUD' });
@@ -97,6 +110,28 @@ export class HUDScene extends Phaser.Scene {
       strokeThickness: 1,
     }).setOrigin(0.5, 0);
 
+    // Pre-create text labels for all inventory slots
+    for (let i = 0; i < TOTAL_SLOTS; i++) {
+      const name = this.add.text(0, 0, '', {
+        fontSize: '8px',
+        fontFamily: 'monospace',
+        color: '#aaaacc',
+        stroke: '#000000',
+        strokeThickness: 1,
+      }).setOrigin(0.5, 1).setVisible(false);
+
+      const level = this.add.text(0, 0, '', {
+        fontSize: '10px',
+        fontFamily: 'monospace',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2,
+      }).setOrigin(1, 1).setVisible(false);
+
+      this.slotLabels.push({ name, level });
+    }
+
     // Tap inventory area on touch devices to pause
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.wasTouch) return;
@@ -112,25 +147,33 @@ export class HUDScene extends Phaser.Scene {
   updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number): void {
     const { width, height } = applyUIZoom(this);
 
-    // HP bar
-    const hpPct = player.hp / player.maxHp;
-    this.hpBar.clear();
-    this.hpBar.fillStyle(0x333333, 0.8);
-    this.hpBar.fillRect(10, 24, 200, 8);
-    const hpColor = hpPct > 0.5 ? 0x44ff44 : hpPct > 0.25 ? 0xffcc00 : 0xff4444;
-    this.hpBar.fillStyle(hpColor, 1);
-    this.hpBar.fillRect(10, 24, 200 * hpPct, 8);
-    this.hpText.setText(`HP: ${Math.ceil(player.hp)}/${player.maxHp}`);
+    // HP bar — only redraw when values change
+    if (player.hp !== this.lastHp || player.maxHp !== this.lastMaxHp) {
+      this.lastHp = player.hp;
+      this.lastMaxHp = player.maxHp;
+      const hpPct = player.hp / player.maxHp;
+      this.hpBar.clear();
+      this.hpBar.fillStyle(0x333333, 0.8);
+      this.hpBar.fillRect(10, 24, 200, 8);
+      const hpColor = hpPct > 0.5 ? 0x44ff44 : hpPct > 0.25 ? 0xffcc00 : 0xff4444;
+      this.hpBar.fillStyle(hpColor, 1);
+      this.hpBar.fillRect(10, 24, 200 * hpPct, 8);
+      this.hpText.setText(`HP: ${Math.ceil(player.hp)}/${player.maxHp}`);
+    }
 
-    // XP bar (full width, pinned to very bottom)
-    const xpBarH = 8;
-    const xpPct = player.xpToNext > 0 ? player.xp / player.xpToNext : 0;
-    this.xpBar.clear();
-    const xpBarY = height - xpBarH;
-    this.xpBar.fillStyle(0x333333, 0.6);
-    this.xpBar.fillRect(0, xpBarY, width, xpBarH);
-    this.xpBar.fillStyle(0x00ccff, 1);
-    this.xpBar.fillRect(0, xpBarY, width * xpPct, xpBarH);
+    // XP bar — only redraw when values change
+    if (player.xp !== this.lastXp || player.xpToNext !== this.lastXpToNext) {
+      this.lastXp = player.xp;
+      this.lastXpToNext = player.xpToNext;
+      const xpBarH = 8;
+      const xpPct = player.xpToNext > 0 ? player.xp / player.xpToNext : 0;
+      this.xpBar.clear();
+      const xpBarY = height - xpBarH;
+      this.xpBar.fillStyle(0x333333, 0.6);
+      this.xpBar.fillRect(0, xpBarY, width, xpBarH);
+      this.xpBar.fillStyle(0x00ccff, 1);
+      this.xpBar.fillRect(0, xpBarY, width * xpPct, xpBarH);
+    }
 
     // Level
     this.levelText.setText(`Lv ${player.level}`);
@@ -154,16 +197,24 @@ export class HUDScene extends Phaser.Scene {
     // Gold (only show once player has some)
     this.goldText.setText(player.gold > 0 ? `Gold: ${player.gold}` : '');
 
-    // Inventory bar
-    this.drawInventory(player.weapons, player.effects, width, height);
+    // Inventory bar — only redraw when contents change
+    const invKey = this.computeInvKey(player.weapons, player.effects);
+    if (invKey !== this.lastInvKey) {
+      this.lastInvKey = invKey;
+      this.drawInventory(player.weapons, player.effects, width, height);
+    }
+  }
+
+  private computeInvKey(weapons: WeaponInstance[], effects: EffectInstance[]): string {
+    let key = '';
+    for (const w of weapons) key += `${w.type}:${w.level},`;
+    key += '|';
+    for (const e of effects) key += `${e.type}:${e.level},`;
+    return key;
   }
 
   private drawInventory(weapons: WeaponInstance[], effects: EffectInstance[], screenW: number, screenH: number): void {
     this.inventoryGfx.clear();
-
-    // Remove old labels
-    for (const t of this.inventoryTexts) t.destroy();
-    this.inventoryTexts = [];
 
     // 6x2 grid: weapons on top row, effects on bottom row (always show all slots)
     const COLS = 6;
@@ -182,15 +233,18 @@ export class HUDScene extends Phaser.Scene {
       h: (rowBottom + SLOT_SIZE) - (rowTop - 12) + pad * 2,
     };
 
+    let slotIdx = 0;
+
     // Draw all weapon slots (top row)
     for (let i = 0; i < MAX_WEAPONS; i++) {
       const x = startX + i * (SLOT_SIZE + SLOT_GAP);
       if (i < weapons.length) {
         const def = WEAPON_DEFS[weapons[i].type];
-        this.drawSlot(x, rowTop, def.color, def.name, weapons[i].level);
+        this.drawSlot(x, rowTop, def.color, def.name, weapons[i].level, slotIdx);
       } else {
-        this.drawEmptySlot(x, rowTop);
+        this.drawEmptySlot(x, rowTop, slotIdx);
       }
+      slotIdx++;
     }
 
     // Draw all effect slots (bottom row)
@@ -198,21 +252,27 @@ export class HUDScene extends Phaser.Scene {
       const x = startX + i * (SLOT_SIZE + SLOT_GAP);
       if (i < effects.length) {
         const def = EFFECT_DEFS[effects[i].type];
-        this.drawSlot(x, rowBottom, def.color, def.name, effects[i].level);
+        this.drawSlot(x, rowBottom, def.color, def.name, effects[i].level, slotIdx);
       } else {
-        this.drawEmptySlot(x, rowBottom);
+        this.drawEmptySlot(x, rowBottom, slotIdx);
       }
+      slotIdx++;
     }
   }
 
-  private drawEmptySlot(x: number, y: number): void {
+  private drawEmptySlot(x: number, y: number, slotIdx: number): void {
     this.inventoryGfx.fillStyle(0x111122, 0.4);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
     this.inventoryGfx.lineStyle(1, 0x333344, 0.6);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
+
+    // Hide labels for empty slots
+    const labels = this.slotLabels[slotIdx];
+    labels.name.setVisible(false);
+    labels.level.setVisible(false);
   }
 
-  private drawSlot(x: number, y: number, color: number, name: string, level: number): void {
+  private drawSlot(x: number, y: number, color: number, name: string, level: number, slotIdx: number): void {
     // Background
     this.inventoryGfx.fillStyle(0x111122, 0.85);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
@@ -225,25 +285,9 @@ export class HUDScene extends Phaser.Scene {
     this.inventoryGfx.lineStyle(1, 0x555577, 1);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
 
-    // Level number
-    const lvlText = this.add.text(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2, `${level}`, {
-      fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(1, 1);
-    this.inventoryTexts.push(lvlText);
-
-    // Name abbreviation (first 3 chars)
-    const label = this.add.text(x + SLOT_SIZE / 2, y - 2, name.slice(0, 3).toUpperCase(), {
-      fontSize: '8px',
-      fontFamily: 'monospace',
-      color: '#aaaacc',
-      stroke: '#000000',
-      strokeThickness: 1,
-    }).setOrigin(0.5, 1);
-    this.inventoryTexts.push(label);
+    // Reuse pre-created text labels
+    const labels = this.slotLabels[slotIdx];
+    labels.level.setText(`${level}`).setPosition(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2).setVisible(true);
+    labels.name.setText(name.slice(0, 3).toUpperCase()).setPosition(x + SLOT_SIZE / 2, y - 2).setVisible(true);
   }
 }

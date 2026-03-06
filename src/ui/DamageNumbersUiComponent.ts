@@ -32,6 +32,13 @@ export class DamageNumbersUiComponent {
   }
 
   show(x: number, y: number, damage: number, color: string = '#ffffff', crit: boolean = false): void {
+    // Cap on-screen numbers — recycle the oldest if at limit
+    if (this.active.length >= POOL_SIZE && this.pool.length === 0) {
+      const oldest = this.active.shift()!;
+      oldest.text.setVisible(false);
+      oldest.text.setPosition(-1000, -1000);
+      this.pool.push(oldest.text);
+    }
     const text = this.pool.length > 0 ? this.pool.pop()! : this.createText();
 
     text.setText(damage.toString());

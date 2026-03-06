@@ -13,16 +13,34 @@ import { GameEvents } from './GameEvents';
 import { Colors } from '../colors';
 import { drawGlowCircle } from './weapons/GfxPool';
 
+const MAX_BURSTS = 100;
+
+interface BurstParticle {
+  ax: number; ay: number; dx: number; dy: number; size: number; color: number;
+}
+
+interface ActiveBurst {
+  x: number;
+  y: number;
+  elapsed: number;
+  duration: number;
+  particles: BurstParticle[];
+  boss: boolean;
+}
+
 export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
   private player: Player;
   private xpGemPool: XPGemPool;
   private kills: number = 0;
+  private burstGfx: Phaser.GameObjects.Graphics;
+  private activeBursts: ActiveBurst[] = [];
 
   constructor(scene: Phaser.Scene, player: Player) {
     this.scene = scene;
     this.player = player;
     this.xpGemPool = new XPGemPool(scene);
+    this.burstGfx = scene.add.graphics().setDepth(15);
 
     GameEvents.on(this.scene.events, 'enemy-killed', (e, w) => this.handleEnemyKilled(e, w));
 
@@ -43,6 +61,7 @@ export class LootSystem implements GameSystem {
 
   update(ctx: UpdateContext): void {
     const dt = ctx.time.delta;
+    this.updateBursts(dt);
     const gemResult = this.xpGemPool.update(
       dt, this.player.state.x, this.player.state.y, this.player.getPickupRange(),
     );
@@ -88,6 +107,8 @@ export class LootSystem implements GameSystem {
     GameEvents.off(this.scene.events, 'scatter-vortex-gem');
     GameEvents.off(this.scene.events, 'clear-gems');
     this.xpGemPool.destroy();
+    this.burstGfx.destroy();
+    this.activeBursts.length = 0;
   }
 
   private handleEnemyKilled(
@@ -135,14 +156,24 @@ export class LootSystem implements GameSystem {
   private static readonly BURST_PALETTE = Colors.effects.burstPalette;
 
   private spawnDeathBurst(x: number, y: number, _color: number, boss: boolean): void {
+    // Cap simultaneous bursts — drop oldest if at limit
+    if (this.activeBursts.length >= MAX_BURSTS) {
+      this.activeBursts.shift();
+    }
+
+    // Skip if off-screen
+    const cam = this.scene.cameras.main;
+    const view = cam.worldView;
+    if (x < view.x - 100 || x > view.right + 100 || y < view.y - 100 || y > view.bottom + 100) {
+      return;
+    }
+
     const count = boss ? 28 : 14;
     const dist = boss ? 90 : 55;
     const radius = boss ? 8 : 5;
     const palette = LootSystem.BURST_PALETTE;
 
-    const gfx = this.scene.add.graphics().setDepth(15);
-
-    const particles: { ax: number; ay: number; dx: number; dy: number; size: number; color: number }[] = [];
+    const particles: BurstParticle[] = [];
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 1.0;
       const rDist = dist * (0.3 + Math.random() * 0.7);
@@ -155,41 +186,48 @@ export class LootSystem implements GameSystem {
       });
     }
 
-    let elapsed = 0;
-    const duration = 500;
-    const onUpdate = (_time: number, delta: number) => {
-      elapsed += delta;
-      const t = Math.min(elapsed / duration, 1);
+    this.activeBursts.push({ x, y, elapsed: 0, duration: 500, particles, boss });
+  }
+
+  private updateBursts(dt: number): void {
+    if (this.activeBursts.length === 0) return;
+
+    const gfx = this.burstGfx;
+    gfx.clear();
+
+    for (let i = this.activeBursts.length - 1; i >= 0; i--) {
+      const burst = this.activeBursts[i];
+      burst.elapsed += dt * 1000;
+      const t = Math.min(burst.elapsed / burst.duration, 1);
+
+      if (t >= 1) {
+        this.activeBursts.splice(i, 1);
+        continue;
+      }
+
       const ease = 1 - (1 - t) * (1 - t);
       const alpha = 1 - t;
       const s = 1 - t * 0.4;
+      const radius = burst.boss ? 8 : 5;
 
-      gfx.clear();
-
-      // Central flash — big multicolour burst
+      // Central flash
       if (t < 0.35) {
         const flashAlpha = (1 - t / 0.35);
         const bf = Colors.effects.burstFlash;
         gfx.fillStyle(bf.white, flashAlpha * 0.8);
-        gfx.fillCircle(x, y, radius * 4 * (1 - t));
+        gfx.fillCircle(burst.x, burst.y, radius * 4 * (1 - t));
         gfx.fillStyle(bf.pink, flashAlpha * 0.4);
-        gfx.fillCircle(x, y, radius * 7 * (1 - t));
+        gfx.fillCircle(burst.x, burst.y, radius * 7 * (1 - t));
         gfx.fillStyle(bf.cyan, flashAlpha * 0.25);
-        gfx.fillCircle(x, y, radius * 10 * (1 - t));
+        gfx.fillCircle(burst.x, burst.y, radius * 10 * (1 - t));
       }
 
-      for (const p of particles) {
+      for (const p of burst.particles) {
         const px = p.ax + (p.dx - p.ax) * ease;
         const py = p.ay + (p.dy - p.ay) * ease;
         const pSize = p.size * s;
         drawGlowCircle(gfx, px, py, pSize, p.color, alpha, 2.5);
       }
-
-      if (t >= 1) {
-        this.scene.events.off('update', onUpdate);
-        gfx.destroy();
-      }
-    };
-    this.scene.events.on('update', onUpdate);
+    }
   }
 }

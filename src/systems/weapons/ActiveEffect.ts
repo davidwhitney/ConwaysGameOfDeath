@@ -6,5 +6,4 @@ export interface ActiveEffect {
   damage: number;
   duration: number;
   age: number;
-  gfx: Phaser.GameObjects.Graphics;
 }
