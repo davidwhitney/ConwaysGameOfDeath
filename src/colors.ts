@@ -93,4 +93,18 @@ export const Colors = {
     buttonBorder: 0x444477,
     aoeRing: 0xff660044,
   },
+
+  hud: {
+    hpHigh: 0x44ff44,
+    hpMid: 0xffcc00,
+    hpLow: 0xff4444,
+    hpBarBg: 0x333333,
+    xpBar: 0x00ccff,
+    xpBarBg: 0x333333,
+    slotBg: 0x111122,
+    slotBorder: 0x555577,
+    emptySlotBorder: 0x333344,
+  },
+
+  mergeTints: [0xffffff, 0xffffcc, 0xffffaa, 0xffff88, 0xffff66] as const,
 } as const;

@@ -6,6 +6,7 @@ import { GamepadNav } from '../ui/gamepadNav';
 import { GameEvents } from '../systems/GameEvents';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { InputSystem } from '../systems/InputSystem';
+import { monoStyle } from '../ui/textStyles';
 
 const CARD_SELECTED = { fill: 0x333366, alpha: 1, stroke: 0x6666ff, scale: 1.05 } as const;
 const CARD_DEFAULT = { fill: 0x222244, alpha: 0.9, stroke: 0x4444aa, scale: 1 } as const;
@@ -77,18 +78,13 @@ export class LevelUpScene extends Phaser.Scene {
     const titleSize = Math.max(16, Math.floor(32 * Math.min(1, width / 500)));
     const subtitleSize = Math.max(10, Math.floor(16 * Math.min(1, width / 500)));
 
-    this.add.text(width / 2, 20 * scale + 10, 'LEVEL UP!', {
-      fontSize: `${titleSize}px`,
-      fontFamily: 'monospace',
-      color: '#ffcc00',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, 20 * scale + 10, 'LEVEL UP!',
+      monoStyle(`${titleSize}px`, '#ffcc00', { fontStyle: 'bold' }),
+    ).setOrigin(0.5);
 
-    this.add.text(width / 2, 20 * scale + titleSize + 16, 'Choose an upgrade', {
-      fontSize: `${subtitleSize}px`,
-      fontFamily: 'monospace',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, 20 * scale + titleSize + 16, 'Choose an upgrade',
+      monoStyle(`${subtitleSize}px`, '#aaaaaa'),
+    ).setOrigin(0.5);
 
     const titleAreaH = 20 * scale + titleSize + subtitleSize + 30;
 
@@ -130,11 +126,9 @@ export class LevelUpScene extends Phaser.Scene {
     const goldY = cardsBottomY + 14;
     const rerollBtnY = cardsBottomY + 36;
 
-    this.add.text(width / 2, goldY, `Gold: ${this.gold}`, {
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#ffd700',
-    }).setOrigin(0.5);
+    this.add.text(width / 2, goldY, `Gold: ${this.gold}`,
+      monoStyle('11px', '#ffd700'),
+    ).setOrigin(0.5);
 
     const canAfford = this.gold >= this.rerollCost;
     const btnColor = canAfford ? 0x334433 : 0x222222;
@@ -146,11 +140,9 @@ export class LevelUpScene extends Phaser.Scene {
     const rerollX = width / 2 - btnW / 2 - btnGap / 2;
     const rerollBtn = this.add.rectangle(rerollX, rerollBtnY, btnW, 28, btnColor)
       .setStrokeStyle(1, canAfford ? 0x558855 : 0x444444);
-    this.add.text(rerollX, rerollBtnY, `Re-roll [R/Y] - ${this.rerollCost}g`, {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: textColor,
-    }).setOrigin(0.5);
+    this.add.text(rerollX, rerollBtnY, `Re-roll [R/Y] - ${this.rerollCost}g`,
+      monoStyle('12px', textColor),
+    ).setOrigin(0.5);
     if (canAfford) {
       rerollBtn.setInteractive({ useHandCursor: true })
         .on('pointerover', () => rerollBtn.setFillStyle(0x446644))
@@ -162,11 +154,9 @@ export class LevelUpScene extends Phaser.Scene {
     const skipX = width / 2 + btnW / 2 + btnGap / 2;
     const skipBtn = this.add.rectangle(skipX, rerollBtnY, btnW, 28, 0x332222)
       .setStrokeStyle(1, 0x554444);
-    this.add.text(skipX, rerollBtnY, 'Skip [E/B]', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#cc8888',
-    }).setOrigin(0.5);
+    this.add.text(skipX, rerollBtnY, 'Skip [E/B]',
+      monoStyle('12px', '#cc8888'),
+    ).setOrigin(0.5);
     skipBtn.setInteractive({ useHandCursor: true })
       .on('pointerover', () => skipBtn.setFillStyle(0x443333))
       .on('pointerout', () => skipBtn.setFillStyle(0x332222))
@@ -236,41 +226,30 @@ export class LevelUpScene extends Phaser.Scene {
       heal: ['REWARD', '#ff6688'],
     };
     const [badgeStr, badgeColor] = badgeLabels[option.kind] ?? ['???', '#888888'];
-    const badge = this.add.text(0, -cardH / 2 + 26 * scale, badgeStr, {
-      fontSize: `${Math.max(8, Math.round(10 * scale))}px`,
-      fontFamily: 'monospace',
-      color: badgeColor,
-    }).setOrigin(0.5);
+    const sz = (base: number) => `${Math.max(8, Math.round(base * scale))}px`;
 
-    const name = this.add.text(0, -cardH / 2 + 42 * scale, option.name, {
-      fontSize: `${Math.max(12, Math.round(18 * scale))}px`,
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    const badge = this.add.text(0, -cardH / 2 + 26 * scale, badgeStr,
+      monoStyle(sz(10), badgeColor),
+    ).setOrigin(0.5);
+
+    const name = this.add.text(0, -cardH / 2 + 42 * scale, option.name,
+      monoStyle(sz(18), '#ffffff', { fontStyle: 'bold' }),
+    ).setOrigin(0.5);
 
     const isReward = option.kind === 'gold' || option.kind === 'heal';
     const levelStr = isReward ? '' : (option.newLevel === 1 ? 'NEW!' : `Lv ${option.newLevel}`);
     const levelColor = option.newLevel === 1 ? '#00ff88' : '#ffcc00';
-    const level = this.add.text(0, -cardH / 2 + 60 * scale, levelStr, {
-      fontSize: `${Math.max(10, Math.round(14 * scale))}px`,
-      fontFamily: 'monospace',
-      color: levelColor,
-    }).setOrigin(0.5);
+    const level = this.add.text(0, -cardH / 2 + 60 * scale, levelStr,
+      monoStyle(sz(14), levelColor),
+    ).setOrigin(0.5);
 
-    const desc = this.add.text(0, 5 * scale, option.description, {
-      fontSize: `${Math.max(8, Math.round(11 * scale))}px`,
-      fontFamily: 'monospace',
-      color: '#aaaacc',
-      wordWrap: { width: cardW - 20 },
-      align: 'center',
-    }).setOrigin(0.5);
+    const desc = this.add.text(0, 5 * scale, option.description,
+      monoStyle(sz(11), '#aaaacc', { wordWrap: { width: cardW - 20 }, align: 'center' }),
+    ).setOrigin(0.5);
 
-    const keyHint = this.add.text(0, cardH / 2 - 14 * scale, `[${i + 1}]`, {
-      fontSize: `${Math.max(10, Math.round(14 * scale))}px`,
-      fontFamily: 'monospace',
-      color: '#666688',
-    }).setOrigin(0.5);
+    const keyHint = this.add.text(0, cardH / 2 - 14 * scale, `[${i + 1}]`,
+      monoStyle(sz(14), '#666688'),
+    ).setOrigin(0.5);
 
     card.add([bg, indicator, badge, name, level, desc, keyHint]);
     this.cards.push(card);

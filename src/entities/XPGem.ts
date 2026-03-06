@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { distanceSq } from '../utils/math';
+import { distSqXY } from '../utils/math';
 import { Colors } from '../colors';
 import { drawGlowCircle } from '../systems/weapons/GfxPool';
 
@@ -178,14 +178,8 @@ export class XPGemPool {
   }
 
   private applyMergeTint(gem: GemData): void {
-    if (gem.mergeBoost <= 0) {
-      gem.sprite.setTint(0xffffff);
-      return;
-    }
-    // Progressively brighter tint: white → bright white-yellow
-    const boost = Math.min(gem.mergeBoost, 4);
-    const tints = [0xffffff, 0xffffcc, 0xffffaa, 0xffff88, 0xffff66];
-    gem.sprite.setTint(tints[boost]);
+    const boost = Math.min(gem.mergeBoost, Colors.mergeTints.length - 1);
+    gem.sprite.setTint(Colors.mergeTints[boost]);
   }
 
   private recycleGem(gem: GemData): void {
@@ -197,22 +191,15 @@ export class XPGemPool {
   }
 
   update(dt: number, playerX: number, playerY: number, pickupRange: number, enemyPressure: number = 0): { xp: number; heals: number; gold: number; vortex: number; deathMasks: number } {
-    let totalXp = 0;
-    let heals = 0;
-    let gold = 0;
-    let vortex = 0;
-    let deathMasks = 0;
-    const magnetRange = pickupRange * 3;
-    const magnetRangeSq = magnetRange * magnetRange;
+    const result = { xp: 0, heals: 0, gold: 0, vortex: 0, deathMasks: 0 };
+    const magnetRangeSq = (pickupRange * 3) ** 2;
     const pickupRangeSq = pickupRange * pickupRange;
 
-    const cam = this.scene.cameras.main;
-    const view = cam.worldView;
+    const view = this.scene.cameras.main.worldView;
     const pad = 60;
     this.trailGfx.clear();
     const skipTrails = enemyPressure > 0.5;
 
-    // Cap: cull furthest xp gems when over limit
     if (this.active.length > MAX_GEMS) {
       this.cullFurthest(playerX, playerY);
     }
@@ -223,81 +210,77 @@ export class XPGemPool {
 
       gem.age += dt;
 
-      // Hide off-screen gem sprites (still process logic)
       const onScreen = gem.x >= view.x - pad && gem.x <= view.right + pad &&
                        gem.y >= view.y - pad && gem.y <= view.bottom + pad;
       gem.sprite.setVisible(onScreen);
 
-      // During spawn delay the gem scatters outward and cannot be collected
       if (gem.age < SPAWN_DELAY) {
-        const t = gem.age / SPAWN_DELAY;          // 0→1
-        const speed = SCATTER_SPEED * (1 - t);    // decelerating
-        gem.x += gem.scatterDx * speed * dt;
-        gem.y += gem.scatterDy * speed * dt;
-        gem.sprite.setPosition(gem.x, gem.y);
-        const baseScale = this.getBaseScale(gem.kind, gem.value);
-        gem.sprite.setScale(baseScale * (0.6 + 0.4 * t));
+        this.updateScatter(gem, dt);
         continue;
       }
 
-      const dx = playerX - gem.x;
-      const dy = playerY - gem.y;
-      const dSq = dx * dx + dy * dy;
+      const dSq = distSqXY(playerX, playerY, gem.x, gem.y);
 
-      // Magnetize nearby gems
-      if (dSq < magnetRangeSq) {
-        gem.magnetized = true;
-      }
+      if (dSq < magnetRangeSq) gem.magnetized = true;
 
-      // Move magnetized gems toward player
       if (gem.magnetized) {
-        const speed = gem.vortexed ? 1200 : 400;
-        const len = Math.sqrt(dSq);
-        if (len > 0) {
-          gem.x += (dx / len) * speed * dt;
-          gem.y += (dy / len) * speed * dt;
-          gem.sprite.setPosition(gem.x, gem.y);
-
-          // Magnetism trail streak (skip if off-screen or too many gems)
-          if (onScreen && !skipTrails) {
-            const trailColor = GEM_TRAIL_COLORS[gem.kind];
-            const nx = -dx / len;
-            const ny = -dy / len;
-            for (let ti = 1; ti <= 3; ti++) {
-              const tt = ti / 3;
-              drawGlowCircle(
-                this.trailGfx,
-                gem.x + nx * ti * 6, gem.y + ny * ti * 6,
-                3 * (1 - tt * 0.5), trailColor, (1 - tt) * 0.35,
-                2.0, 0.3, false,
-              );
-            }
-          }
-        }
+        this.applyMagnetism(gem, playerX, playerY, dSq, dt, onScreen && !skipTrails);
       }
 
-      // Pickup
       if (dSq < pickupRangeSq) {
-        if (gem.kind === 'death-mask') {
-          deathMasks++;
-        } else if (gem.kind === 'vortex') {
-          vortex++;
-          this.triggerVortex();
-        } else if (gem.kind === 'heal') {
-          heals++;
-        } else if (gem.kind === 'gold') {
-          gold += gem.value;
-        } else {
-          totalXp += gem.value;
-        }
-        this.recycleGem(gem);
-        // Swap-and-pop: O(1) removal
+        this.collectGem(gem, result);
         this.active[i] = this.active[this.active.length - 1];
         this.active.pop();
       }
     }
 
-    return { xp: totalXp, heals, gold, vortex, deathMasks };
+    return result;
+  }
+
+  private updateScatter(gem: GemData, dt: number): void {
+    const t = gem.age / SPAWN_DELAY;
+    const speed = SCATTER_SPEED * (1 - t);
+    gem.x += gem.scatterDx * speed * dt;
+    gem.y += gem.scatterDy * speed * dt;
+    gem.sprite.setPosition(gem.x, gem.y);
+    gem.sprite.setScale(this.getBaseScale(gem.kind, gem.value) * (0.6 + 0.4 * t));
+  }
+
+  private applyMagnetism(gem: GemData, playerX: number, playerY: number, dSq: number, dt: number, drawTrail: boolean): void {
+    const speed = gem.vortexed ? 1200 : 400;
+    const len = Math.sqrt(dSq);
+    if (len === 0) return;
+    const dx = playerX - gem.x;
+    const dy = playerY - gem.y;
+    gem.x += (dx / len) * speed * dt;
+    gem.y += (dy / len) * speed * dt;
+    gem.sprite.setPosition(gem.x, gem.y);
+
+    if (drawTrail) {
+      const trailColor = GEM_TRAIL_COLORS[gem.kind];
+      const nx = -dx / len;
+      const ny = -dy / len;
+      for (let ti = 1; ti <= 3; ti++) {
+        const tt = ti / 3;
+        drawGlowCircle(
+          this.trailGfx,
+          gem.x + nx * ti * 6, gem.y + ny * ti * 6,
+          3 * (1 - tt * 0.5), trailColor, (1 - tt) * 0.35,
+          2.0, 0.3, false,
+        );
+      }
+    }
+  }
+
+  private collectGem(gem: GemData, result: { xp: number; heals: number; gold: number; vortex: number; deathMasks: number }): void {
+    switch (gem.kind) {
+      case 'death-mask': result.deathMasks++; break;
+      case 'vortex': result.vortex++; this.triggerVortex(); break;
+      case 'heal': result.heals++; break;
+      case 'gold': result.gold += gem.value; break;
+      default: result.xp += gem.value; break;
+    }
+    this.recycleGem(gem);
   }
 
   /** Remove xp gems furthest from the player until under the cap */

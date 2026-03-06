@@ -5,6 +5,7 @@ import { WEAPON_DEFS } from '../entities/weapons';
 import { EFFECT_DEFS } from '../entities/effects';
 import { GameEvents } from '../systems/GameEvents';
 import { applyUIZoom } from '../ui/uiScale';
+import { hudStyle } from '../ui/textStyles';
 import { Colors } from '../colors';
 
 const SLOT_SIZE = 32;
@@ -59,73 +60,17 @@ export class HUDScene extends Phaser.Scene {
     this.xpBar = this.add.graphics();
     this.inventoryGfx = this.add.graphics();
 
-    this.hpText = this.add.text(10, 8, 'HP: 100/100', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
-
-    this.levelText = this.add.text(10, 34, 'Lv 1', {
-      fontSize: '16px',
-      fontFamily: 'monospace',
-      color: '#ffcc00',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
-
-    this.timerText = this.add.text(width / 2, 10, '00:00', {
-      fontSize: '20px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5, 0);
-
-    this.killText = this.add.text(width - 10, 10, 'Kills: 0', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#ff8888',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(1, 0);
-
-    this.enemyCountText = this.add.text(width - 10, 28, 'Enemies: 0', {
-      fontSize: '12px',
-      fontFamily: 'monospace',
-      color: '#aaaaaa',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(1, 0);
-
-    this.goldText = this.add.text(10, 52, '', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
+    this.hpText = this.add.text(10, 8, 'HP: 100/100', hudStyle('14px', '#ffffff'));
+    this.levelText = this.add.text(10, 34, 'Lv 1', hudStyle('16px', '#ffcc00', { fontStyle: 'bold' }));
+    this.timerText = this.add.text(width / 2, 10, '00:00', hudStyle('20px', '#ffffff', { fontStyle: 'bold', strokeThickness: 3 })).setOrigin(0.5, 0);
+    this.killText = this.add.text(width - 10, 10, 'Kills: 0', hudStyle('14px', '#ff8888')).setOrigin(1, 0);
+    this.enemyCountText = this.add.text(width - 10, 28, 'Enemies: 0', hudStyle('12px', '#aaaaaa')).setOrigin(1, 0);
+    this.goldText = this.add.text(10, 52, '', hudStyle('14px', '#ffd700'));
 
     this.deathMaskGfx = this.add.graphics();
-    this.deathMaskText = this.add.text(28, 70, '', {
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      color: '#dd66ff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
+    this.deathMaskText = this.add.text(28, 70, '', hudStyle('14px', '#dd66ff', { fontStyle: 'bold' }));
 
-    this.seedText = this.add.text(width / 2, 32, `Seed: ${this.seed}`, {
-      fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#444466',
-      stroke: '#000000',
-      strokeThickness: 1,
-    }).setOrigin(0.5, 0);
+    this.seedText = this.add.text(width / 2, 32, `Seed: ${this.seed}`, hudStyle('10px', '#444466', { strokeThickness: 1 })).setOrigin(0.5, 0);
 
     // Show pause button on touch-capable devices
     if (!detectedTouch && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
@@ -175,89 +120,88 @@ export class HUDScene extends Phaser.Scene {
   updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number, deathMasks: number = 0): void {
     const { width, height } = applyUIZoom(this);
 
-    // HP bar — only redraw when values change
-    if (player.hp !== this.lastHp || player.maxHp !== this.lastMaxHp) {
-      this.lastHp = player.hp;
-      this.lastMaxHp = player.maxHp;
-      const hpPct = player.hp / player.maxHp;
-      this.hpBar.clear();
-      this.hpBar.fillStyle(0x333333, 0.8);
-      this.hpBar.fillRect(10, 24, 200, 8);
-      const hpColor = hpPct > 0.5 ? 0x44ff44 : hpPct > 0.25 ? 0xffcc00 : 0xff4444;
-      this.hpBar.fillStyle(hpColor, 1);
-      this.hpBar.fillRect(10, 24, 200 * hpPct, 8);
-      this.hpText.setText(`HP: ${Math.ceil(player.hp)}/${player.maxHp}`);
-    }
-
-    // XP bar — only redraw when values change
-    if (player.xp !== this.lastXp || player.xpToNext !== this.lastXpToNext) {
-      this.lastXp = player.xp;
-      this.lastXpToNext = player.xpToNext;
-      const xpBarH = 8;
-      const xpPct = player.xpToNext > 0 ? player.xp / player.xpToNext : 0;
-      this.xpBar.clear();
-      const xpBarY = height - xpBarH;
-      this.xpBar.fillStyle(0x333333, 0.6);
-      this.xpBar.fillRect(0, xpBarY, width, xpBarH);
-      this.xpBar.fillStyle(0x00ccff, 1);
-      this.xpBar.fillRect(0, xpBarY, width * xpPct, xpBarH);
-    }
-
-    // Level
-    this.levelText.setText(`Lv ${player.level}`);
-
-    // Timer (reposition for resize)
-    const totalSeconds = Math.floor(gameTimeMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    this.timerText.setText(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-    this.timerText.setX(width / 2);
-
-    // Seed (reposition for resize)
-    this.seedText.setX(width / 2);
-
-    // Kills (reposition for resize — shift left on touch to avoid pause button)
-    const rightMargin = detectedTouch ? 52 : 10;
-    this.killText.setText(`Kills: ${kills}`);
-    this.killText.setX(width - rightMargin);
-    this.enemyCountText.setText(`Enemies: ${enemyCount}`);
-    this.enemyCountText.setX(width - rightMargin);
-
-    // Reposition pause button on resize
-    if (this.pauseBtn) {
-      this.pauseBtn.setPosition(width - 8 - 17, 8 + 17);
-    }
-
-    // Gold (only show once player has some)
-    this.goldText.setText(player.gold > 0 ? `Gold: ${player.gold}` : '');
-
-    // Death mask counter
-    if (deathMasks !== this.lastDeathMasks) {
-      this.lastDeathMasks = deathMasks;
-      this.deathMaskGfx.clear();
-      if (deathMasks > 0) {
-        // Draw small purple diamond icon
-        const ix = 14, iy = 78, half = 7;
-        const c = Colors.gems.deathMask;
-        this.deathMaskGfx.fillStyle(c.main, 1);
-        this.deathMaskGfx.fillTriangle(ix, iy - half, ix + half, iy, ix, iy + half);
-        this.deathMaskGfx.fillTriangle(ix, iy - half, ix - half, iy, ix, iy + half);
-        this.deathMaskGfx.fillStyle(c.bright, 0.7);
-        const ih = half * 0.5;
-        this.deathMaskGfx.fillTriangle(ix, iy - ih, ix + ih, iy, ix, iy + ih);
-        this.deathMaskGfx.fillTriangle(ix, iy - ih, ix - ih, iy, ix, iy + ih);
-        this.deathMaskText.setText(`x${deathMasks}`);
-        this.deathMaskText.setVisible(true);
-      } else {
-        this.deathMaskText.setVisible(false);
-      }
-    }
+    this.updateHealthBar(player);
+    this.updateXpBar(player, width, height);
+    this.updateStats(player, gameTimeMs, kills, enemyCount, width);
+    this.updateDeathMasks(deathMasks);
 
     // Inventory bar — only redraw when contents change
     const invKey = this.computeInvKey(player.weapons, player.effects);
     if (invKey !== this.lastInvKey) {
       this.lastInvKey = invKey;
       this.drawInventory(player.weapons, player.effects, width, height);
+    }
+  }
+
+  private updateHealthBar(player: PlayerState): void {
+    if (player.hp === this.lastHp && player.maxHp === this.lastMaxHp) return;
+    this.lastHp = player.hp;
+    this.lastMaxHp = player.maxHp;
+    const hpPct = player.hp / player.maxHp;
+    this.hpBar.clear();
+    this.hpBar.fillStyle(Colors.hud.hpBarBg, 0.8);
+    this.hpBar.fillRect(10, 24, 200, 8);
+    const hpColor = hpPct > 0.5 ? Colors.hud.hpHigh : hpPct > 0.25 ? Colors.hud.hpMid : Colors.hud.hpLow;
+    this.hpBar.fillStyle(hpColor, 1);
+    this.hpBar.fillRect(10, 24, 200 * hpPct, 8);
+    this.hpText.setText(`HP: ${Math.ceil(player.hp)}/${player.maxHp}`);
+  }
+
+  private updateXpBar(player: PlayerState, width: number, height: number): void {
+    if (player.xp === this.lastXp && player.xpToNext === this.lastXpToNext) return;
+    this.lastXp = player.xp;
+    this.lastXpToNext = player.xpToNext;
+    const xpBarH = 8;
+    const xpPct = player.xpToNext > 0 ? player.xp / player.xpToNext : 0;
+    this.xpBar.clear();
+    const xpBarY = height - xpBarH;
+    this.xpBar.fillStyle(Colors.hud.xpBarBg, 0.6);
+    this.xpBar.fillRect(0, xpBarY, width, xpBarH);
+    this.xpBar.fillStyle(Colors.hud.xpBar, 1);
+    this.xpBar.fillRect(0, xpBarY, width * xpPct, xpBarH);
+  }
+
+  private updateStats(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number, width: number): void {
+    this.levelText.setText(`Lv ${player.level}`);
+
+    const totalSeconds = Math.floor(gameTimeMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    this.timerText.setText(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    this.timerText.setX(width / 2);
+    this.seedText.setX(width / 2);
+
+    const rightMargin = detectedTouch ? 52 : 10;
+    this.killText.setText(`Kills: ${kills}`);
+    this.killText.setX(width - rightMargin);
+    this.enemyCountText.setText(`Enemies: ${enemyCount}`);
+    this.enemyCountText.setX(width - rightMargin);
+
+    if (this.pauseBtn) {
+      this.pauseBtn.setPosition(width - 8 - 17, 8 + 17);
+    }
+
+    this.goldText.setText(player.gold > 0 ? `Gold: ${player.gold}` : '');
+  }
+
+  private updateDeathMasks(deathMasks: number): void {
+    if (deathMasks === this.lastDeathMasks) return;
+    this.lastDeathMasks = deathMasks;
+    this.deathMaskGfx.clear();
+    if (deathMasks > 0) {
+      const ix = 14, iy = 78, half = 7;
+      const c = Colors.gems.deathMask;
+      this.deathMaskGfx.fillStyle(c.main, 1);
+      this.deathMaskGfx.fillTriangle(ix, iy - half, ix + half, iy, ix, iy + half);
+      this.deathMaskGfx.fillTriangle(ix, iy - half, ix - half, iy, ix, iy + half);
+      this.deathMaskGfx.fillStyle(c.bright, 0.7);
+      const ih = half * 0.5;
+      this.deathMaskGfx.fillTriangle(ix, iy - ih, ix + ih, iy, ix, iy + ih);
+      this.deathMaskGfx.fillTriangle(ix, iy - ih, ix - ih, iy, ix, iy + ih);
+      this.deathMaskText.setText(`x${deathMasks}`);
+      this.deathMaskText.setVisible(true);
+    } else {
+      this.deathMaskText.setVisible(false);
     }
   }
 
@@ -308,44 +252,28 @@ export class HUDScene extends Phaser.Scene {
   }
 
   private drawEmptySlot(x: number, y: number): void {
-    this.inventoryGfx.fillStyle(0x111122, 0.4);
+    this.inventoryGfx.fillStyle(Colors.hud.slotBg, 0.4);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
-    this.inventoryGfx.lineStyle(1, 0x333344, 0.6);
+    this.inventoryGfx.lineStyle(1, Colors.hud.emptySlotBorder, 0.6);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
   }
 
   private drawSlot(x: number, y: number, color: number, name: string, level: number): void {
-    // Background
-    this.inventoryGfx.fillStyle(0x111122, 0.85);
+    this.inventoryGfx.fillStyle(Colors.hud.slotBg, 0.85);
     this.inventoryGfx.fillRect(x, y, SLOT_SIZE, SLOT_SIZE);
-
-    // Colored icon square
     this.inventoryGfx.fillStyle(color, 0.9);
     this.inventoryGfx.fillRect(x + 4, y + 4, SLOT_SIZE - 8, SLOT_SIZE - 8);
-
-    // Border
-    this.inventoryGfx.lineStyle(1, 0x555577, 1);
+    this.inventoryGfx.lineStyle(1, Colors.hud.slotBorder, 1);
     this.inventoryGfx.strokeRect(x, y, SLOT_SIZE, SLOT_SIZE);
 
-    // Level number
-    const lvlText = this.add.text(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2, `${level}`, {
-      fontSize: '10px',
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(1, 1);
+    const lvlText = this.add.text(x + SLOT_SIZE - 2, y + SLOT_SIZE - 2, `${level}`,
+      hudStyle('10px', '#ffffff', { fontStyle: 'bold' }),
+    ).setOrigin(1, 1);
     this.inventoryTexts.push(lvlText);
 
-    // Name abbreviation (first 3 chars)
-    const label = this.add.text(x + SLOT_SIZE / 2, y - 2, name.slice(0, 3).toUpperCase(), {
-      fontSize: '8px',
-      fontFamily: 'monospace',
-      color: '#aaaacc',
-      stroke: '#000000',
-      strokeThickness: 1,
-    }).setOrigin(0.5, 1);
+    const label = this.add.text(x + SLOT_SIZE / 2, y - 2, name.slice(0, 3).toUpperCase(),
+      hudStyle('8px', '#aaaacc', { strokeThickness: 1 }),
+    ).setOrigin(0.5, 1);
     this.inventoryTexts.push(label);
   }
 }

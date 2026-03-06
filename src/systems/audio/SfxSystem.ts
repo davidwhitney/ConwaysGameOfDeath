@@ -148,6 +148,27 @@ function playNoise(
   src.stop(ctx.currentTime + duration);
 }
 
+/** Play a sequence of notes as a quick arpeggio */
+function playArpeggio(
+  ctx: AudioContext, dest: AudioNode,
+  notes: number[], noteDur: number, noteGap: number,
+  gainVal: number = 0.25, type: OscillatorType = 'sine',
+): void {
+  for (let i = 0; i < notes.length; i++) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = notes[i];
+    const start = ctx.currentTime + i * noteGap;
+    g.gain.setValueAtTime(0.001, ctx.currentTime);
+    g.gain.setValueAtTime(gainVal, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + noteDur);
+    osc.connect(g).connect(dest);
+    osc.start(start);
+    osc.stop(start + noteDur);
+  }
+}
+
 // --- Sound definitions ---
 
 const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
@@ -184,37 +205,12 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
 
   'ability-select'(ctx, dest) {
     // Pleasant chime — ascending 3-note arpeggio C5→E5→G5
-    const notes = [523.25, 659.25, 783.99];
-    const dur = 0.08;
-    for (let i = 0; i < notes.length; i++) {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = notes[i];
-      const start = ctx.currentTime + i * dur;
-      g.gain.setValueAtTime(0.001, ctx.currentTime);
-      g.gain.setValueAtTime(0.25, start);
-      g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-      osc.connect(g).connect(dest);
-      osc.start(start);
-      osc.stop(start + dur);
-    }
+    playArpeggio(ctx, dest, [523.25, 659.25, 783.99], 0.08, 0.08);
   },
 
   'game-start'(ctx, dest) {
     // Bright fanfare chime — C5→G5 with shimmer
-    playOsc(ctx, dest, 'sine', 523.25, 523.25, 0.15, 0.2);
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 783.99;
-    const start = ctx.currentTime + 0.12;
-    g.gain.setValueAtTime(0.001, ctx.currentTime);
-    g.gain.setValueAtTime(0.25, start);
-    g.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
-    osc.connect(g).connect(dest);
-    osc.start(start);
-    osc.stop(start + 0.25);
+    playArpeggio(ctx, dest, [523.25, 783.99], 0.25, 0.12, 0.25);
     // Shimmer overtone
     playOsc(ctx, dest, 'sine', 1567.98, 1567.98, 0.3, 0.06);
   },
@@ -297,21 +293,7 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
 
   'weapon-upgrade'(ctx, dest) {
     // Bright rising arpeggio + shimmer (higher than ability-select)
-    const notes = [659.25, 830.61, 987.77];
-    const dur = 0.08;
-    for (let i = 0; i < notes.length; i++) {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = notes[i];
-      const start = ctx.currentTime + i * dur;
-      g.gain.setValueAtTime(0.001, ctx.currentTime);
-      g.gain.setValueAtTime(0.25, start);
-      g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-      osc.connect(g).connect(dest);
-      osc.start(start);
-      osc.stop(start + dur);
-    }
+    playArpeggio(ctx, dest, [659.25, 830.61, 987.77], 0.08, 0.08);
     // Shimmer overtone
     playOsc(ctx, dest, 'sine', 1975.53, 1975.53, 0.3, 0.06);
   },
@@ -349,31 +331,8 @@ const SYNTHS: Record<SfxName, (ctx: AudioContext, dest: AudioNode) => void> = {
 
   'achievement-unlocked'(ctx, dest) {
     // Triumphant fanfare: ascending major arpeggio C5→E5→G5→C6 with sustain
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    for (let i = 0; i < notes.length; i++) {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = notes[i];
-      const start = ctx.currentTime + i * 0.1;
-      g.gain.setValueAtTime(0.001, ctx.currentTime);
-      g.gain.setValueAtTime(0.25, start);
-      g.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
-      osc.connect(g).connect(dest);
-      osc.start(start);
-      osc.stop(start + 0.3);
-    }
+    playArpeggio(ctx, dest, [523.25, 659.25, 783.99, 1046.50], 0.3, 0.1);
     // Shimmer overtone on final note
-    const shimmer = ctx.createOscillator();
-    const sg = ctx.createGain();
-    shimmer.type = 'sine';
-    shimmer.frequency.value = 2093;
-    const sStart = ctx.currentTime + 0.3;
-    sg.gain.setValueAtTime(0.001, ctx.currentTime);
-    sg.gain.setValueAtTime(0.08, sStart);
-    sg.gain.exponentialRampToValueAtTime(0.001, sStart + 0.5);
-    shimmer.connect(sg).connect(dest);
-    shimmer.start(sStart);
-    shimmer.stop(sStart + 0.5);
+    playArpeggio(ctx, dest, [2093], 0.5, 0, 0.08);
   },
 };

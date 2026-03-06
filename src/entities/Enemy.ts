@@ -10,7 +10,7 @@ import {
 } from '../constants';
 import { ENEMY_DEFS } from './enemies';
 import { isWalkable } from '../systems/map-generator';
-import { directionToInto } from '../utils/math';
+import { directionToInto, distSqXY } from '../utils/math';
 
 const ENEMY_TEXTURE_MAP: Record<EnemyType, string> = {
   [EnemyType.Bat]: 'enemy-bat',
@@ -127,9 +127,7 @@ export class Enemy {
     if (!this.state.alive) return false;
 
     // Check despawn distance (squared — no sqrt)
-    const ddx = this.state.x - playerX;
-    const ddy = this.state.y - playerY;
-    if (ddx * ddx + ddy * ddy > despawnRangeSq) {
+    if (distSqXY(this.state.x, this.state.y, playerX, playerY) > despawnRangeSq) {
       this.deactivate();
       return false;
     }
@@ -258,21 +256,25 @@ export class Enemy {
 
     // If completely stuck, try perpendicular nudges to steer around corners
     if (!xOk && !yOk) {
-      const nudge = this.state.speed * 0.016; // ~1-frame nudge
-      // Try the four perpendicular directions
-      if (dx !== 0) {
-        if (this.posWalkable(this.state.x, this.state.y - nudge, halfSize)) {
-          this.state.y -= nudge;
-        } else if (this.posWalkable(this.state.x, this.state.y + nudge, halfSize)) {
-          this.state.y += nudge;
-        }
+      this.tryCornerNudge(dx, dy, halfSize);
+    }
+  }
+
+  /** When stuck on a corner, nudge perpendicular to the movement direction */
+  private tryCornerNudge(dx: number, dy: number, halfSize: number): void {
+    const nudge = this.state.speed * 0.016; // ~1-frame nudge
+    if (dx !== 0) {
+      if (this.posWalkable(this.state.x, this.state.y - nudge, halfSize)) {
+        this.state.y -= nudge;
+      } else if (this.posWalkable(this.state.x, this.state.y + nudge, halfSize)) {
+        this.state.y += nudge;
       }
-      if (dy !== 0) {
-        if (this.posWalkable(this.state.x - nudge, this.state.y, halfSize)) {
-          this.state.x -= nudge;
-        } else if (this.posWalkable(this.state.x + nudge, this.state.y, halfSize)) {
-          this.state.x += nudge;
-        }
+    }
+    if (dy !== 0) {
+      if (this.posWalkable(this.state.x - nudge, this.state.y, halfSize)) {
+        this.state.x -= nudge;
+      } else if (this.posWalkable(this.state.x + nudge, this.state.y, halfSize)) {
+        this.state.x += nudge;
       }
     }
   }

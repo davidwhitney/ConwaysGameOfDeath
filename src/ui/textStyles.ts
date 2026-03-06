@@ -11,6 +11,18 @@ export function monoStyle(fontSize: string, color: string, extra?: Partial<TextS
   };
 }
 
+/** Monospace text with black stroke — for HUD / in-game overlays */
+export function hudStyle(fontSize: string, color: string, extra?: Partial<TextStyle>): TextStyle {
+  return {
+    fontSize,
+    fontFamily: 'monospace',
+    color,
+    stroke: '#000000',
+    strokeThickness: 2,
+    ...extra,
+  };
+}
+
 export const DOM_INPUT_STYLE: Partial<CSSStyleDeclaration> = {
   fontFamily: 'monospace', fontSize: '12px', color: '#666688',
   backgroundColor: 'transparent', border: '1px solid #333355',

@@ -63,3 +63,10 @@ export function circlesOverlap(
 export function pointInRect(px: number, py: number, rx: number, ry: number, rw: number, rh: number): boolean {
   return px >= rx && px < rx + rw && py >= ry && py < ry + rh;
 }
+
+/** Squared distance between two raw (x,y) pairs — avoids sqrt */
+export function distSqXY(x1: number, y1: number, x2: number, y2: number): number {
+  const dx = x1 - x2;
+  const dy = y1 - y2;
+  return dx * dx + dy * dy;
+}
