@@ -15,34 +15,40 @@ export interface MenuItemDef {
   action: () => void;
 }
 
+interface MenuButton {
+  bg: Phaser.GameObjects.Rectangle;
+  text: Phaser.GameObjects.Text;
+  defaultFill: number;
+  hoverFill: number;
+}
+
 export class MenuNav {
-  private buttons: Phaser.GameObjects.Rectangle[] = [];
-  private texts: Phaser.GameObjects.Text[] = [];
-  private defaultFills: number[] = [];
-  private hoverFills: number[] = [];
+  private items: MenuButton[] = [];
   private gpNav: GamepadNav;
 
-  constructor(scene: Phaser.Scene, items: MenuItemDef[], onBack?: () => void) {
-    for (let i = 0; i < items.length; i++) {
-      const def = items[i];
+  constructor(scene: Phaser.Scene, defs: MenuItemDef[], onBack?: () => void) {
+    for (let i = 0; i < defs.length; i++) {
+      const def = defs[i];
       const idx = i;
       const result = createButton(scene, {
         x: def.x, y: def.y, width: def.width, height: def.height,
         label: def.label, fontSize: def.fontSize, textColor: def.textColor,
         fillColor: def.fillColor, hoverColor: def.hoverColor,
         onClick: def.action,
-        onPointerOut: () => { this.buttons[idx]?.setFillStyle(this.defaultFills[idx]); },
+        onPointerOut: () => { this.items[idx]?.bg.setFillStyle(this.items[idx].defaultFill); },
       });
-      this.buttons.push(result.bg);
-      this.texts.push(result.text);
-      this.defaultFills.push(def.fillColor);
-      this.hoverFills.push(def.hoverColor);
+      this.items.push({
+        bg: result.bg,
+        text: result.text,
+        defaultFill: def.fillColor,
+        hoverFill: def.hoverColor,
+      });
     }
 
-    const actions = items.map(def => def.action);
+    const actions = defs.map(def => def.action);
     this.gpNav = new GamepadNav(
       scene,
-      items.length,
+      defs.length,
       (i) => actions[i](),
       onBack ?? null,
     );
@@ -51,12 +57,13 @@ export class MenuNav {
   update(time: number): void {
     this.gpNav.update(time);
     const sel = this.gpNav.getSelected();
-    for (let i = 0; i < this.buttons.length; i++) {
-      this.buttons[i].setFillStyle(i === sel ? this.hoverFills[i] : this.defaultFills[i]);
+    for (let i = 0; i < this.items.length; i++) {
+      const item = this.items[i];
+      item.bg.setFillStyle(i === sel ? item.hoverFill : item.defaultFill);
     }
   }
 
   getText(index: number): Phaser.GameObjects.Text {
-    return this.texts[index];
+    return this.items[index].text;
   }
 }

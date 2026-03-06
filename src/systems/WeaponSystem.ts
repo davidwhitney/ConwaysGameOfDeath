@@ -36,7 +36,6 @@ export class WeaponSystem implements GameSystem {
   private projectilePool: Phaser.GameObjects.Sprite[] = [];
   private weaponMap = new Map<WeaponType, BaseWeapon>();
   private ctx: WeaponContext;
-  private currentEnemyPool: EnemyPool | null = null;
 
   private WEAPON_CLASS_MAP: Record<WeaponType, WeaponConstructor> = {
     // Melee — all use default base
@@ -88,7 +87,7 @@ export class WeaponSystem implements GameSystem {
     [WeaponType.GravityWell]: GravityWellWeapon,
   };
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, enemyPool: EnemyPool) {
     this.scene = scene;
 
     for (let i = 0; i < 50; i++) {
@@ -98,21 +97,15 @@ export class WeaponSystem implements GameSystem {
       this.projectilePool.push(s);
     }
 
-    const self = this;
     this.ctx = {
       scene,
-      get enemyPool(): EnemyPool {
-        if (!self.currentEnemyPool) throw new Error('WeaponSystem: enemyPool accessed before update');
-        return self.currentEnemyPool;
-      },
+      enemyPool,
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
     };
   }
 
   update(ctx: UpdateContext): void {
-    this.currentEnemyPool = ctx.enemyPool;
-
     for (const weapon of ctx.player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
       weaponSystem.update(ctx.time.delta, ctx.player, weapon);

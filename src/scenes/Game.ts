@@ -86,10 +86,11 @@ export class GameScene extends Phaser.Scene {
       this.player.state.gold = 1000000;
     }
 
-    const playerPhysics = new PlayerPhysicsSystem(this);
     this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs);
-    this.lootSystem = new LootSystem(this, this.player);
-    this.achievementSystem = new AchievementSystem(this);
+    const enemyPool = this.gameWorldSystem.getEnemyPool();
+    const playerPhysics = new PlayerPhysicsSystem(this);
+    this.lootSystem = new LootSystem(this, this.player, enemyPool);
+    this.achievementSystem = new AchievementSystem(this, this.player);
 
     this.subsystems = [
       new ParallaxSystem(this),
@@ -97,7 +98,7 @@ export class GameScene extends Phaser.Scene {
       this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
       new DeathSpawnSystem(this, this.rng, !this.endless),
-      new WeaponSystem(this),
+      new WeaponSystem(this, enemyPool),
       this.lootSystem,
       new LevelUpSystem(this, this.rng, this.player),
       new DangerOverlaySystem(this),

@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { monoStyle } from '../ui/textStyles';
 import { MenuNav, type MenuItemDef } from '../ui/MenuNav';
 import { GameEvents } from '../systems/GameEvents';
-import { onResizeRestart } from '../ui/resizeHandler';
+import { setupMenuScene } from '../ui/sceneSetup';
 
 export class ReviveScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -22,8 +21,7 @@ export class ReviveScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.bringToTop();
-    const { width, height } = applyUIZoom(this);
+    const { width, height } = setupMenuScene(this, { bringToTop: true, crt: false, initData: this.initData });
     const canAfford = this.gold >= this.cost;
 
     // Dark overlay
@@ -58,12 +56,6 @@ export class ReviveScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-ENTER', () => { if (canAfford) this.accept(); });
     this.input.keyboard!.on('keydown-SPACE', () => { if (canAfford) this.accept(); });
     this.input.keyboard!.on('keydown-ESC', () => this.decline());
-
-    onResizeRestart(this, this.initData);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number): void {

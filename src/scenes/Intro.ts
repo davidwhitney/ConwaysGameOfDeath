@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
-import { applyUIZoom } from '../ui/uiScale';
 import { monoStyle } from '../ui/textStyles';
-import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
 import { INTRO_DURATION_MS } from '../constants';
+import { setupMenuScene } from '../ui/sceneSetup';
 
 interface SnakeSegment {
   x: number;
@@ -32,8 +31,7 @@ export class IntroScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { width, height } = applyUIZoom(this);
-    applyCRT(this);
+    const { width, height } = setupMenuScene(this);
 
     this.elapsed = 0;
     this.done = false;
@@ -60,10 +58,6 @@ export class IntroScene extends Phaser.Scene {
     const skip = () => this.goToMenu();
     this.input.keyboard!.on('keydown', skip);
     this.input.on('pointerdown', skip);
-
-    this.events.once('shutdown', () => {
-      this.input.keyboard!.removeAllListeners();
-    });
   }
 
   update(_time: number, delta: number): void {

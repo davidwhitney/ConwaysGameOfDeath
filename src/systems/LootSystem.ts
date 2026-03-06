@@ -36,13 +36,14 @@ export class LootSystem implements GameSystem {
   private xpGemPool: XPGemPool;
   private kills: number = 0;
   private deathMasksHeld: number = 0;
-  private enemyPool: EnemyPool | null = null;
+  private enemyPool: EnemyPool;
   private burstGfx: Phaser.GameObjects.Graphics;
   private activeBursts: ActiveBurst[] = [];
 
-  constructor(scene: Phaser.Scene, player: Player) {
+  constructor(scene: Phaser.Scene, player: Player, enemyPool: EnemyPool) {
     this.scene = scene;
     this.player = player;
+    this.enemyPool = enemyPool;
     this.xpGemPool = new XPGemPool(scene);
     this.burstGfx = scene.add.graphics().setDepth(15);
 
@@ -68,7 +69,6 @@ export class LootSystem implements GameSystem {
   }
 
   update(ctx: UpdateContext): void {
-    this.enemyPool = ctx.enemyPool;
     const dt = ctx.time.delta;
     const enemyPressure = ctx.enemyPool.getActiveCount() / ENEMY_MAX_ACTIVE;
     this.updateBursts(dt, enemyPressure);
@@ -148,7 +148,7 @@ export class LootSystem implements GameSystem {
     this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def.color, enemy.state.boss);
 
     // Death killed — wipe all non-Death enemies
-    if (enemy.state.type === EnemyType.Death && this.enemyPool) {
+    if (enemy.state.type === EnemyType.Death) {
       this.enemyPool.clearNonDeath();
       GameEvents.emit(this.scene.events, 'screen-shake', 600, 0.03);
       GameEvents.emit(this.scene.events, 'achievement', 'killed-death');

@@ -19,10 +19,11 @@ export class AchievementSystem implements GameSystem {
   private sessionTotalKills = 0;
   private sessionKillsByType: Record<number, number> = {};
   private sessionDeathKills = 0;
-  private player: Player | null = null;
+  private player: Player;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, player: Player) {
     this.scene = scene;
+    this.player = player;
     this.unlocked = new Set(getAchievements());
     this.persistedStats = loadStats();
 
@@ -38,8 +39,6 @@ export class AchievementSystem implements GameSystem {
   }
 
   update(ctx: UpdateContext): void {
-    if (!this.player) this.player = ctx.player;
-
     // Detect level-up
     const currentLevel = ctx.player.state.level;
     if (currentLevel !== this.lastLevel) {
@@ -92,7 +91,6 @@ export class AchievementSystem implements GameSystem {
   }
 
   private checkDeathConditionals(): void {
-    if (!this.player) return;
     const weapons = this.player.state.weapons;
 
     // Minimalist: kill Death with fewer than 4 weapons

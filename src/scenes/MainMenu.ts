@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, DOM_INPUT_STYLE, DOM_LABEL_STYLE } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
@@ -9,6 +9,7 @@ import { loadSettings, saveSettings } from '../ui/saveData';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
+import { createOverlayInput, createOverlayContainer, positionAtLayout, removeElements } from '../ui/htmlElements';
 
 export class MainMenuScene extends Phaser.Scene {
   private menuNav!: MenuNav;
@@ -105,43 +106,24 @@ export class MainMenuScene extends Phaser.Scene {
     SfxSystem.instance.init(audioCtx);
 
     // Ensure seed input is removed on any scene transition
-    this.events.once('shutdown', () => this.removeSeedInput());
+    this.events.once('shutdown', () => this.removeInputs());
   }
 
   private createSeedInput(): void {
-    const canvas = this.game.canvas;
-
-    this.seedInput = document.createElement('input');
-    this.seedInput.type = 'text';
+    this.seedInput = createOverlayInput(this, 'text', { width: '160px', textAlign: 'center' });
     if (!this.currentSeed) this.currentSeed = String(Date.now());
     this.seedInput.value = this.currentSeed;
     this.seedInput.maxLength = 20;
     this.seedInput.setAttribute('aria-label', 'Game seed');
-    Object.assign(this.seedInput.style, {
-      position: 'absolute',
-      width: '160px',
-      textAlign: 'center',
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#666688',
-      backgroundColor: 'transparent',
-      border: '1px solid #333355',
-      borderRadius: '4px',
-      padding: '4px 8px',
-      outline: 'none',
-      zIndex: '10',
-    });
 
     // Focus styling
     this.seedInput.addEventListener('focus', () => {
       this.seedInput.style.color = '#aaaacc';
       this.seedInput.style.borderColor = '#555577';
-      this.input.keyboard!.enabled = false;
     });
     this.seedInput.addEventListener('blur', () => {
       this.seedInput.style.color = '#666688';
       this.seedInput.style.borderColor = '#333355';
-      this.input.keyboard!.enabled = true;
     });
     // Track seed changes
     this.seedInput.addEventListener('input', () => {
@@ -155,40 +137,24 @@ export class MainMenuScene extends Phaser.Scene {
       }
     });
 
-    canvas.parentElement!.appendChild(this.seedInput);
-    this.positionSeedInput();
+    positionAtLayout(this.seedInput, this.game.canvas, 0.5, this.layoutFracs.seed, -80);
   }
 
   private createEndlessCheckbox(): void {
-    const canvas = this.game.canvas;
     const settings = loadSettings();
 
-    this.endlessContainer = document.createElement('div');
-    Object.assign(this.endlessContainer.style, {
-      position: 'absolute',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      zIndex: '10',
-      cursor: 'pointer',
+    this.endlessContainer = createOverlayContainer(this, {
+      display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
     });
 
     this.endlessCheckbox = document.createElement('input');
     this.endlessCheckbox.type = 'checkbox';
     this.endlessCheckbox.checked = settings.endlessMode;
-    Object.assign(this.endlessCheckbox.style, {
-      cursor: 'pointer',
-      accentColor: '#666688',
-    });
+    Object.assign(this.endlessCheckbox.style, { cursor: 'pointer', accentColor: '#666688' });
 
     const label = document.createElement('label');
     label.textContent = 'Endless Mode';
-    Object.assign(label.style, {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#666688',
-      cursor: 'pointer',
-    });
+    Object.assign(label.style, { ...DOM_LABEL_STYLE, cursor: 'pointer' });
     label.addEventListener('click', () => {
       this.endlessCheckbox.checked = !this.endlessCheckbox.checked;
       this.endlessCheckbox.dispatchEvent(new Event('change'));
@@ -200,108 +166,49 @@ export class MainMenuScene extends Phaser.Scene {
       saveSettings(s);
     });
 
-    this.endlessContainer.appendChild(this.endlessCheckbox);
-    this.endlessContainer.appendChild(label);
-    canvas.parentElement!.appendChild(this.endlessContainer);
-    this.positionEndlessCheckbox();
+    this.endlessContainer.append(this.endlessCheckbox, label);
+    positionAtLayout(this.endlessContainer, this.game.canvas, 0.5, this.layoutFracs.endless, -60);
   }
 
   private createDebugInputs(): void {
-    const canvas = this.game.canvas;
-    const inputStyle = {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#666688',
-      backgroundColor: 'transparent',
-      border: '1px solid #333355',
-      borderRadius: '4px',
-      padding: '4px 8px',
-      outline: 'none',
-      width: '50px',
-      textAlign: 'center',
-    };
-    const labelStyle = {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#666688',
-    };
+    const inputStyle: Partial<CSSStyleDeclaration> = { ...DOM_INPUT_STYLE, width: '50px', textAlign: 'center' };
 
-    this.debugContainer = document.createElement('div');
-    Object.assign(this.debugContainer.style, {
-      position: 'absolute',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '4px',
-      zIndex: '10',
+    this.debugContainer = createOverlayContainer(this, {
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
     });
+
+    const makeInput = (min: string, max: string, value: string): HTMLInputElement => {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = min;
+      input.max = max;
+      input.value = value;
+      Object.assign(input.style, inputStyle);
+      input.addEventListener('focus', () => { this.input.keyboard!.enabled = false; });
+      input.addEventListener('blur', () => { this.input.keyboard!.enabled = true; });
+      return input;
+    };
 
     // Level row
     const levelRow = document.createElement('div');
     Object.assign(levelRow.style, { display: 'flex', alignItems: 'center', gap: '6px' });
     const levelLabel = document.createElement('span');
     levelLabel.textContent = 'Level';
-    Object.assign(levelLabel.style, labelStyle);
-    this.debugLevelInput = document.createElement('input');
-    this.debugLevelInput.type = 'number';
-    this.debugLevelInput.min = '1';
-    this.debugLevelInput.max = '100';
-    this.debugLevelInput.value = '1';
-    Object.assign(this.debugLevelInput.style, inputStyle);
-    levelRow.appendChild(levelLabel);
-    levelRow.appendChild(this.debugLevelInput);
+    Object.assign(levelLabel.style, DOM_LABEL_STYLE);
+    this.debugLevelInput = makeInput('1', '100', '1');
+    levelRow.append(levelLabel, this.debugLevelInput);
 
     // Time row
     const timeRow = document.createElement('div');
     Object.assign(timeRow.style, { display: 'flex', alignItems: 'center', gap: '6px' });
     const timeLabel = document.createElement('span');
     timeLabel.textContent = 'Time (min)';
-    Object.assign(timeLabel.style, labelStyle);
-    this.debugTimeInput = document.createElement('input');
-    this.debugTimeInput.type = 'number';
-    this.debugTimeInput.min = '0';
-    this.debugTimeInput.max = '35';
-    this.debugTimeInput.value = '0';
-    Object.assign(this.debugTimeInput.style, inputStyle);
-    timeRow.appendChild(timeLabel);
-    timeRow.appendChild(this.debugTimeInput);
+    Object.assign(timeLabel.style, DOM_LABEL_STYLE);
+    this.debugTimeInput = makeInput('0', '35', '0');
+    timeRow.append(timeLabel, this.debugTimeInput);
 
-    this.debugContainer.appendChild(levelRow);
-    this.debugContainer.appendChild(timeRow);
-
-    // Disable keyboard nav while focused
-    for (const input of [this.debugLevelInput, this.debugTimeInput]) {
-      input.addEventListener('focus', () => { this.input.keyboard!.enabled = false; });
-      input.addEventListener('blur', () => { this.input.keyboard!.enabled = true; });
-    }
-
-    canvas.parentElement!.appendChild(this.debugContainer);
-    this.positionDebugInputs();
-  }
-
-  private positionDebugInputs(): void {
-    if (!this.debugContainer) return;
-    const rect = this.game.canvas.getBoundingClientRect();
-    const x = rect.left + rect.width / 2 - 70;
-    const y = rect.top + rect.height * this.layoutFracs.debugLevel;
-    this.debugContainer.style.left = `${x}px`;
-    this.debugContainer.style.top = `${y}px`;
-  }
-
-  private positionEndlessCheckbox(): void {
-    const rect = this.game.canvas.getBoundingClientRect();
-    const x = rect.left + rect.width / 2 - 60;
-    const y = rect.top + rect.height * this.layoutFracs.endless;
-    this.endlessContainer.style.left = `${x}px`;
-    this.endlessContainer.style.top = `${y}px`;
-  }
-
-  private positionSeedInput(): void {
-    const rect = this.game.canvas.getBoundingClientRect();
-    const x = rect.left + rect.width / 2 - 80;
-    const y = rect.top + rect.height * this.layoutFracs.seed;
-    this.seedInput.style.left = `${x}px`;
-    this.seedInput.style.top = `${y}px`;
+    this.debugContainer.append(levelRow, timeRow);
+    positionAtLayout(this.debugContainer, this.game.canvas, 0.5, this.layoutFracs.debugLevel, -70);
   }
 
   private computeLayout(height: number, contentTop: number): void {
@@ -378,17 +285,15 @@ export class MainMenuScene extends Phaser.Scene {
     const settings = loadSettings();
     const debugLevel = this.debugLevelInput ? parseInt(this.debugLevelInput.value, 10) || 1 : undefined;
     const debugTimeMinutes = this.debugTimeInput ? parseInt(this.debugTimeInput.value, 10) || 0 : undefined;
-    this.removeSeedInput();
+    this.removeInputs();
     this.scene.start('Game', { seed, endless: settings.endlessMode, debugLevel, debugTimeMinutes });
   }
 
-  private removeSeedInput(): void {
-    this.seedInput?.remove();
-    this.endlessContainer?.remove();
-    this.debugContainer?.remove();
+  private removeInputs(): void {
+    removeElements(this.seedInput, this.endlessContainer, this.debugContainer);
   }
 
   shutdown(): void {
-    this.removeSeedInput();
+    this.removeInputs();
   }
 }
