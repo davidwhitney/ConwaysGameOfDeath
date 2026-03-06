@@ -3,7 +3,7 @@ import type { Stats } from './ui/saveData';
 import { EFFECT_DEFS } from './entities/effects';
 import { ENEMY_DEFS } from './entities/enemies';
 import { EnemyType } from './types';
-import { MAX_WEAPONS, MAX_EFFECTS, MAX_WEAPON_LEVEL } from './constants';
+import { MAX_WEAPONS, MAX_EFFECTS, MAX_WEAPON_LEVEL, GAME_DURATION_MS } from './constants';
 import { formatNumber } from './ui/format';
 
 export interface AchievementDef {
@@ -89,6 +89,24 @@ function buildAchievements(): AchievementDef[] {
 
   // 11. Extracted (event-driven, no evaluate)
   defs.push({ id: 'extracted', name: 'Extracted', description: 'Escape through the exit gate' });
+
+  // Perk challenge achievements (survive 30 min with specific perks)
+  const perkChallenges: [string, string, string, string, number][] = [
+    ['perk-time-warp-5', 'Marty McFly', 'Survive with Time Warp at level 5', 'time_warp', 5],
+    ['perk-swiftness-5', 'Speedy Gonzales', 'Survive with Swiftness at level 5', 'swiftness', 5],
+    ['perk-tough-foes-5', 'Brutal Bastard', 'Survive with Tough Foes at level 5', 'tough_foes', 5],
+    ['perk-random-weapon', 'Gambling Man', 'Survive with Random Arsenal', 'random_weapon', 1],
+  ];
+  for (const [id, name, description, perkId, requiredLevel] of perkChallenges) {
+    defs.push({
+      id,
+      name,
+      description,
+      evaluate: (ctx) =>
+        ctx.time.elapsed >= GAME_DURATION_MS &&
+        (ctx.config.perkLevels[perkId] ?? 0) >= requiredLevel,
+    });
+  }
 
   // 12. Survive 15 min — "Half Time"
   defs.push({

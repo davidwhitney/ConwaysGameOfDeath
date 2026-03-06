@@ -40,6 +40,9 @@ export interface GameConfig {
   // Slots
   maxWeapons: number;
   maxEffects: number;
+
+  // Perk allocation (for achievement checks)
+  perkLevels: PerkAllocation;
 }
 
 export function defaultGameConfig(): GameConfig {
@@ -64,6 +67,7 @@ export function defaultGameConfig(): GameConfig {
     randomStartWeapon: false,
     maxWeapons: MAX_WEAPONS,
     maxEffects: MAX_EFFECTS,
+    perkLevels: {},
   };
 }
 
@@ -242,6 +246,7 @@ export function buildGameConfig(alloc: PerkAllocation, rng: () => number): GameC
     const def = PERK_MAP.get(id);
     if (def) def.apply(cfg, level);
   }
+  cfg.perkLevels = { ...alloc };
   // Resolve random weapon after all perks applied
   if (cfg.randomStartWeapon) {
     const weapons = WEAPON_DEFS.filter(w => w.type !== WeaponType.Whip);
