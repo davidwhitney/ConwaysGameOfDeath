@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, BTN_SUCCESS, BTN_WARNING } from '../ui/textStyles';
 import { MenuNav, type MenuItemDef } from '../ui/MenuNav';
 import { GameEvents } from '../systems/GameEvents';
 import { setupMenuScene } from '../ui/sceneSetup';
@@ -46,9 +46,9 @@ export class ReviveScene extends Phaser.Scene {
     // Buttons
     const items: MenuItemDef[] = [];
     if (canAfford) {
-      items.push({ x: width / 2, y: height * 0.55, width: 220, height: 45, label: 'REVIVE [Enter]', fontSize: '20px', textColor: '#ffffff', fillColor: 0x336633, hoverColor: 0x448844, action: () => this.accept() });
+      items.push({ x: width / 2, y: height * 0.55, width: 220, height: 45, label: 'REVIVE [Enter]', fontSize: '20px', ...BTN_SUCCESS, action: () => this.accept() });
     }
-    items.push({ x: width / 2, y: height * (canAfford ? 0.67 : 0.55), width: 220, height: 45, label: 'GIVE UP [Esc]', fontSize: '20px', textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444, action: () => this.decline() });
+    items.push({ x: width / 2, y: height * (canAfford ? 0.67 : 0.55), width: 220, height: 45, label: 'GIVE UP [Esc]', fontSize: '20px', ...BTN_WARNING, action: () => this.decline() });
 
     this.menuNav = new MenuNav(this, items, () => this.decline());
 

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { applyUIZoom } from '../ui/uiScale';
-import { monoStyle, DOM_INPUT_STYLE, DOM_LABEL_STYLE } from '../ui/textStyles';
+import { monoStyle, DOM_INPUT_STYLE, DOM_LABEL_STYLE, BTN_PRIMARY, BTN_SECONDARY } from '../ui/textStyles';
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
@@ -78,10 +78,10 @@ export class MainMenuScene extends Phaser.Scene {
     const playH = compact ? 38 : 46;
     const btnFont = compact ? '13px' : '15px';
     this.menuNav = new MenuNav(this, [
-      { x: width / 2, y: height * ly.play, width: 200, height: playH, label: 'PLAY', fontSize: compact ? '18px' : '22px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.startGame() },
-      { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('HighScores') },
-      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Achievements') },
-      { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
+      { x: width / 2, y: height * ly.play, width: 200, height: playH, label: 'PLAY', fontSize: compact ? '18px' : '22px', ...BTN_PRIMARY, action: () => this.startGame() },
+      { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('HighScores') },
+      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('Achievements') },
+      { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
     ]);
 
     // Controls hint

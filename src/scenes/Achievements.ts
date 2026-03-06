@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, BTN_PRIMARY } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 import { getAchievements, loadStats } from '../ui/saveData';
@@ -113,7 +113,7 @@ export class AchievementsScene extends Phaser.Scene {
     });
 
     this.menuNav = new MenuNav(this, [
-      { x: width / 2, y: height * 0.9, width: 200, height: 45, label: 'BACK', fontSize: '18px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.goBack() },
+      { x: width / 2, y: height * 0.9, width: 200, height: 45, label: 'BACK', fontSize: '18px', ...BTN_PRIMARY, action: () => this.goBack() },
     ], () => this.goBack());
   }
 

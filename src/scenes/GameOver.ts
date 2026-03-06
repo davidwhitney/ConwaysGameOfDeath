@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { addScore, formatTime } from '../ui/highScores';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, BTN_PRIMARY, BTN_SECONDARY, BTN_MUTED } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 
@@ -75,9 +75,9 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     this.menuNav = new MenuNav(this, [
-      { x: width / 2, y: height * 0.62, width: 220, height: 50, label: 'PLAY AGAIN', fontSize: '20px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.playAgain() },
-      { x: width / 2, y: height * 0.74, width: 220, height: 45, label: 'HIGH SCORES', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.showHighScores() },
-      { x: width / 2, y: height * 0.85, width: 220, height: 45, label: 'MAIN MENU', fontSize: '16px', textColor: '#aaaaaa', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.goToMenu() },
+      { x: width / 2, y: height * 0.62, width: 220, height: 50, label: 'PLAY AGAIN', fontSize: '20px', ...BTN_PRIMARY, action: () => this.playAgain() },
+      { x: width / 2, y: height * 0.74, width: 220, height: 45, label: 'HIGH SCORES', fontSize: '16px', ...BTN_SECONDARY, action: () => this.showHighScores() },
+      { x: width / 2, y: height * 0.85, width: 220, height: 45, label: 'MAIN MENU', fontSize: '16px', ...BTN_MUTED, action: () => this.goToMenu() },
     ]);
 
   }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, BTN_PRIMARY, BTN_SECONDARY, BTN_WARNING } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { setupMenuScene } from '../ui/sceneSetup';
 import { GameEvents } from '../systems/GameEvents';
@@ -25,9 +25,9 @@ export class PauseScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     this.menuNav = new MenuNav(this, [
-      { x: width / 2, y: height * 0.5, width: 200, height: 45, label: 'RESUME', fontSize: '20px', textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488, action: () => this.resume() },
-      { x: width / 2, y: height * 0.62, width: 200, height: 45, label: 'SETTINGS', fontSize: '16px', textColor: '#ffcc00', fillColor: 0x333344, hoverColor: 0x444466, action: () => this.openSettings() },
-      { x: width / 2, y: height * 0.74, width: 200, height: 45, label: 'QUIT', fontSize: '20px', textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444, action: () => this.quit() },
+      { x: width / 2, y: height * 0.5, width: 200, height: 45, label: 'RESUME', fontSize: '20px', ...BTN_PRIMARY, action: () => this.resume() },
+      { x: width / 2, y: height * 0.62, width: 200, height: 45, label: 'SETTINGS', fontSize: '16px', ...BTN_SECONDARY, action: () => this.openSettings() },
+      { x: width / 2, y: height * 0.74, width: 200, height: 45, label: 'QUIT', fontSize: '20px', ...BTN_WARNING, action: () => this.quit() },
     ], () => this.resume());
 
   }

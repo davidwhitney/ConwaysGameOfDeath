@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { monoStyle } from '../ui/textStyles';
+import { monoStyle, BTN_PRIMARY, BTN_WARNING } from '../ui/textStyles';
 import { MenuNav } from '../ui/MenuNav';
 import { loadSettings, saveSettings, clearAllData, type Settings } from '../ui/saveData';
 import { setupMenuScene } from '../ui/sceneSetup';
@@ -11,8 +11,8 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.25;
 const VOL_STEP = 0.1;
 
-const BTN = { textColor: '#ffffff', fillColor: 0x333366, hoverColor: 0x444488 } as const;
-const BTN_WARN = { textColor: '#ff8888', fillColor: 0x443333, hoverColor: 0x664444 } as const;
+const BTN = BTN_PRIMARY;
+const BTN_WARN = BTN_WARNING;
 
 export class SettingsScene extends Phaser.Scene {
   private menuNav!: MenuNav;
