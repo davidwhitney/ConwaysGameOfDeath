@@ -41,6 +41,7 @@ export class LofiMusicSystem {
   private masterGain: GainNode | null = null;
   private currentStyle: MusicStyle | null = null;
   private playing = false;
+  private paused = false;
   private enabled: boolean;
   private styleName: string;
   private volume: number;
@@ -122,6 +123,19 @@ export class LofiMusicSystem {
         0.05,
       );
     }
+  }
+
+  pause(): void {
+    if (!this.playing) return;
+    this.currentStyle?.stop();
+    this.playing = false;
+    this.paused = true;
+  }
+
+  unpause(): void {
+    if (!this.paused || !this.enabled) return;
+    this.paused = false;
+    this.start();
   }
 
   setIntensity(v: number): void {
