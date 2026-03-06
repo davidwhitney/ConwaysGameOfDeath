@@ -38,7 +38,7 @@ export class Player {
     this.trailGfx.setDepth(9);
     this.sprite = scene.add.sprite(x, y, 'player');
     this.sprite.setDepth(10);
-    if (scene.game.renderer.type === Phaser.WEBGL) {
+    if (scene.game.renderer.type === Phaser.WEBGL && !scene.sys.game.device.os.android && !scene.sys.game.device.os.iOS) {
       this.sprite.preFX?.addGlow(Colors.player.glow, 8, 0, false, 0.15, 24);
     }
 
