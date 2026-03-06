@@ -6,6 +6,7 @@ import { InputSystem } from './InputSystem';
 import type { UpdateContext } from './UpdateContext';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
+import { drawEffectCircle } from './weapons/GfxPool';
 
 /** Max enemy effective radius (Dragon 24 × boss 4 = 96) + some margin */
 const MAX_ENEMY_RADIUS = 100;
@@ -13,12 +14,14 @@ const MAX_ENEMY_RADIUS = 100;
 export class PlayerPhysicsSystem implements GameSystem {
   private scene: Phaser.Scene;
   private consumeDeathMask: (() => boolean) | null = null;
+  private slowAuraGfx: Phaser.GameObjects.Graphics;
 
   // Mouse drag state (scene-local — needs camera world position)
   private mouseDown = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+    this.slowAuraGfx = scene.add.graphics().setDepth(4);
 
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.wasTouch) this.mouseDown = true;
@@ -96,6 +99,7 @@ export class PlayerPhysicsSystem implements GameSystem {
     }
 
     // Slow aura
+    this.slowAuraGfx.clear();
     const slowValue = player.getEffectValue(EffectType.SlowAura);
     if (slowValue > 0) {
       const slowFactor = 1 - slowValue;
@@ -104,7 +108,12 @@ export class PlayerPhysicsSystem implements GameSystem {
       for (const enemy of slowNearby) {
         enemy.applySlow(slowFactor, 200);
       }
+      drawEffectCircle(this.slowAuraGfx, px, py, range, 0x6688cc, 0.08, 0.25);
     }
+  }
+
+  destroy(): void {
+    this.slowAuraGfx.destroy();
   }
 
   private getMouseMovement(): { x: number; y: number } {
