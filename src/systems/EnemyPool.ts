@@ -13,7 +13,7 @@ interface EnemySpatial extends SpatialEntity {
 
 export class EnemyPool {
   private pool: Enemy[] = [];
-  private active: Enemy[] = [];
+  private _active: Enemy[] = [];
   private scene: Phaser.Scene;
   private map: TileMap;
   private nextId: number = 1;
@@ -36,7 +36,7 @@ export class EnemyPool {
   }
 
   spawn(type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): Enemy | null {
-    if (this.active.length >= ENEMY_MAX_ACTIVE && type !== EnemyType.Death) return null;
+    if (this._active.length >= ENEMY_MAX_ACTIVE && type !== EnemyType.Death) return null;
 
     let enemy: Enemy;
     if (this.pool.length > 0) {
@@ -47,7 +47,7 @@ export class EnemyPool {
 
     enemy.activate(this.nextId++, type, x, y, gameTimeMs, boss,
       this.perkHpMult, this.perkDmgMult, this.perkXpMult);
-    this.active.push(enemy);
+    this._active.push(enemy);
     return enemy;
   }
 
@@ -58,13 +58,13 @@ export class EnemyPool {
     const now = this.scene.time.now;
     const camView = cam.worldView;
 
-    for (let i = this.active.length - 1; i >= 0; i--) {
-      const enemy = this.active[i];
+    for (let i = this._active.length - 1; i >= 0; i--) {
+      const enemy = this._active[i];
       const stillActive = enemy.update(dt, playerX, playerY, despawnRangeSq, now, camView);
       if (!stillActive) {
         // Swap-and-pop: O(1) removal instead of O(n) splice
-        this.active[i] = this.active[this.active.length - 1];
-        this.active.pop();
+        this._active[i] = this._active[this._active.length - 1];
+        this._active.pop();
         this.pool.push(enemy);
       }
     }
@@ -72,7 +72,7 @@ export class EnemyPool {
     // Rebuild spatial hash after all enemies have moved
     this.hash.clear();
     this.entityMap.clear();
-    for (const enemy of this.active) {
+    for (const enemy of this._active) {
       if (!enemy.state.alive) continue;
       this.entityMap.set(enemy.state.id, enemy);
       this.hash.insert({
@@ -84,20 +84,20 @@ export class EnemyPool {
     }
   }
 
-  getActive(): readonly Enemy[] {
-    return this.active;
+  get active(): readonly Enemy[] {
+    return this._active;
   }
 
-  getActiveCount(): number {
-    return this.active.length;
+  get activeCount(): number {
+    return this._active.length;
   }
 
   /** Remove a specific enemy (when killed) and return it to pool */
   returnToPool(enemy: Enemy): void {
-    const idx = this.active.indexOf(enemy);
+    const idx = this._active.indexOf(enemy);
     if (idx !== -1) {
-      this.active[idx] = this.active[this.active.length - 1];
-      this.active.pop();
+      this._active[idx] = this._active[this._active.length - 1];
+      this._active.pop();
       enemy.deactivate();
       this.pool.push(enemy);
     }
@@ -105,25 +105,25 @@ export class EnemyPool {
 
   /** Destroy all pooled and active enemy sprites */
   destroy(): void {
-    for (const enemy of this.active) {
+    for (const enemy of this._active) {
       enemy.sprite.destroy();
     }
     for (const enemy of this.pool) {
       enemy.sprite.destroy();
     }
-    this.active.length = 0;
+    this._active.length = 0;
     this.pool.length = 0;
   }
 
   /** Deactivate all enemies except Death, return count cleared */
   clearNonDeath(): number {
     let cleared = 0;
-    for (let i = this.active.length - 1; i >= 0; i--) {
-      const enemy = this.active[i];
+    for (let i = this._active.length - 1; i >= 0; i--) {
+      const enemy = this._active[i];
       if (enemy.state.type === EnemyType.Death) continue;
       enemy.deactivate();
-      this.active[i] = this.active[this.active.length - 1];
-      this.active.pop();
+      this._active[i] = this._active[this._active.length - 1];
+      this._active.pop();
       this.pool.push(enemy);
       cleared++;
     }

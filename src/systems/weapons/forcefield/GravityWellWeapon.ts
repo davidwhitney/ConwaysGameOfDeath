@@ -26,10 +26,10 @@ export class GravityWellWeapon extends BaseForceFieldWeapon {
 
   private pullGems(dt: number, player: Player, weapon: WeaponInstance): void {
     const stats = this.getStats(weapon);
-    const area = stats.area * player.getAuraMultiplier();
+    const area = stats.area * player.auraMultiplier;
     const areaSq = area * area;
     const pullSpeed = 200;
-    const gems = this.ctx.getActiveGems();
+    const gems = this.ctx.activeGems;
 
     for (const gem of gems) {
       if (!gem.alive) continue;

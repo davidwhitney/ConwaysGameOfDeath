@@ -52,7 +52,7 @@ const GEM_TRAIL_COLORS: Record<GemKind, number> = {
 
 export class XPGemPool {
   private pool: Phaser.GameObjects.Sprite[] = [];
-  private active: GemData[] = [];
+  private _active: GemData[] = [];
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private trailGfx: Phaser.GameObjects.Graphics;
@@ -119,7 +119,7 @@ export class XPGemPool {
     // Random scatter direction so gems pop outward from the kill site
     const angle = Math.random() * Math.PI * 2;
 
-    this.active.push({
+    this._active.push({
       sprite, x, y, value,
       alive: true,
       magnetized: false,
@@ -136,8 +136,8 @@ export class XPGemPool {
   private tryMergeNearby(x: number, y: number, value: number, kind: GemKind): boolean {
     // Find same-kind gems near the spawn point
     const nearby: number[] = [];
-    for (let i = 0; i < this.active.length; i++) {
-      const gem = this.active[i];
+    for (let i = 0; i < this._active.length; i++) {
+      const gem = this._active[i];
       if (!gem.alive || gem.kind !== kind) continue;
       const dx = gem.x - x;
       const dy = gem.y - y;
@@ -149,15 +149,15 @@ export class XPGemPool {
     if (nearby.length < MERGE_THRESHOLD - 1) return false;
 
     // Merge: absorb all nearby gems into the first one
-    const target = this.active[nearby[0]];
+    const target = this._active[nearby[0]];
     let totalValue = value;
     // Absorb from end to start to keep indices valid
     for (let j = nearby.length - 1; j >= 1; j--) {
-      const gem = this.active[nearby[j]];
+      const gem = this._active[nearby[j]];
       totalValue += gem.value;
       this.recycleGem(gem);
-      this.active[nearby[j]] = this.active[this.active.length - 1];
-      this.active.pop();
+      this._active[nearby[j]] = this._active[this._active.length - 1];
+      this._active.pop();
     }
     target.value += totalValue;
     target.mergeBoost = Math.min(target.mergeBoost + 1, 4);
@@ -200,12 +200,12 @@ export class XPGemPool {
     this.trailGfx.clear();
     const skipTrails = enemyPressure > 0.5;
 
-    if (this.active.length > MAX_GEMS) {
+    if (this._active.length > MAX_GEMS) {
       this.cullFurthest(playerX, playerY);
     }
 
-    for (let i = this.active.length - 1; i >= 0; i--) {
-      const gem = this.active[i];
+    for (let i = this._active.length - 1; i >= 0; i--) {
+      const gem = this._active[i];
       if (!gem.alive) continue;
 
       gem.age += dt;
@@ -229,8 +229,8 @@ export class XPGemPool {
 
       if (dSq < pickupRangeSq) {
         this.collectGem(gem, result);
-        this.active[i] = this.active[this.active.length - 1];
-        this.active.pop();
+        this._active[i] = this._active[this._active.length - 1];
+        this._active.pop();
       }
     }
 
@@ -287,8 +287,8 @@ export class XPGemPool {
   private cullFurthest(playerX: number, playerY: number): void {
     // Collect indices of xp gems (only cull xp, not heal/gold/vortex/death-mask)
     const xpIndices: { idx: number; distSq: number }[] = [];
-    for (let i = 0; i < this.active.length; i++) {
-      const gem = this.active[i];
+    for (let i = 0; i < this._active.length; i++) {
+      const gem = this._active[i];
       if (!gem.alive || gem.kind !== 'xp') continue;
       const dx = gem.x - playerX;
       const dy = gem.y - playerY;
@@ -298,7 +298,7 @@ export class XPGemPool {
     // Sort by distance descending (furthest first)
     xpIndices.sort((a, b) => b.distSq - a.distSq);
 
-    let toRemove = this.active.length - MAX_GEMS;
+    let toRemove = this._active.length - MAX_GEMS;
     // Remove from end of active array first (sort removal indices descending)
     const removeIndices: number[] = [];
     for (let i = 0; i < xpIndices.length && toRemove > 0; i++) {
@@ -308,15 +308,15 @@ export class XPGemPool {
     removeIndices.sort((a, b) => b - a);
 
     for (const idx of removeIndices) {
-      this.recycleGem(this.active[idx]);
-      this.active[idx] = this.active[this.active.length - 1];
-      this.active.pop();
+      this.recycleGem(this._active[idx]);
+      this._active[idx] = this._active[this._active.length - 1];
+      this._active.pop();
     }
   }
 
   /** Magnetize all active gems and rush them to the player */
   private triggerVortex(): void {
-    for (const gem of this.active) {
+    for (const gem of this._active) {
       if (!gem.alive || gem.kind === 'vortex') continue;
       gem.magnetized = true;
       gem.vortexed = true;
@@ -326,14 +326,14 @@ export class XPGemPool {
 
   /** Remove all active gems (for Housekeeping effect) */
   clearAll(): void {
-    for (const gem of this.active) {
+    for (const gem of this._active) {
       this.recycleGem(gem);
     }
-    this.active.length = 0;
+    this._active.length = 0;
   }
 
-  getActive(): GemData[] {
-    return this.active;
+  get active(): GemData[] {
+    return this._active;
   }
 
   destroy(): void {

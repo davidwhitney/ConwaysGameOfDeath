@@ -7,5 +7,5 @@ export interface WeaponContext {
   enemyPool: EnemyPool;
   getProjectileSprite(texture: string): Phaser.GameObjects.Sprite;
   returnProjectileSprite(sprite: Phaser.GameObjects.Sprite): void;
-  getActiveGems(): GemData[];
+  readonly activeGems: GemData[];
 }

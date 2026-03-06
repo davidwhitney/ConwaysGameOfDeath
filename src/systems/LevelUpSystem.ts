@@ -72,7 +72,7 @@ export class LevelUpSystem implements GameSystem {
     const data = {
       options,
       gold: this.player.state.gold,
-      rerollCost: this.getRerollCost(),
+      rerollCost: this.rerollCost,
     };
     if (this.scene.scene.isActive('LevelUp')) {
       const levelUp = this.scene.scene.get('LevelUp');
@@ -82,7 +82,7 @@ export class LevelUpSystem implements GameSystem {
     }
   }
 
-  getRerollCost(): number {
+  get rerollCost(): number {
     return Math.floor(GOLD_REROLL_BASE_COST * Math.pow(GOLD_REROLL_COST_MULTIPLIER, this.rerollCount));
   }
 
@@ -129,7 +129,7 @@ export class LevelUpSystem implements GameSystem {
   }
 
   private handleReroll(): void {
-    const cost = this.getRerollCost();
+    const cost = this.rerollCost;
     if (this.player.state.gold < cost) return;
     this.player.state.gold -= cost;
     this.rerollCount++;
@@ -143,7 +143,7 @@ export class LevelUpSystem implements GameSystem {
     levelUp.scene.restart({
       options,
       gold: this.player.state.gold,
-      rerollCost: this.getRerollCost(),
+      rerollCost: this.rerollCost,
     });
   }
 

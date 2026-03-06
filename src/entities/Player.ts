@@ -31,7 +31,7 @@ export class Player {
   private perkArmor: number = 0;
   private perkWeaponDmgMult: number = 1;
   private perkXpMult: number = 1;
-  private perkGoldMult: number = 1;
+  private _perkGoldMult: number = 1;
   private perkPickupRange: number = PLAYER_PICKUP_RANGE;
   private perkCooldownMult: number = 1;
 
@@ -78,12 +78,13 @@ export class Player {
     this.perkArmor = cfg.armor;
     this.perkWeaponDmgMult = cfg.weaponDmgMult;
     this.perkXpMult = cfg.xpMult;
-    this.perkGoldMult = cfg.goldMult;
+    this._perkGoldMult = cfg.goldMult;
     this.perkPickupRange = cfg.pickupRange;
     this.perkCooldownMult = cfg.weaponCooldownMult;
   }
 
-  getPerkGoldMult(): number { return this.perkGoldMult; }
+  get perkGoldMult(): number { return this._perkGoldMult; }
+
 
   getEffectValue(type: EffectType): number {
     if (this.effectCacheDirty
@@ -109,21 +110,20 @@ export class Player {
     this.effectCacheLength = this.state.effects.length;
   }
 
-  getSpeed(): number {
+  get speed(): number {
     return this.state.speed * (1 + this.getEffectValue(EffectType.Speed));
   }
 
-  getPickupRange(): number {
+  get pickupRange(): number {
     return this.perkPickupRange * (1 + this.getEffectValue(EffectType.Magnet));
   }
 
-  getCooldownReduction(): number {
+  get cooldownReduction(): number {
     return 1 - (1 - this.getEffectValue(EffectType.Cooldown)) * this.perkCooldownMult;
   }
 
-  getDamageMultiplier(): number {
+  get damageMultiplier(): number {
     let mul = 1 + this.getEffectValue(EffectType.Might);
-    // Berserk: bonus damage when below 50% HP
     const berserk = this.getEffectValue(EffectType.Berserk);
     if (berserk > 0 && this.state.hp < this.state.maxHp * 0.5) {
       mul += berserk;
@@ -131,30 +131,30 @@ export class Player {
     return mul * this.perkWeaponDmgMult;
   }
 
-  getArmor(): number {
+  get armor(): number {
     return this.perkArmor + this.getEffectValue(EffectType.Armor);
   }
 
-  getAuraMultiplier(): number {
+  get auraMultiplier(): number {
     return 1 + this.getEffectValue(EffectType.StrongAuras);
   }
 
-  getFuryReduction(): number {
+  get furyReduction(): number {
     return this.getEffectValue(EffectType.Fury);
   }
 
-  getFocusedLevel(): number {
+  get focusedLevel(): number {
     return this.getEffectValue(EffectType.Focused);
   }
 
-  getDurationMultiplier(): number {
+  get durationMultiplier(): number {
     return 1 + this.getEffectValue(EffectType.Duration);
   }
 
   move(dx: number, dy: number, dt: number, map: TileMap): void {
     if (!this.state.alive) return;
 
-    const speed = this.getSpeed();
+    const speed = this.speed;
     let newX = this.state.x + dx * speed * dt;
     let newY = this.state.y + dy * speed * dt;
 
@@ -200,7 +200,7 @@ export class Player {
     const dodgeChance = this.getEffectValue(EffectType.Dodge);
     if (dodgeChance > 0 && Math.random() < dodgeChance) return 0;
 
-    const reduced = Math.max(1, damage - this.getArmor());
+    const reduced = Math.max(1, damage - this.armor);
     this.state.hp -= reduced;
     this.state.invincibleUntil = now + PLAYER_INVINCIBLE_MS;
     GameEvents.sfx('player-hit');

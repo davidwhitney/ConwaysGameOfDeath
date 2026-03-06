@@ -24,7 +24,7 @@ export class GamepadNav {
     this.direction = direction;
   }
 
-  getSelected(): number {
+  get selected(): number {
     return this.selectedIndex;
   }
 

@@ -40,8 +40,8 @@ export class BaseForceFieldWeapon extends BaseWeapon {
 
   protected renderForceField(weapon: WeaponInstance, doTick: boolean, dt: number, player: Player): void {
     const stats = this.getStats(weapon);
-    const area = stats.area * player.getAuraMultiplier();
-    const dmgMul = player.getDamageMultiplier();
+    const area = stats.area * player.auraMultiplier;
+    const dmgMul = player.damageMultiplier;
 
     drawEffectCircle(this.gfx, player.state.x, player.state.y, area, this.def.color, 0.2, 0.5, 2);
 

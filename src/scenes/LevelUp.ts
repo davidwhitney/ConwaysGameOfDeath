@@ -194,7 +194,7 @@ export class LevelUpScene extends Phaser.Scene {
     this.gpNav.update();
 
     // Highlight selected card
-    const sel = this.gpNav.getSelected();
+    const sel = this.gpNav.selected;
     for (let i = 0; i < this.cardBgs.length; i++) {
       this.applyCardStyle(i, i === sel);
     }

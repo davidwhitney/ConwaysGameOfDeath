@@ -41,7 +41,7 @@ export class LightningWeapon extends BaseAoEWeapon {
 
   protected override fire(weapon: WeaponInstance, player: Player): void {
     const stats = this.getStats(weapon);
-    const dmgMul = player.getDamageMultiplier();
+    const dmgMul = player.damageMultiplier;
     const damage = Math.floor(stats.damage * dmgMul);
     const chainCount = weapon.level;
 

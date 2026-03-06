@@ -39,8 +39,8 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
 
   protected fire(weapon: WeaponInstance, player: Player): void {
     const stats = this.getStats(weapon);
-    const dmgMul = player.getDamageMultiplier();
-    const auraMul = player.getAuraMultiplier();
+    const dmgMul = player.damageMultiplier;
+    const auraMul = player.auraMultiplier;
 
     for (let i = 0; i < stats.amount; i++) {
       if (!this.canAddEffect()) break;
@@ -52,7 +52,7 @@ export class BaseAoEWeapon extends BaseEffectWeapon<ActiveAoE> {
         y: target.y,
         radius: stats.area * auraMul,
         damage: Math.floor(stats.damage * dmgMul),
-        duration: Math.max(stats.duration * player.getDurationMultiplier(), 300),
+        duration: Math.max(stats.duration * player.durationMultiplier, 300),
         age: 0,
         tickTimer: 0,
       });

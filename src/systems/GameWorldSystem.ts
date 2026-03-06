@@ -54,7 +54,7 @@ export class GameWorldSystem implements GameSystem {
     }
 
     const deltaMs = ctx.time.deltaMs;
-    this.mapRenderer.update(this.cameraManager.getCamera());
+    this.mapRenderer.update(this.cameraManager.camera);
     const dx = player.state.x - this.prevPlayerX;
     const dy = player.state.y - this.prevPlayerY;
     const isMoving = dx * dx + dy * dy > 1;
@@ -67,12 +67,12 @@ export class GameWorldSystem implements GameSystem {
     this.updateScatter(ctx);
   }
 
-  getEnemyPool(): EnemyPool {
+  get activeEnemyPool(): EnemyPool {
     return this.enemyPool;
   }
 
-  getActiveEnemyCount(): number {
-    return this.enemyPool.getActiveCount();
+  get activeEnemyCount(): number {
+    return this.enemyPool.activeCount;
   }
 
   cameraShake(duration: number, intensity: number): void {

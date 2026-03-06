@@ -10,8 +10,8 @@ const ORB_HIT_RADIUS_SQ = ORB_HIT_RADIUS * ORB_HIT_RADIUS;
 export class HolyShieldWeapon extends BaseForceFieldWeapon {
   protected renderForceField(weapon: WeaponInstance, doTick: boolean, _dt: number, player: Player): void {
     const stats = this.getStats(weapon);
-    const area = stats.area * player.getAuraMultiplier();
-    const dmgMul = player.getDamageMultiplier();
+    const area = stats.area * player.auraMultiplier;
+    const dmgMul = player.damageMultiplier;
 
     const time = this.ctx.scene.time.now * 0.002 * stats.speed;
 

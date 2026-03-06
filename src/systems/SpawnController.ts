@@ -37,7 +37,7 @@ export class SpawnController {
       const ty = Math.floor(event.worldY / TILE_SIZE);
       if (!isWalkable(this.map, tx, ty)) continue;
 
-      this.enemyPool.spawn(event.enemyType, event.worldX, event.worldY, this.spawnManager.getGameTimeMs());
+      this.enemyPool.spawn(event.enemyType, event.worldX, event.worldY, this.spawnManager.gameTimeMs);
     }
   }
 

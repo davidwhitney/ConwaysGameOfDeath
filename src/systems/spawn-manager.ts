@@ -48,7 +48,7 @@ export interface SpawnEvent {
 export class SpawnManager {
   private ca: CellularAutomaton;
   private rng: SeededRandom;
-  private gameTimeMs: number = 0;
+  private _gameTimeMs: number = 0;
   private tickAccumulator: number = 0;
   private tickIntervalMs: number = 500;
   private spawnCooldownMs: number = 1800;
@@ -56,7 +56,7 @@ export class SpawnManager {
 
   constructor(seed: number, initialTimeMs: number = 0) {
     this.rng = new SeededRandom(seed);
-    this.gameTimeMs = initialTimeMs;
+    this._gameTimeMs = initialTimeMs;
     this.ca = new CellularAutomaton(
       CA_SPAWN_WIDTH,
       CA_SPAWN_HEIGHT,
@@ -108,7 +108,7 @@ export class SpawnManager {
    * spawnRangeMin/Max override the default constants when provided (e.g. viewport-based).
    */
   update(deltaMs: number, playerX: number, playerY: number, spawnRangeMin?: number, spawnRangeMax?: number): SpawnEvent[] {
-    this.gameTimeMs += deltaMs;
+    this._gameTimeMs += deltaMs;
     const events: SpawnEvent[] = [];
 
     // Step the CA periodically
@@ -130,13 +130,13 @@ export class SpawnManager {
     // Spawn enemies from alive cells
     this.spawnTimer += deltaMs;
     // Spawn rate increases with game progress (0–1)
-    const progress = this.gameTimeMs / GAME_DURATION_MS;
+    const progress = this._gameTimeMs / GAME_DURATION_MS;
     const dynamicCooldown = Math.max(150, this.spawnCooldownMs * (1 - progress));
 
     if (this.spawnTimer >= dynamicCooldown) {
       this.spawnTimer -= dynamicCooldown;
 
-      const aliveCells = this.ca.getAliveCells();
+      const aliveCells = this.ca.aliveCells;
       // Start with 2 spawns per tick, ramp to cap by ~40% through
       const maxSpawns = Math.min(2 + Math.floor(progress * 45), 20);
       const spawns = Math.min(aliveCells.length, maxSpawns);
@@ -152,7 +152,7 @@ export class SpawnManager {
         events.push({
           worldX: playerX + Math.cos(angle) * dist,
           worldY: playerY + Math.sin(angle) * dist,
-          enemyType: this.pickEnemyType(this.gameTimeMs),
+          enemyType: this.pickEnemyType(this._gameTimeMs),
         });
       }
     }
@@ -160,7 +160,7 @@ export class SpawnManager {
     return events;
   }
 
-  getGameTimeMs(): number {
-    return this.gameTimeMs;
+  get gameTimeMs(): number {
+    return this._gameTimeMs;
   }
 }

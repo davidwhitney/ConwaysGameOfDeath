@@ -56,7 +56,7 @@ export class MenuNav {
 
   update(): void {
     this.gpNav.update();
-    const sel = this.gpNav.getSelected();
+    const sel = this.gpNav.selected;
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
       item.bg.setFillStyle(i === sel ? item.hoverFill : item.defaultFill);

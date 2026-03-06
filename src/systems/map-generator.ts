@@ -72,14 +72,14 @@ export function iterateMap(map: TileMap, playerWorldX: number, playerWorldY: num
   );
 
   // Load current map into CA
-  const data = ca.getData();
+  const data = ca.data;
   data.set(map);
 
   // Run one step
   ca.step();
 
   // Copy result back
-  const result = ca.getData();
+  const result = ca.data;
   map.set(result);
 
   // Re-enforce borders

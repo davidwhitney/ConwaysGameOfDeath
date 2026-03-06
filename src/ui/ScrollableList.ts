@@ -8,8 +8,8 @@ import { InputSystem } from '../systems/InputSystem';
 export class ScrollableList {
   private scene: Phaser.Scene;
   readonly container: Phaser.GameObjects.Container;
-  private scrollY = 0;
-  private maxScroll: number;
+  private _scrollY = 0;
+  private _maxScroll: number;
   private listTop: number;
   private listH: number;
   private rowH: number;
@@ -19,7 +19,7 @@ export class ScrollableList {
     this.listTop = listTop;
     this.listH = listBottom - listTop;
     this.rowH = rowH;
-    this.maxScroll = Math.max(0, contentH - this.listH);
+    this._maxScroll = Math.max(0, contentH - this.listH);
     this.container = scene.add.container(0, listTop);
 
     // Clip mask
@@ -29,7 +29,7 @@ export class ScrollableList {
 
     // Mouse wheel
     scene.input.on('wheel', (_p: unknown, _go: unknown[], _dx: number, dy: number) => {
-      this.scrollTo(this.scrollY + dy * 0.5);
+      this.scrollTo(this._scrollY + dy * 0.5);
     });
 
     // Touch drag
@@ -37,7 +37,7 @@ export class ScrollableList {
     let dragStartScroll = 0;
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       dragStartY = pointer.y;
-      dragStartScroll = this.scrollY;
+      dragStartScroll = this._scrollY;
     });
     scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.isDown) return;
@@ -49,30 +49,30 @@ export class ScrollableList {
   updateScroll(): void {
     const input = InputSystem.current;
     if (input.scrollY !== 0) {
-      this.scrollTo(this.scrollY + input.scrollY * this.rowH);
+      this.scrollTo(this._scrollY + input.scrollY * this.rowH);
     }
   }
 
   /** Ensure a given row index is visible, scrolling if needed. */
   scrollToRow(index: number): void {
     const rowTop = index * this.rowH;
-    if (rowTop < this.scrollY) {
+    if (rowTop < this._scrollY) {
       this.scrollTo(rowTop);
-    } else if (rowTop + this.rowH > this.scrollY + this.listH) {
+    } else if (rowTop + this.rowH > this._scrollY + this.listH) {
       this.scrollTo(rowTop + this.rowH - this.listH);
     }
   }
 
-  getScrollY(): number {
-    return this.scrollY;
+  get scrollY(): number {
+    return this._scrollY;
   }
 
-  getMaxScroll(): number {
-    return this.maxScroll;
+  get maxScroll(): number {
+    return this._maxScroll;
   }
 
   private scrollTo(y: number): void {
-    this.scrollY = Phaser.Math.Clamp(y, 0, this.maxScroll);
-    this.container.y = this.listTop - this.scrollY;
+    this._scrollY = Phaser.Math.Clamp(y, 0, this._maxScroll);
+    this.container.y = this.listTop - this._scrollY;
   }
 }

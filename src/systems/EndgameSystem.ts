@@ -44,8 +44,8 @@ export class EndgameSystem implements GameSystem {
     if (!this.enabled) return;
 
     // Keep all Death enemies at 80% of the player's current speed
-    const deathSpeed = ctx.player.getSpeed() * DEATH_SPEED_RATIO;
-    for (const enemy of ctx.enemyPool.getActive()) {
+    const deathSpeed = ctx.player.speed * DEATH_SPEED_RATIO;
+    for (const enemy of ctx.enemyPool.active) {
       if (enemy.state.type === EnemyType.Death && enemy.state.alive) {
         enemy.state.speed = deathSpeed;
       }

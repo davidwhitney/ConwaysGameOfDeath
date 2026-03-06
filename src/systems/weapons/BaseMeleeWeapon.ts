@@ -15,12 +15,12 @@ export class BaseMeleeWeapon extends BaseEffectWeapon<ActiveMelee> {
   }
 
   protected getCooldown(weapon: WeaponInstance, player: Player): number {
-    return super.getCooldown(weapon, player) * (1 - player.getFuryReduction());
+    return super.getCooldown(weapon, player) * (1 - player.furyReduction);
   }
 
   protected fire(weapon: WeaponInstance, player: Player): void {
     const stats = this.getStats(weapon);
-    const dmgMul = player.getDamageMultiplier();
+    const dmgMul = player.damageMultiplier;
 
     for (let i = 0; i < stats.amount; i++) {
       if (!this.canAddEffect()) break;
@@ -32,7 +32,7 @@ export class BaseMeleeWeapon extends BaseEffectWeapon<ActiveMelee> {
         y: player.state.y + Math.sin(angle) * stats.area * 0.6,
         radius: stats.area,
         damage: Math.floor(stats.damage * dmgMul),
-        duration: stats.duration * player.getDurationMultiplier(),
+        duration: stats.duration * player.durationMultiplier,
         age: 0,
         hitEnemies: new Set(),
       });

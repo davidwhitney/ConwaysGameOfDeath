@@ -97,7 +97,7 @@ export class WeaponSystem implements GameSystem {
       enemyPool,
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
-      getActiveGems: () => lootSystem.getActiveGems(),
+      get activeGems() { return lootSystem.activeGems; },
     };
   }
 

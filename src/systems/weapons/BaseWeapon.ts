@@ -37,7 +37,7 @@ export abstract class BaseWeapon {
 
   protected getCooldown(weapon: WeaponInstance, player: Player): number {
     const stats = this.getStats(weapon);
-    return stats.cooldown * (1 - player.getCooldownReduction());
+    return stats.cooldown * (1 - player.cooldownReduction);
   }
 
   protected hitEnemy(enemy: Enemy, damage: number, weaponType: WeaponType, player: Player): void {
@@ -82,7 +82,7 @@ export abstract class BaseWeapon {
   }
 
   protected findNearestEnemy(px: number, py: number): Enemy | null {
-    const enemies = this.ctx.enemyPool.getActive();
+    const enemies = this.ctx.enemyPool.active;
     let nearest: Enemy | null = null;
     let nearDist = Infinity;
     for (const e of enemies) {

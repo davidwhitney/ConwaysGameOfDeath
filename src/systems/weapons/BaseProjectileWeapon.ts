@@ -121,7 +121,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
     const nx = -p.vx / speed;
     const ny = -p.vy / speed;
     // Reduce trail points when enemy count is high
-    const enemyPressure = this.ctx.enemyPool.getActiveCount() / ENEMY_MAX_ACTIVE;
+    const enemyPressure = this.ctx.enemyPool.activeCount / ENEMY_MAX_ACTIVE;
     const count = enemyPressure > 0.5 ? Math.ceil(config.count * 0.6) : config.count;
     for (let i = 1; i <= count; i++) {
       const t = i / count;
@@ -178,8 +178,8 @@ export class BaseProjectileWeapon extends BaseWeapon {
 
   protected fire(weapon: WeaponInstance, player: Player): void {
     const stats = this.getStats(weapon);
-    const dmgMul = player.getDamageMultiplier();
-    const focusedLevel = player.getFocusedLevel();
+    const dmgMul = player.damageMultiplier;
+    const focusedLevel = player.focusedLevel;
     const totalAmount = stats.amount + focusedLevel;
     const speedMul = 1 + focusedLevel * 0.15;
     const texture = this.getTexture();
@@ -198,7 +198,7 @@ export class BaseProjectileWeapon extends BaseWeapon {
         damage: Math.floor(stats.damage * dmgMul),
         pierce: stats.pierce,
         radius: stats.area,
-        lifetime: stats.duration * player.getDurationMultiplier(),
+        lifetime: stats.duration * player.durationMultiplier,
         age: 0,
         hitEnemies: new Set(),
         weaponType: this.def.type,

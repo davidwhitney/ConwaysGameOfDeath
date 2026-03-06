@@ -107,7 +107,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs);
-    const enemyPool = this.gameWorldSystem.getEnemyPool();
+    const enemyPool = this.gameWorldSystem.activeEnemyPool;
     enemyPool.perkHpMult = cfg.enemyHpMult;
     enemyPool.perkDmgMult = cfg.enemyDmgMult;
     enemyPool.perkXpMult = cfg.enemyXpMult;
@@ -183,7 +183,7 @@ export class GameScene extends Phaser.Scene {
     const ctx: UpdateContext = {
       time: { delta: speedDelta / 1000, deltaMs: speedDelta, now: time, elapsed: this.gameTimeMs },
       player: this.player,
-      enemyPool: this.gameWorldSystem.getEnemyPool(),
+      enemyPool: this.gameWorldSystem.activeEnemyPool,
       map: this.map,
       config: this.gameConfig,
     };
@@ -198,14 +198,14 @@ export class GameScene extends Phaser.Scene {
     this.hudScene.updateHUD?.(
       this.player.state,
       this.gameTimeMs,
-      this.lootSystem.getKills(),
-      this.gameWorldSystem.getActiveEnemyCount(),
-      this.lootSystem.getDeathMasksHeld(),
+      this.lootSystem.kills,
+      this.gameWorldSystem.activeEnemyPool.activeCount,
+      this.lootSystem.deathMasksHeld,
       this.exitGatePos,
     );
 
     GameEvents.intensity(
-      Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.getActiveEnemyCount() / ENEMY_MAX_ACTIVE),
+      Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.activeEnemyPool.activeCount / ENEMY_MAX_ACTIVE),
     );
 
     this.processDeath(delta);
@@ -223,19 +223,19 @@ export class GameScene extends Phaser.Scene {
         this.scene.pause();
         this.scene.launch('Revive', {
           gold: this.player.state.gold,
-          cost: this.getReviveCost(),
+          cost: this.reviveCost,
         });
       }
     }
   }
 
-  private getReviveCost(): number {
+  private get reviveCost(): number {
     return 100 * Math.pow(2, this.reviveCount);
   }
 
   private handleReviveAccept(): void {
     GameEvents.sfx('revive');
-    this.player.state.gold -= this.getReviveCost();
+    this.player.state.gold -= this.reviveCost;
     this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.75);
     this.player.state.alive = true;
     this.player.state.invincibleUntil = performance.now() + 4000;
@@ -259,7 +259,7 @@ export class GameScene extends Phaser.Scene {
     const ctx: UpdateContext = {
       time: { delta: 0, deltaMs: 0, now: performance.now(), elapsed: this.gameTimeMs },
       player: this.player,
-      enemyPool: this.gameWorldSystem.getEnemyPool(),
+      enemyPool: this.gameWorldSystem.activeEnemyPool,
       map: this.map,
       config: this.gameConfig,
     };
@@ -273,7 +273,7 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('GameOver', {
       victory,
       extracted,
-      kills: this.lootSystem.getKills(),
+      kills: this.lootSystem.kills,
       level: this.player.state.level,
       time: this.gameTimeMs,
       seed: this.seed,

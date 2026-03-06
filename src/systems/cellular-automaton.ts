@@ -91,7 +91,7 @@ export class CellularAutomaton {
   }
 
   /** Get the raw grid data */
-  getData(): Uint8Array {
+  get data(): Uint8Array {
     return this.grid;
   }
 
@@ -110,7 +110,7 @@ export class CellularAutomaton {
   }
 
   /** Get all alive cells as coordinate list */
-  getAliveCells(): Array<{ x: number; y: number }> {
+  get aliveCells(): Array<{ x: number; y: number }> {
     const cells: Array<{ x: number; y: number }> = [];
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
