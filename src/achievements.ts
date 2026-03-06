@@ -1,6 +1,5 @@
 import type { UpdateContext } from './systems/UpdateContext';
 import type { Stats } from './ui/saveData';
-import { WEAPON_DEFS } from './entities/weapons';
 import { EFFECT_DEFS } from './entities/effects';
 import { ENEMY_DEFS } from './entities/enemies';
 import { EnemyType } from './types';
@@ -21,29 +20,7 @@ function buildAchievements(): AchievementDef[] {
   // 1. killed-death (event-driven, no evaluate)
   defs.push({ id: 'killed-death', name: 'Killed Death', description: 'Destroy Death using a Death Mask' });
 
-  // 2. Per-weapon acquired (32) — silent, too frequent to notify
-  for (const w of WEAPON_DEFS) {
-    defs.push({
-      id: `weapon-${w.type}`,
-      name: w.name,
-      description: `Acquire ${w.name}`,
-      silent: true,
-      evaluate: (ctx) => ctx.player.state.weapons.some(wi => wi.type === w.type),
-    });
-  }
-
-  // 3. Per-effect acquired (26) — silent, too frequent to notify
-  for (const e of EFFECT_DEFS) {
-    defs.push({
-      id: `effect-${e.type}`,
-      name: e.name,
-      description: `Acquire ${e.name}`,
-      silent: true,
-      evaluate: (ctx) => ctx.player.state.effects.some(ei => ei.type === e.type),
-    });
-  }
-
-  // 4. Max all weapon slots — "Fully Armed"
+  // 2. Max all weapon slots — "Fully Armed"
   defs.push({
     id: 'fully-armed',
     name: 'Fully Armed',

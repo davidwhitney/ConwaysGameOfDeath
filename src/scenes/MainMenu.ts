@@ -86,7 +86,11 @@ export class MainMenuScene extends Phaser.Scene {
     }
     buttons.push(
       { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('HighScores'); } },
-      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Achievements'); } },
+    );
+    if (hasPerks) {
+      buttons.push({ x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Achievements'); } });
+    }
+    buttons.push(
       { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Settings', { returnTo: 'MainMenu' }); } },
     );
     this.menuNav = new MenuNav(this, buttons);
@@ -230,12 +234,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Bottom group: nav buttons + hint
     const hasPerks = getAchievements().length > 0;
-    const bottomKeys: (keyof typeof this.layoutFracs)[] = hasPerks
-      ? ['perks', 'scores', 'achievements', 'settings', 'hint']
-      : ['scores', 'achievements', 'settings', 'hint'];
-    const bottomHeights = hasPerks
-      ? [btnH, btnH, btnH, btnH, 12]
-      : [btnH, btnH, btnH, 12];
+    const bottomKeys: (keyof typeof this.layoutFracs)[] = [];
+    const bottomHeights: number[] = [];
+    if (hasPerks) { bottomKeys.push('perks'); bottomHeights.push(btnH); }
+    bottomKeys.push('scores'); bottomHeights.push(btnH);
+    if (hasPerks) { bottomKeys.push('achievements'); bottomHeights.push(btnH); }
+    bottomKeys.push('settings', 'hint'); bottomHeights.push(btnH, 12);
 
     // Gaps
     const innerGap = compact ? 10 : 16;
