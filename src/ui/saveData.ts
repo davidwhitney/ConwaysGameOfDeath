@@ -27,6 +27,7 @@ export interface Stats {
   deathKills: number;
   totalPlayTimeMs: number;
   victories: number;
+  extractions: number;
 }
 
 export const DEFAULT_STATS: Stats = {
@@ -35,6 +36,7 @@ export const DEFAULT_STATS: Stats = {
   deathKills: 0,
   totalPlayTimeMs: 0,
   victories: 0,
+  extractions: 0,
 };
 
 export interface SaveData {
@@ -150,6 +152,7 @@ export function mergeStats(session: Stats): void {
   persisted.deathKills += session.deathKills;
   persisted.totalPlayTimeMs += session.totalPlayTimeMs;
   persisted.victories += session.victories;
+  persisted.extractions = (persisted.extractions ?? 0) + (session.extractions ?? 0);
   for (const [key, val] of Object.entries(session.killsByType)) {
     const k = Number(key);
     persisted.killsByType[k] = (persisted.killsByType[k] ?? 0) + val;

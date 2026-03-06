@@ -18,6 +18,8 @@ export interface GameEventMap {
   'revive-accept': [];
   'revive-decline': [];
   'achievement': [id: string];
+  'exit-gate-spawned': [pos: { x: number; y: number }];
+  'extracted': [];
 }
 
 type GameEventName = keyof GameEventMap;

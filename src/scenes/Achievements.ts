@@ -31,14 +31,15 @@ export class AchievementsScene extends Phaser.Scene {
 
     // Stats section
     const statsY = height * 0.10;
-    const statsGap = width / 5;
-    const statsStartX = width / 2 - statsGap * 1.5;
     const statItems: [string, string][] = [
       ['KILLS', formatNumber(stats.totalKills)],
       ['DEATH KILLS', formatNumber(stats.deathKills)],
       ['PLAY TIME', formatDuration(stats.totalPlayTimeMs)],
       ['VICTORIES', formatNumber(stats.victories)],
+      ['EXTRACTIONS', formatNumber(stats.extractions ?? 0)],
     ];
+    const statsGap = width / (statItems.length + 1);
+    const statsStartX = width / 2 - statsGap * ((statItems.length - 1) / 2);
     for (let i = 0; i < statItems.length; i++) {
       const x = statsStartX + i * statsGap;
       this.add.text(x, statsY, statItems[i][0], monoStyle('10px', '#888899')).setOrigin(0.5, 0);

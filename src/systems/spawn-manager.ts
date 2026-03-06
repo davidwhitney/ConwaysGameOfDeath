@@ -79,7 +79,7 @@ export class SpawnManager {
   /** Get available enemy types based on game progress (0–1) */
   getAvailableEnemyTypes(gameTimeMs: number): EnemyDef[] {
     const progress = gameTimeMs / GAME_DURATION_MS;
-    return ENEMY_DEFS.filter(def => progress >= def.unlockAt);
+    return ENEMY_DEFS.filter(def => def.type !== EnemyType.Death && progress >= def.unlockAt);
   }
 
   /** Pick enemy type weighted towards stronger enemies as time passes */

@@ -5,7 +5,7 @@ import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
 import { MenuNav, type MenuItemDef } from '../ui/MenuNav';
-import { loadSettings, saveSettings, getAchievements } from '../ui/saveData';
+import { loadSettings, saveSettings, getAchievements, loadStats } from '../ui/saveData';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
@@ -37,13 +37,20 @@ export class MainMenuScene extends Phaser.Scene {
     // Game of Life background
     this.gol = new BackgroundGameOfLife(this, width, height);
 
+    // Gold tint overlay if player has extracted
+    const hasExtracted = (loadStats().extractions ?? 0) > 0;
+    if (hasExtracted) {
+      this.add.rectangle(width / 2, height / 2, width, height, 0xffcc00, 0.06);
+    }
+
     // Title — scale font to fit screen
     const titleFontSize = height < 450 ? '32px' : height < 550 ? '40px' : '48px';
     const subFontSize = height < 450 ? '14px' : '18px';
+    const titleColor = hasExtracted ? '#ffdd00' : '#ff4444';
 
     // Create title off-screen to measure, then reposition after layout
     const title = this.add.text(width / 2, 0, "CONWAY'S GAME\nOF DEATH",
-      monoStyle(titleFontSize, '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
+      monoStyle(titleFontSize, titleColor, { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
     ).setOrigin(0.5);
     const subtitle = this.add.text(width / 2, 0, 'Survive the Automaton',
       monoStyle(subFontSize, '#aaaacc'),

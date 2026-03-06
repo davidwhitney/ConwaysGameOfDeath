@@ -77,13 +77,14 @@ export class AchievementSystem implements GameSystem {
   }
 
   /** Flush session stats into persistent storage. Call at end of game. */
-  flushStats(elapsedMs: number, victory: boolean): void {
+  flushStats(elapsedMs: number, victory: boolean, extracted: boolean = false): void {
     const session: Stats = {
       totalKills: this.sessionTotalKills,
       killsByType: { ...this.sessionKillsByType },
       deathKills: this.sessionDeathKills,
       totalPlayTimeMs: elapsedMs,
       victories: victory ? 1 : 0,
+      extractions: extracted ? 1 : 0,
     };
     mergeStats(session);
   }
@@ -95,6 +96,7 @@ export class AchievementSystem implements GameSystem {
       deathKills: this.persistedStats.deathKills + this.sessionDeathKills,
       totalPlayTimeMs: this.persistedStats.totalPlayTimeMs,
       victories: this.persistedStats.victories,
+      extractions: this.persistedStats.extractions ?? 0,
     };
   }
 

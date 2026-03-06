@@ -6,6 +6,7 @@ import { setupMenuScene } from '../ui/sceneSetup';
 
 interface GameOverData {
   victory: boolean;
+  extracted?: boolean;
   kills: number;
   level: number;
   time: number; // ms
@@ -42,14 +43,21 @@ export class GameOverScene extends Phaser.Scene {
     const { width, height } = setupMenuScene(this, { initData: this.initData! });
 
     // Background
-    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8);
+    const bgColor = data.extracted ? 0x1a1500 : 0x000000;
+    this.add.rectangle(width / 2, height / 2, width, height, bgColor, 0.8);
 
     // Title
-    const titleText = data.victory ? 'VICTORY!' : 'GAME OVER';
-    const titleColor = data.victory ? '#ffcc00' : '#ff4444';
+    const titleText = data.extracted ? 'EXTRACTED!' : data.victory ? 'VICTORY!' : 'GAME OVER';
+    const titleColor = data.extracted ? '#ffdd00' : data.victory ? '#ffcc00' : '#ff4444';
     this.add.text(width / 2, height * 0.15, titleText,
       monoStyle('48px', titleColor, { fontStyle: 'bold' }),
     ).setOrigin(0.5);
+
+    if (data.extracted) {
+      this.add.text(width / 2, height * 0.22, 'You escaped through the gate',
+        monoStyle('14px', '#ccaa44'),
+      ).setOrigin(0.5);
+    }
 
     // Stats
     const timeStr = formatTime(data.time);

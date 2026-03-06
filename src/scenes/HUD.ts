@@ -29,6 +29,8 @@ export class HUDScene extends Phaser.Scene {
   private deathMaskGfx!: Phaser.GameObjects.Graphics;
   private deathMaskText!: Phaser.GameObjects.Text;
   private lastDeathMasks = -1;
+  private gateIndicatorGfx!: Phaser.GameObjects.Graphics;
+  private gateDistText!: Phaser.GameObjects.Text;
 
   // Dirty tracking to avoid redraws when nothing changed
   private lastHp = -1;
@@ -71,6 +73,10 @@ export class HUDScene extends Phaser.Scene {
     this.deathMaskText = this.add.text(28, 70, '', hudStyle('14px', '#dd66ff', { fontStyle: 'bold' }));
 
     this.seedText = this.add.text(width / 2, 32, `Seed: ${this.seed}`, hudStyle('10px', '#444466', { strokeThickness: 1 })).setOrigin(0.5, 0);
+
+    this.gateIndicatorGfx = this.add.graphics();
+    this.gateDistText = this.add.text(width / 2, 52, '', hudStyle('12px', '#ffcc00', { fontStyle: 'bold', strokeThickness: 2 })).setOrigin(0.5, 0);
+    this.gateDistText.setVisible(false);
 
     // Show pause button on touch-capable devices
     if (!detectedTouch && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
@@ -117,13 +123,14 @@ export class HUDScene extends Phaser.Scene {
     });
   }
 
-  updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number, deathMasks: number = 0): void {
+  updateHUD(player: PlayerState, gameTimeMs: number, kills: number, enemyCount: number, deathMasks: number = 0, gatePos: { x: number; y: number } | null = null): void {
     const { width, height } = applyUIZoom(this);
 
     this.updateHealthBar(player);
     this.updateXpBar(player, width, height);
     this.updateStats(player, gameTimeMs, kills, enemyCount, width);
     this.updateDeathMasks(deathMasks);
+    this.updateGateIndicator(player, gatePos, width);
 
     // Inventory bar — only redraw when contents change
     const invKey = this.computeInvKey(player.weapons, player.effects);
@@ -203,6 +210,53 @@ export class HUDScene extends Phaser.Scene {
     } else {
       this.deathMaskText.setVisible(false);
     }
+  }
+
+  private updateGateIndicator(player: PlayerState, gatePos: { x: number; y: number } | null, width: number): void {
+    this.gateIndicatorGfx.clear();
+    if (!gatePos) {
+      this.gateDistText.setVisible(false);
+      return;
+    }
+
+    const dx = gatePos.x - player.x;
+    const dy = gatePos.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    // Arrow indicator near top-center
+    const cx = width / 2;
+    const cy = 56;
+    const arrowDist = 30;
+    const ax = cx + Math.cos(angle) * arrowDist;
+    const ay = cy + Math.sin(angle) * arrowDist;
+
+    // Arrow head
+    const headLen = 10;
+    const headAngle = 0.5;
+    const gfx = this.gateIndicatorGfx;
+    const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.004);
+
+    gfx.fillStyle(0xffcc00, pulse);
+    gfx.fillTriangle(
+      ax + Math.cos(angle) * headLen,
+      ay + Math.sin(angle) * headLen,
+      ax + Math.cos(angle + Math.PI - headAngle) * headLen,
+      ay + Math.sin(angle + Math.PI - headAngle) * headLen,
+      ax + Math.cos(angle + Math.PI + headAngle) * headLen,
+      ay + Math.sin(angle + Math.PI + headAngle) * headLen,
+    );
+
+    // Small golden dot at center
+    gfx.fillStyle(0xffcc00, 0.4);
+    gfx.fillCircle(cx, cy, 3);
+
+    // Distance text
+    const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)}k` : `${Math.floor(dist)}`;
+    this.gateDistText.setText(`EXIT ${distLabel}`);
+    this.gateDistText.setX(cx);
+    this.gateDistText.setY(cy + 20);
+    this.gateDistText.setVisible(true);
   }
 
   private computeInvKey(weapons: WeaponInstance[], effects: EffectInstance[]): string {

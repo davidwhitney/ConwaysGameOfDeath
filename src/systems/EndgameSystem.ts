@@ -11,18 +11,29 @@ import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { randomPositionAtDistance } from './spawnUtils';
 
-export class DeathSpawnSystem implements GameSystem {
+/** Base distance the exit gate spawns from the player */
+const EXIT_GATE_BASE_DIST = 15000;
+
+export class EndgameSystem implements GameSystem {
   private scene: Phaser.Scene;
   private rng: SeededRandom;
   private timer: number = 0;
   private enabled: boolean = true;
   private maskTimer: number = 0;
   private masksSpawned: number = 0;
+  private gateSpawned: boolean = false;
+  private deathKilledThisRun: boolean = false;
 
   constructor(scene: Phaser.Scene, rng: SeededRandom, enabled: boolean = true) {
     this.scene = scene;
     this.rng = rng;
     this.enabled = enabled;
+
+    GameEvents.on(scene.events, 'enemy-killed', (enemy) => {
+      if (enemy.state.type === EnemyType.Death) {
+        this.deathKilledThisRun = true;
+      }
+    });
   }
 
   setEnabled(val: boolean): void {
@@ -51,6 +62,15 @@ export class DeathSpawnSystem implements GameSystem {
     }
 
     if (ctx.time.elapsed < GAME_DURATION_MS) return;
+
+    // Spawn exit gate once after the player kills Death
+    if (!this.gateSpawned && this.deathKilledThisRun) {
+      this.gateSpawned = true;
+      const luck = ctx.player.getEffectValue(EffectType.Luck);
+      const dist = EXIT_GATE_BASE_DIST * (1 - luck * 0.4);
+      const { x: gx, y: gy } = randomPositionAtDistance(this.rng, ctx.player.state.x, ctx.player.state.y, dist);
+      GameEvents.emit(this.scene.events, 'exit-gate-spawned', { x: gx, y: gy });
+    }
 
     this.timer -= ctx.time.deltaMs;
     if (this.timer <= 0) {
@@ -96,6 +116,8 @@ export class DeathSpawnSystem implements GameSystem {
     this.timer = 0;
     this.maskTimer = 0;
     this.masksSpawned = 0;
+    this.gateSpawned = false;
+    this.deathKilledThisRun = false;
   }
 
 }

@@ -87,7 +87,10 @@ function buildAchievements(): AchievementDef[] {
   // 10. Kill Death no AOE — "Hands Only" (reactive, no evaluate)
   defs.push({ id: 'death-no-aoe', name: 'Hands Only', description: 'Kill Death with no AoE weapons' });
 
-  // 11. Survive 15 min — "Half Time"
+  // 11. Extracted (event-driven, no evaluate)
+  defs.push({ id: 'extracted', name: 'Extracted', description: 'Escape through the exit gate' });
+
+  // 12. Survive 15 min — "Half Time"
   defs.push({
     id: 'survive-15',
     name: 'Half Time',

@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { WeaponType, type TileMap } from '../types';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, GAME_DURATION_MS, ENEMY_MAX_ACTIVE } from '../constants';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, GAME_DURATION_MS, ENEMY_MAX_ACTIVE, PLAYER_SIZE } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import { generateMap } from '../systems/map-generator';
 import { Player } from '../entities/Player';
 import { WeaponSystem } from '../systems/WeaponSystem';
 import { DamageNumbersUiComponent } from '../ui/DamageNumbersUiComponent';
 import { BossSpawnSystem } from '../systems/BossSpawnSystem';
-import { DeathSpawnSystem } from '../systems/DeathSpawnSystem';
+import { EndgameSystem } from '../systems/EndgameSystem';
 import { LootSystem } from '../systems/LootSystem';
 import { LevelUpSystem } from '../systems/LevelUpSystem';
 import { PlayerPhysicsSystem } from '../systems/PlayerPhysicsSystem';
@@ -56,6 +56,9 @@ export class GameScene extends Phaser.Scene {
   private debugTimeMinutes: number = 0;
   private deathDelayMs: number = 0;
   private gameConfig!: GameConfig;
+  private exitGatePos: { x: number; y: number } | null = null;
+  private exitGateGfx: Phaser.GameObjects.Graphics | null = null;
+  private exitGateAngle: number = 0;
 
   public constructor() {
     super({ key: 'Game' });
@@ -70,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.reviveCount = 0;
     this.awaitingRevive = false;
+    this.exitGatePos = null;
   }
 
   public create(): void {
@@ -129,7 +133,7 @@ export class GameScene extends Phaser.Scene {
       playerPhysics,
       this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
-      new DeathSpawnSystem(this, this.rng, !this.endless),
+      new EndgameSystem(this, this.rng, !this.endless),
       new WeaponSystem(this, enemyPool, this.lootSystem),
       this.lootSystem,
       new LevelUpSystem(this, this.rng, this.player),
@@ -151,6 +155,8 @@ export class GameScene extends Phaser.Scene {
     });
     GameEvents.on(this.events, 'revive-accept', () => this.handleReviveAccept());
     GameEvents.on(this.events, 'revive-decline', () => this.handleReviveDecline());
+    GameEvents.on(this.events, 'exit-gate-spawned', (pos) => this.spawnExitGate(pos));
+    GameEvents.on(this.events, 'extracted', () => this.handleExtraction());
 
     // UI Events
     this.visibilityHandler = () => {
@@ -200,12 +206,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.damageNumbersUi.update(ctx);
+    this.updateExitGate(speedDelta / 1000);
+
     this.hudScene.updateHUD?.(
       this.player.state,
       this.gameTimeMs,
       this.lootSystem.getKills(),
       this.gameWorldSystem.getActiveEnemyCount(),
       this.lootSystem.getDeathMasksHeld(),
+      this.exitGatePos,
     );
 
     GameEvents.intensity(
@@ -256,7 +265,7 @@ export class GameScene extends Phaser.Scene {
     this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
   }
 
-  private endGame(victory: boolean): void {
+  private endGame(victory: boolean, extracted: boolean = false): void {
     this.gameOver = true;
 
     // Final achievement evaluation before leaving
@@ -268,7 +277,7 @@ export class GameScene extends Phaser.Scene {
       config: this.gameConfig,
     };
     this.achievementSystem.evaluate(ctx);
-    this.achievementSystem.flushStats(this.gameTimeMs, victory);
+    this.achievementSystem.flushStats(this.gameTimeMs, victory, extracted);
 
     this.scene.stop('HUD');
     this.scene.stop('LevelUp');
@@ -276,11 +285,68 @@ export class GameScene extends Phaser.Scene {
     this.scene.stop('Revive');
     this.scene.start('GameOver', {
       victory,
+      extracted,
       kills: this.lootSystem.getKills(),
       level: this.player.state.level,
       time: this.gameTimeMs,
       seed: this.seed,
     });
+  }
+
+  private spawnExitGate(pos: { x: number; y: number }): void {
+    this.exitGatePos = pos;
+    this.exitGateGfx = this.add.graphics().setDepth(20);
+    GameEvents.emit(this.events, 'screen-shake', 600, 0.02);
+  }
+
+  private updateExitGate(dt: number): void {
+    if (!this.exitGatePos || !this.exitGateGfx) return;
+
+    this.exitGateAngle += dt * 2;
+    const { x, y } = this.exitGatePos;
+    const gfx = this.exitGateGfx;
+    gfx.clear();
+
+    // Pulsing golden portal
+    const pulse = 0.85 + 0.15 * Math.sin(this.exitGateAngle * 3);
+    const radius = 40 * pulse;
+
+    // Outer glow
+    gfx.fillStyle(0xffcc00, 0.15);
+    gfx.fillCircle(x, y, radius * 2.5);
+    // Mid ring
+    gfx.fillStyle(0xffdd44, 0.25);
+    gfx.fillCircle(x, y, radius * 1.5);
+    // Core
+    gfx.fillStyle(0xffee88, 0.6);
+    gfx.fillCircle(x, y, radius);
+    // Bright center
+    gfx.fillStyle(0xffffff, 0.7);
+    gfx.fillCircle(x, y, radius * 0.4);
+
+    // Rotating ring particles
+    for (let i = 0; i < 8; i++) {
+      const a = this.exitGateAngle + (Math.PI * 2 * i) / 8;
+      const px = x + Math.cos(a) * radius * 1.8;
+      const py = y + Math.sin(a) * radius * 1.8;
+      gfx.fillStyle(0xffcc00, 0.5);
+      gfx.fillCircle(px, py, 4);
+    }
+
+    // Check player collision
+    const dx = this.player.state.x - x;
+    const dy = this.player.state.y - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < radius + PLAYER_SIZE / 2) {
+      GameEvents.emit(this.events, 'extracted');
+    }
+  }
+
+  private handleExtraction(): void {
+    if (this.gameOver) return;
+    GameEvents.emit(this.events, 'achievement', 'extracted');
+    GameEvents.sfx('game-start'); // reuse a triumphant sound
+    this.endGame(true, true);
   }
 
   private shutdown(): void {
@@ -301,5 +367,8 @@ export class GameScene extends Phaser.Scene {
     this.events.off('blood-aura-heal');
     this.events.off('revive-accept');
     this.events.off('revive-decline');
+    this.events.off('exit-gate-spawned');
+    this.events.off('extracted');
+    this.exitGateGfx?.destroy();
   }
 }
