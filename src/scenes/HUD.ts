@@ -127,16 +127,12 @@ export class HUDScene extends Phaser.Scene {
       strokeThickness: 1,
     }).setOrigin(0.5, 0);
 
-    // Show pause button on touch devices (immediately if already detected, otherwise on first touch)
+    // Show pause button on touch-capable devices
+    if (!detectedTouch && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+      detectedTouch = true;
+    }
     if (detectedTouch) {
       this.createPauseButton();
-    } else {
-      this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        if (pointer.wasTouch && !detectedTouch) {
-          detectedTouch = true;
-          this.createPauseButton();
-        }
-      });
     }
   }
 

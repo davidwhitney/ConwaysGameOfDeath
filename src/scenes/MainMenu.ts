@@ -40,22 +40,26 @@ export class MainMenuScene extends Phaser.Scene {
     // Title — scale font to fit screen
     const titleFontSize = height < 450 ? '32px' : height < 550 ? '40px' : '48px';
     const subFontSize = height < 450 ? '14px' : '18px';
-    const titleY = Math.min(height * 0.20, 120);
-    const title = this.add.text(width / 2, titleY, "CONWAY'S GAME\nOF DEATH",
+
+    // Create title off-screen to measure, then reposition after layout
+    const title = this.add.text(width / 2, 0, "CONWAY'S GAME\nOF DEATH",
       monoStyle(titleFontSize, '#ff4444', { fontStyle: 'bold', align: 'center', lineSpacing: 4 }),
     ).setOrigin(0.5);
-
-    // Blood drip effect
-    this.bloodDrips = new BloodDripEffect(this, title, { count: 18, delayRange: 5, fromLine1: true });
-
-    const subtitleY = title.y + title.height / 2 + 12;
-    const subtitle = this.add.text(width / 2, subtitleY, 'Survive the Automaton',
+    const subtitle = this.add.text(width / 2, 0, 'Survive the Automaton',
       monoStyle(subFontSize, '#aaaacc'),
     ).setOrigin(0.5);
 
-    // Compute flow-based layout starting below actual title content
-    const contentTop = subtitle.y + subtitle.height / 2 + 10;
-    this.computeLayout(height, contentTop);
+    // Measure header height: title + gap + subtitle
+    const headerGap = 12;
+    const headerH = title.height + headerGap + subtitle.height;
+
+    // Compute full layout and get the title's Y position
+    const titleY = this.computeLayout(width, height, headerH);
+    title.setY(titleY);
+    subtitle.setY(titleY + title.height / 2 + headerGap + subtitle.height / 2);
+
+    // Blood drip effect
+    this.bloodDrips = new BloodDripEffect(this, title, { count: 18, delayRange: 5, fromLine1: true });
     const ly = this.layoutFracs;
 
     // Seed input (HTML element for editable text)
@@ -203,10 +207,8 @@ export class MainMenuScene extends Phaser.Scene {
     positionAtLayout(this.debugContainer, this.game.canvas, 0.5, this.layoutFracs.debugLevel, -70);
   }
 
-  private computeLayout(height: number, contentTop: number): void {
-    const endY = height - 6;
-    const avail = endY - contentTop;
-
+  /** Compute layout for the entire menu. Returns the title centre Y. */
+  private computeLayout(_width: number, height: number, headerH: number): number {
     const compact = height < 520;
     const btnH = compact ? 32 : 40;
     const playH = compact ? 38 : 46;
@@ -219,32 +221,39 @@ export class MainMenuScene extends Phaser.Scene {
       ? [20, playH, 18, 18, 18]
       : [20, playH, 18];
 
-    // Bottom group: nav buttons + hint (kept together)
+    // Bottom group: nav buttons + hint
     const bottomKeys: (keyof typeof this.layoutFracs)[] = ['scores', 'achievements', 'settings', 'hint'];
     const bottomHeights = [btnH, btnH, btnH, 12];
 
-    // Fixed inner gaps — capped so groups stay tight on tall screens
-    const maxTopGap = compact ? 10 : 16;
+    // Gaps
+    const innerGap = compact ? 10 : 16;
     const bottomGap = compact ? 6 : 10;
+    const headerToButtons = compact ? 16 : 24;
+    const groupGap = compact ? 20 : 30;
 
     const topItemH = topHeights.reduce((s, h) => s + h, 0);
+    const topBlockH = topItemH + innerGap * (topKeys.length - 1);
     const bottomItemH = bottomHeights.reduce((s, h) => s + h, 0);
-    const bottomFixedH = bottomItemH + bottomGap * (bottomKeys.length - 1);
+    const bottomBlockH = bottomItemH + bottomGap * (bottomKeys.length - 1);
 
-    const topSlots = topKeys.length - 1;
-    const spaceForTopGaps = avail - topItemH - bottomFixedH;
-    const topGap = Math.max(2, Math.min(maxTopGap, spaceForTopGaps / (topSlots + 1)));
-    const topFixedH = topItemH + topGap * topSlots;
+    // Total height of everything: header + gap + top buttons + group gap + bottom buttons
+    const totalH = headerH + headerToButtons + topBlockH + groupGap + bottomBlockH;
 
-    // Remaining space goes between the two groups
-    const groupGap = Math.max(topGap, avail - topFixedH - bottomFixedH);
+    // Centre the whole thing vertically, with a small margin
+    const margin = 6;
+    const startY = margin + Math.max(0, (height - 2 * margin - totalH) / 2);
+
+    // Title centre Y (title is top of header)
+    const titleY = startY + headerH / 2;
+
+    // Buttons start after header
+    let y = startY + headerH + headerToButtons + topHeights[0] / 2;
 
     // Position top group
-    let y = contentTop + topHeights[0] / 2;
     for (let i = 0; i < topKeys.length; i++) {
       this.layoutFracs[topKeys[i]] = y / height;
       if (i < topKeys.length - 1) {
-        y += topHeights[i] / 2 + topGap + topHeights[i + 1] / 2;
+        y += topHeights[i] / 2 + innerGap + topHeights[i + 1] / 2;
       }
     }
 
@@ -258,6 +267,8 @@ export class MainMenuScene extends Phaser.Scene {
         y += bottomHeights[i] / 2 + bottomGap + bottomHeights[i + 1] / 2;
       }
     }
+
+    return titleY;
   }
 
   update(_time: number, delta: number): void {

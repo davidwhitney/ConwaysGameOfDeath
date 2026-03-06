@@ -112,9 +112,10 @@ export class BootScene extends Phaser.Scene {
 
   private createCircleTexture(key: string, radius: number, color: number, innerColor?: number): void {
     const gfx = this.make.graphics({ x: 0, y: 0 });
-    const size = radius * 2;
-    const cx = radius, cy = radius;
-    // Crisp main fill — full brightness, no padding
+    const pad = 2;
+    const size = (radius + pad) * 2;
+    const cx = radius + pad, cy = radius + pad;
+    // Crisp main fill
     gfx.fillStyle(color, 1);
     gfx.fillCircle(cx, cy, radius);
     // Bright inner zone

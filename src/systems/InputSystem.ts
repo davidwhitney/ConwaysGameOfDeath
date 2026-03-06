@@ -82,6 +82,9 @@ export class InputSystem {
     canvas.addEventListener('touchend', () => { this.touchDown = false; });
     canvas.addEventListener('touchcancel', () => { this.touchDown = false; });
 
+    // Mouse click (desktop) — treat like a touch tap for anyJustPressed
+    canvas.addEventListener('mousedown', () => { this.touchJustDown = true; });
+
     this.pollBound = () => this.poll();
     game.events.on('prestep', this.pollBound);
   }
