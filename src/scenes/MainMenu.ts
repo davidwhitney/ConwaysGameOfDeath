@@ -4,8 +4,8 @@ import { monoStyle, DOM_INPUT_STYLE, DOM_LABEL_STYLE, BTN_PRIMARY, BTN_SECONDARY
 import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
-import { MenuNav } from '../ui/MenuNav';
-import { loadSettings, saveSettings } from '../ui/saveData';
+import { MenuNav, type MenuItemDef } from '../ui/MenuNav';
+import { loadSettings, saveSettings, getAchievements } from '../ui/saveData';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
@@ -21,7 +21,7 @@ export class MainMenuScene extends Phaser.Scene {
   private debugContainer!: HTMLDivElement | null;
   private bloodDrips!: BloodDripEffect;
   private gol!: BackgroundGameOfLife;
-  private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, debugLevel: 0.68, debugTime: 0.73, scores: 0.72, achievements: 0.78, settings: 0.84, hint: 0.92 };
+  private layoutFracs = { seed: 0.52, play: 0.58, endless: 0.63, debugLevel: 0.68, debugTime: 0.73, perks: 0.70, scores: 0.76, achievements: 0.82, settings: 0.88, hint: 0.94 };
   private currentSeed = '';
   private readonly isDebug = import.meta.env.VITE_DEBUG === 'true';
 
@@ -77,12 +77,19 @@ export class MainMenuScene extends Phaser.Scene {
     const btnH = compact ? 32 : 40;
     const playH = compact ? 38 : 46;
     const btnFont = compact ? '13px' : '15px';
-    this.menuNav = new MenuNav(this, [
+    const hasPerks = getAchievements().length > 0;
+    const buttons: MenuItemDef[] = [
       { x: width / 2, y: height * ly.play, width: 200, height: playH, label: 'PLAY', fontSize: compact ? '18px' : '22px', ...BTN_PRIMARY, action: () => this.startGame() },
-      { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('HighScores') },
-      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('Achievements') },
-      { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, ...BTN_SECONDARY, action: () => this.scene.start('Settings', { returnTo: 'MainMenu' }) },
-    ]);
+    ];
+    if (hasPerks) {
+      buttons.push({ x: width / 2, y: height * ly.perks, width: 180, height: btnH, label: 'PERKS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Perks'); } });
+    }
+    buttons.push(
+      { x: width / 2, y: height * ly.scores, width: 180, height: btnH, label: 'HIGH SCORES', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('HighScores'); } },
+      { x: width / 2, y: height * ly.achievements, width: 180, height: btnH, label: 'ACHIEVEMENTS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Achievements'); } },
+      { x: width / 2, y: height * ly.settings, width: 180, height: btnH, label: 'SETTINGS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Settings', { returnTo: 'MainMenu' }); } },
+    );
+    this.menuNav = new MenuNav(this, buttons);
 
     // Controls hint
     this.add.text(width / 2, height * ly.hint, 'WASD / Arrows / Gamepad to move  |  ESC / Start to pause',
@@ -222,8 +229,13 @@ export class MainMenuScene extends Phaser.Scene {
       : [20, playH, 18];
 
     // Bottom group: nav buttons + hint
-    const bottomKeys: (keyof typeof this.layoutFracs)[] = ['scores', 'achievements', 'settings', 'hint'];
-    const bottomHeights = [btnH, btnH, btnH, 12];
+    const hasPerks = getAchievements().length > 0;
+    const bottomKeys: (keyof typeof this.layoutFracs)[] = hasPerks
+      ? ['perks', 'scores', 'achievements', 'settings', 'hint']
+      : ['scores', 'achievements', 'settings', 'hint'];
+    const bottomHeights = hasPerks
+      ? [btnH, btnH, btnH, btnH, 12]
+      : [btnH, btnH, btnH, 12];
 
     // Gaps
     const innerGap = compact ? 10 : 16;

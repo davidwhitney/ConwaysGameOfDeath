@@ -163,7 +163,7 @@ export class LootSystem implements GameSystem {
     // Gold drop (scaled with luck + GoldFind)
     const goldChance = Math.min(1, GOLD_DROP_BASE_CHANCE + luckValue * (GOLD_DROP_LUCK_BONUS / 0.15));
     if (Math.random() < goldChance) {
-      const goldAmount = 1 + Math.floor(this.player.getEffectValue(EffectType.GoldFind));
+      const goldAmount = Math.floor((1 + Math.floor(this.player.getEffectValue(EffectType.GoldFind))) * this.player.getPerkGoldMult());
       this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, goldAmount);
     }
 

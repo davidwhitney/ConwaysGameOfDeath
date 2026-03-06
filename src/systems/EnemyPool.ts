@@ -20,6 +20,11 @@ export class EnemyPool {
   private hash = new SpatialHash();
   private entityMap: Map<number, Enemy> = new Map();
 
+  // Perk-based multipliers applied to all spawned enemies
+  perkHpMult = 1;
+  perkDmgMult = 1;
+  perkXpMult = 1;
+
   constructor(scene: Phaser.Scene, map: TileMap) {
     this.scene = scene;
     this.map = map;
@@ -40,7 +45,8 @@ export class EnemyPool {
       enemy = new Enemy(this.scene, this.map);
     }
 
-    enemy.activate(this.nextId++, type, x, y, gameTimeMs, boss);
+    enemy.activate(this.nextId++, type, x, y, gameTimeMs, boss,
+      this.perkHpMult, this.perkDmgMult, this.perkXpMult);
     this.active.push(enemy);
     return enemy;
   }

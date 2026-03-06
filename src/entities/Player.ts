@@ -26,6 +26,14 @@ export class Player {
   private effectCacheLength: number = -1;
   private effectCacheDirty: boolean = true;
 
+  private perkRegen: number = 0;
+  private perkArmor: number = 0;
+  private perkWeaponDmgMult: number = 1;
+  private perkXpMult: number = 1;
+  private perkGoldMult: number = 1;
+  private perkPickupRange: number = PLAYER_PICKUP_RANGE;
+  private perkCooldownMult: number = 1;
+
   private trailGfx: Phaser.GameObjects.Graphics;
   private trailPositions: { x: number; y: number }[] = [];
   private trailTimer: number = 0;
@@ -59,6 +67,16 @@ export class Player {
     };
   }
 
+  setBaseMaxHp(hp: number): void { this.baseMaxHp = hp; }
+  setPerkRegen(regen: number): void { this.perkRegen = regen; }
+  setPerkArmor(armor: number): void { this.perkArmor = armor; }
+  setPerkWeaponDmgMult(m: number): void { this.perkWeaponDmgMult = m; }
+  setPerkXpMult(m: number): void { this.perkXpMult = m; }
+  setPerkGoldMult(m: number): void { this.perkGoldMult = m; }
+  setPerkPickupRange(r: number): void { this.perkPickupRange = r; }
+  setPerkCooldownMult(m: number): void { this.perkCooldownMult = m; }
+  getPerkGoldMult(): number { return this.perkGoldMult; }
+
   getEffectValue(type: EffectType): number {
     if (this.effectCacheDirty
       || this.effectCacheRef !== this.state.effects
@@ -88,11 +106,11 @@ export class Player {
   }
 
   getPickupRange(): number {
-    return PLAYER_PICKUP_RANGE * (1 + this.getEffectValue(EffectType.Magnet));
+    return this.perkPickupRange * (1 + this.getEffectValue(EffectType.Magnet));
   }
 
   getCooldownReduction(): number {
-    return this.getEffectValue(EffectType.Cooldown);
+    return 1 - (1 - this.getEffectValue(EffectType.Cooldown)) * this.perkCooldownMult;
   }
 
   getDamageMultiplier(): number {
@@ -102,11 +120,11 @@ export class Player {
     if (berserk > 0 && this.state.hp < this.state.maxHp * 0.5) {
       mul += berserk;
     }
-    return mul;
+    return mul * this.perkWeaponDmgMult;
   }
 
   getArmor(): number {
-    return this.getEffectValue(EffectType.Armor);
+    return this.perkArmor + this.getEffectValue(EffectType.Armor);
   }
 
   getAuraMultiplier(): number {
@@ -205,7 +223,7 @@ export class Player {
   }
 
   addXp(amount: number): boolean {
-    const xpMultiplier = 1 + this.getEffectValue(EffectType.XPBoost);
+    const xpMultiplier = (1 + this.getEffectValue(EffectType.XPBoost)) * this.perkXpMult;
     this.state.xp += Math.floor(amount * xpMultiplier);
 
     if (this.state.xp >= this.state.xpToNext) {
@@ -215,7 +233,7 @@ export class Player {
   }
 
   applyRegen(dt: number): void {
-    const regen = this.getEffectValue(EffectType.Regen);
+    const regen = this.perkRegen + this.getEffectValue(EffectType.Regen);
     if (regen > 0 && this.state.hp < this.state.maxHp) {
       this.state.hp = Math.min(this.state.maxHp, this.state.hp + regen * dt);
     }

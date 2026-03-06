@@ -42,6 +42,7 @@ export interface SaveData {
   highScores: ScoreEntry[];
   achievements?: string[];
   stats?: Stats;
+  perks?: Record<string, number>;
 }
 
 const DEFAULT_SETTINGS: Settings = { crtEnabled: true, gameZoom: 1.0, endlessMode: false, skipIntro: false, musicEnabled: true, musicStyle: 'random', musicVolume: 0.5, sfxEnabled: true, sfxVolume: 0.5 };
@@ -56,6 +57,7 @@ export function loadSave(): SaveData {
         highScores: Array.isArray(parsed.highScores) ? parsed.highScores : [],
         achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
         stats: parsed.stats ? { ...DEFAULT_STATS, ...parsed.stats } : { ...DEFAULT_STATS },
+        perks: parsed.perks && typeof parsed.perks === 'object' ? parsed.perks : {},
       };
     }
     return migrate();
@@ -125,6 +127,16 @@ export function hasAchievement(id: string): boolean {
 
 export function getAchievements(): string[] {
   return loadSave().achievements ?? [];
+}
+
+export function loadPerks(): Record<string, number> {
+  return loadSave().perks ?? {};
+}
+
+export function savePerks(perks: Record<string, number>): void {
+  const data = loadSave();
+  data.perks = perks;
+  writeSave(data);
 }
 
 export function loadStats(): Stats {

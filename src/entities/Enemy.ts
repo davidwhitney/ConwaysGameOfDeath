@@ -70,7 +70,8 @@ export class Enemy {
   }
 
   /** Activate this pooled enemy with given type and position */
-  activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false): void {
+  activate(id: number, type: EnemyType, x: number, y: number, gameTimeMs: number, boss: boolean = false,
+    perkHpMult: number = 1, perkDmgMult: number = 1, perkXpMult: number = 1): void {
     this.def = ENEMY_DEFS[type];
     // Scale HP and damage with game progress (0–1, clamped)
     const progress = Math.min(1, gameTimeMs / GAME_DURATION_MS);
@@ -82,12 +83,12 @@ export class Enemy {
       id,
       type,
       x, y,
-      hp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
-      maxHp: Math.floor(this.def.baseHp * hpScale * bossHpMul),
+      hp: Math.floor(this.def.baseHp * hpScale * bossHpMul * perkHpMult),
+      maxHp: Math.floor(this.def.baseHp * hpScale * bossHpMul * perkHpMult),
       speed: this.def.baseSpeed,
-      damage: Math.floor(this.def.baseDamage * dmgScale * (boss ? BOSS_DAMAGE_MULTIPLIER : 1)),
+      damage: Math.floor(this.def.baseDamage * dmgScale * (boss ? BOSS_DAMAGE_MULTIPLIER : 1) * perkDmgMult),
       alive: true,
-      xpValue: this.def.xpValue,
+      xpValue: Math.floor(this.def.xpValue * perkXpMult),
       boss,
     };
 

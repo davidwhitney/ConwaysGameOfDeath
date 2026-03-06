@@ -1,6 +1,7 @@
 import type { TileMap } from '../types';
 import type { Player } from '../entities/Player';
 import type { EnemyPool } from './EnemyPool';
+import type { GameConfig } from '../perks';
 
 export interface UpdateContext {
   time: {
@@ -12,4 +13,5 @@ export interface UpdateContext {
   player: Player;
   enemyPool: EnemyPool;
   map: TileMap;
+  config: GameConfig;
 }

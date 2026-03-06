@@ -18,11 +18,12 @@ import { applyCRT } from '../ui/crtEffect';
 import type { GameSystem } from '../systems/GameSystem';
 import { GameEvents } from '../systems/GameEvents';
 import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
-import { loadSettings } from '../ui/saveData';
+import { loadSettings, loadPerks } from '../ui/saveData';
 import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { applyDebugProgression } from '../systems/leveling';
 import { AchievementSystem } from '../systems/AchievementSystem';
+import { buildGameConfig, applyDebugConfig, type GameConfig } from '../perks';
 
 interface GameInitData {
   seed: number;
@@ -54,6 +55,7 @@ export class GameScene extends Phaser.Scene {
   private debugLevel: number = 0;
   private debugTimeMinutes: number = 0;
   private deathDelayMs: number = 0;
+  private gameConfig!: GameConfig;
 
   public constructor() {
     super({ key: 'Game' });
@@ -77,17 +79,47 @@ export class GameScene extends Phaser.Scene {
     const centerX = Math.floor(MAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
     const centerY = Math.floor(MAP_HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2;
 
+    // Build game config from perks
+    const perks = loadPerks();
+    this.gameConfig = buildGameConfig(perks, () => this.rng.next());
+    if (this.debugLevel > 0) {
+      applyDebugConfig(this.gameConfig, this.debugLevel);
+    }
+    const cfg = this.gameConfig;
+
     this.player = new Player(this, centerX, centerY);
-    this.player.state.weapons.push({ type: WeaponType.Whip, level: 1, cooldownTimer: 0 });
+
+    // Apply perk config to player
+    this.player.state.hp = cfg.startingHp;
+    this.player.state.maxHp = cfg.startingHp;
+    this.player.state.speed = cfg.startingSpeed * cfg.playerSpeedMult;
+    this.player.state.gold = cfg.startingGold;
+    this.player.setBaseMaxHp(cfg.startingHp);
+    this.player.setPerkRegen(cfg.hpRegen);
+    this.player.setPerkArmor(cfg.armor);
+    this.player.setPerkWeaponDmgMult(cfg.weaponDmgMult);
+    this.player.setPerkXpMult(cfg.xpMult);
+    this.player.setPerkGoldMult(cfg.goldMult);
+    this.player.setPerkPickupRange(cfg.pickupRange);
+    this.player.setPerkCooldownMult(cfg.weaponCooldownMult);
+
+    // Starting weapon from config
+    this.player.state.weapons.push({
+      type: cfg.startingWeapon,
+      level: cfg.startingWeaponLevel,
+      cooldownTimer: 0,
+    });
 
     if (this.debugLevel > 1) {
       applyDebugProgression(this.player.state, () => this.rng.next(), this.debugLevel);
       this.gameTimeMs = this.debugTimeMinutes * 60 * 1000;
-      this.player.state.gold = 1000000;
     }
 
     this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs);
     const enemyPool = this.gameWorldSystem.getEnemyPool();
+    enemyPool.perkHpMult = cfg.enemyHpMult;
+    enemyPool.perkDmgMult = cfg.enemyDmgMult;
+    enemyPool.perkXpMult = cfg.enemyXpMult;
     const playerPhysics = new PlayerPhysicsSystem(this);
     this.lootSystem = new LootSystem(this, this.player, enemyPool);
     this.achievementSystem = new AchievementSystem(this, this.player);
@@ -151,13 +183,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.gameTimeMs += delta;
+    // Apply game speed multiplier to delta
+    const speedDelta = delta * this.gameConfig.gameSpeedMult;
+    this.gameTimeMs += speedDelta;
 
     const ctx: UpdateContext = {
-      time: { delta: delta / 1000, deltaMs: delta, now: time, elapsed: this.gameTimeMs },
+      time: { delta: speedDelta / 1000, deltaMs: speedDelta, now: time, elapsed: this.gameTimeMs },
       player: this.player,
       enemyPool: this.gameWorldSystem.getEnemyPool(),
       map: this.map,
+      config: this.gameConfig,
     };
 
     for (const system of this.subsystems) {
@@ -230,6 +265,7 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       enemyPool: this.gameWorldSystem.getEnemyPool(),
       map: this.map,
+      config: this.gameConfig,
     };
     this.achievementSystem.evaluate(ctx);
     this.achievementSystem.flushStats(this.gameTimeMs, victory);
