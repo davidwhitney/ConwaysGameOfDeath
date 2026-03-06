@@ -15,7 +15,7 @@ import { GameWorldSystem } from '../systems/GameWorldSystem';
 import type { UpdateContext } from '../systems/UpdateContext';
 import type { HUDScene } from './HUD';
 import { applyCRT } from '../ui/crtEffect';
-import { GameSystem } from '../systems/GameSystem';
+import type { GameSystem } from '../systems/GameSystem';
 import { GameEvents } from '../systems/GameEvents';
 import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
 import { loadSettings } from '../ui/saveData';
@@ -86,23 +86,24 @@ export class GameScene extends Phaser.Scene {
       this.player.state.gold = 1000000;
     }
 
+    const playerPhysics = new PlayerPhysicsSystem(this);
+    this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs);
+    this.lootSystem = new LootSystem(this, this.player);
+    this.achievementSystem = new AchievementSystem(this);
+
     this.subsystems = [
       new ParallaxSystem(this),
-      new PlayerPhysicsSystem(this),
-      new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs),
+      playerPhysics,
+      this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
       new DeathSpawnSystem(this, this.rng, !this.endless),
       new WeaponSystem(this),
-      new LootSystem(this, this.player),
+      this.lootSystem,
       new LevelUpSystem(this, this.rng, this.player),
       new DangerOverlaySystem(this),
-      new AchievementSystem(this),
+      this.achievementSystem,
     ];
 
-    this.gameWorldSystem = this.subsystems.find(s => s instanceof GameWorldSystem) as GameWorldSystem;
-    this.lootSystem = this.subsystems.find(s => s instanceof LootSystem) as LootSystem;
-    this.achievementSystem = this.subsystems.find(s => s instanceof AchievementSystem) as AchievementSystem;
-    const playerPhysics = this.subsystems.find(s => s instanceof PlayerPhysicsSystem) as PlayerPhysicsSystem;
     playerPhysics.setDeathMaskConsumer(() => this.lootSystem.consumeMask());
 
     if (this.debugLevel > 1) {

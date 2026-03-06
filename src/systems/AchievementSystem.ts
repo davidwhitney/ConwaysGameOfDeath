@@ -2,23 +2,20 @@ import type Phaser from 'phaser';
 import type { GameSystem } from './GameSystem';
 import type { UpdateContext } from './UpdateContext';
 import { GameEvents } from './GameEvents';
-import { ACHIEVEMENTS } from '../achievements';
+import { ACHIEVEMENTS, ACHIEVEMENTS_BY_ID } from '../achievements';
 import { getAchievements, unlockAchievement, loadStats, mergeStats, type Stats } from '../ui/saveData';
+import { showAchievementBanner } from '../ui/AchievementBanner';
 import { EnemyType } from '../types';
 import { WEAPON_DEFS } from '../entities/weapons';
 import type { Player } from '../entities/Player';
 
-const BANNER_SLIDE_MS = 400;
-const BANNER_HOLD_MS = 3000;
-
 export class AchievementSystem implements GameSystem {
   private scene: Phaser.Scene;
-  private timer = 0;
   private unlocked: Set<string>;
   private lastLevel = 0;
   private wasAlive = true;
-  private static readonly INTERVAL = 10_000;
 
+  private persistedStats: Stats;
   private sessionTotalKills = 0;
   private sessionKillsByType: Record<number, number> = {};
   private sessionDeathKills = 0;
@@ -27,6 +24,7 @@ export class AchievementSystem implements GameSystem {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.unlocked = new Set(getAchievements());
+    this.persistedStats = loadStats();
 
     GameEvents.on(scene.events, 'achievement', (id) => this.grant(id));
     GameEvents.on(scene.events, 'enemy-killed', (enemy) => {
@@ -56,18 +54,11 @@ export class AchievementSystem implements GameSystem {
     } else if (ctx.player.state.alive) {
       this.wasAlive = true;
     }
-
-    // Periodic check
-    this.timer += ctx.time.deltaMs;
-    if (this.timer >= AchievementSystem.INTERVAL) {
-      this.timer = 0;
-      this.evaluate(ctx);
-    }
   }
 
   /** Run all state-based achievement checks. */
   evaluate(ctx: UpdateContext): void {
-    const cumulativeStats = this.buildCumulativeStats(0, false);
+    const cumulativeStats = this.buildCumulativeStats();
     for (const def of ACHIEVEMENTS) {
       if (this.unlocked.has(def.id)) continue;
       if (def.evaluate && def.evaluate(ctx)) {
@@ -90,14 +81,13 @@ export class AchievementSystem implements GameSystem {
     mergeStats(session);
   }
 
-  private buildCumulativeStats(elapsedMs: number, victory: boolean): Stats {
-    const persisted = loadStats();
+  private buildCumulativeStats(): Stats {
     return {
-      totalKills: persisted.totalKills + this.sessionTotalKills,
-      killsByType: mergeKillsByType(persisted.killsByType, this.sessionKillsByType),
-      deathKills: persisted.deathKills + this.sessionDeathKills,
-      totalPlayTimeMs: persisted.totalPlayTimeMs + elapsedMs,
-      victories: persisted.victories + (victory ? 1 : 0),
+      totalKills: this.persistedStats.totalKills + this.sessionTotalKills,
+      killsByType: mergeKillsByType(this.persistedStats.killsByType, this.sessionKillsByType),
+      deathKills: this.persistedStats.deathKills + this.sessionDeathKills,
+      totalPlayTimeMs: this.persistedStats.totalPlayTimeMs,
+      victories: this.persistedStats.victories,
     };
   }
 
@@ -123,9 +113,11 @@ export class AchievementSystem implements GameSystem {
     if (this.unlocked.has(id)) return;
     if (unlockAchievement(id)) {
       this.unlocked.add(id);
-      const def = ACHIEVEMENTS.find(a => a.id === id);
-      if (def) showAchievementBanner(def.name, def.description);
-      GameEvents.sfx('achievement-unlocked');
+      const def = ACHIEVEMENTS_BY_ID.get(id);
+      if (def && !def.silent) {
+        showAchievementBanner(def.name, def.description);
+        GameEvents.sfx('achievement-unlocked');
+      }
     }
   }
 
@@ -138,57 +130,8 @@ export class AchievementSystem implements GameSystem {
 function mergeKillsByType(a: Record<number, number>, b: Record<number, number>): Record<number, number> {
   const result: Record<number, number> = { ...a };
   for (const [key, val] of Object.entries(b)) {
-    result[key as unknown as number] = (result[key as unknown as number] ?? 0) + val;
+    const k = Number(key);
+    result[k] = (result[k] ?? 0) + val;
   }
   return result;
-}
-
-function showAchievementBanner(name: string, description: string): void {
-  const banner = document.createElement('div');
-  banner.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%) translateY(-100%);
-    z-index: 9999;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 12px 28px;
-    background: rgba(17, 17, 51, 0.95);
-    border: 2px solid #ffcc00;
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    font-family: monospace;
-    text-align: center;
-    transition: transform ${BANNER_SLIDE_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  `;
-
-  banner.innerHTML = `
-    <div style="font-size: 11px; color: #ffcc00; font-weight: bold; letter-spacing: 1px;">ACHIEVEMENT UNLOCKED</div>
-    <div style="font-size: 17px; color: #ffffff; font-weight: bold;">${esc(name)}</div>
-    <div style="font-size: 11px; color: #aaaacc;">${esc(description)}</div>
-  `;
-
-  document.body.appendChild(banner);
-
-  // Slide in
-  requestAnimationFrame(() => {
-    banner.style.transform = 'translateX(-50%) translateY(0)';
-  });
-
-  // Hold, then slide out and remove
-  setTimeout(() => {
-    banner.style.transition = `transform ${BANNER_SLIDE_MS}ms ease-in`;
-    banner.style.transform = 'translateX(-50%) translateY(-100%)';
-    setTimeout(() => banner.remove(), BANNER_SLIDE_MS);
-  }, BANNER_SLIDE_MS + BANNER_HOLD_MS);
-}
-
-function esc(s: string): string {
-  const el = document.createElement('span');
-  el.textContent = s;
-  return el.innerHTML;
 }

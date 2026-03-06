@@ -10,6 +10,7 @@ export interface AchievementDef {
   id: string;
   name: string;
   description: string;
+  silent?: boolean;
   evaluate?: (ctx: UpdateContext) => boolean;
   evaluateWithStats?: (ctx: UpdateContext, stats: Stats) => boolean;
 }
@@ -20,22 +21,24 @@ function buildAchievements(): AchievementDef[] {
   // 1. killed-death (event-driven, no evaluate)
   defs.push({ id: 'killed-death', name: 'Killed Death', description: 'Destroy Death using a Death Mask' });
 
-  // 2. Per-weapon acquired (32)
+  // 2. Per-weapon acquired (32) — silent, too frequent to notify
   for (const w of WEAPON_DEFS) {
     defs.push({
       id: `weapon-${w.type}`,
       name: w.name,
       description: `Acquire ${w.name}`,
+      silent: true,
       evaluate: (ctx) => ctx.player.state.weapons.some(wi => wi.type === w.type),
     });
   }
 
-  // 3. Per-effect acquired (26)
+  // 3. Per-effect acquired (26) — silent, too frequent to notify
   for (const e of EFFECT_DEFS) {
     defs.push({
       id: `effect-${e.type}`,
       name: e.name,
       description: `Acquire ${e.name}`,
+      silent: true,
       evaluate: (ctx) => ctx.player.state.effects.some(ei => ei.type === e.type),
     });
   }
@@ -143,3 +146,4 @@ function buildAchievements(): AchievementDef[] {
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = buildAchievements();
+export const ACHIEVEMENTS_BY_ID: ReadonlyMap<string, AchievementDef> = new Map(ACHIEVEMENTS.map(a => [a.id, a]));
