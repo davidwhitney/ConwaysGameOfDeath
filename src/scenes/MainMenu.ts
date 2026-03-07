@@ -188,7 +188,7 @@ export class MainMenuScene extends Phaser.Scene {
     const inputStyle: Partial<CSSStyleDeclaration> = { ...DOM_INPUT_STYLE, width: '50px', textAlign: 'center' };
 
     this.debugContainer = createOverlayContainer(this, {
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+      display: 'flex', alignItems: 'center', gap: '10px',
     });
 
     const makeInput = (min: string, max: string, value: string): HTMLInputElement => {
@@ -203,26 +203,18 @@ export class MainMenuScene extends Phaser.Scene {
       return input;
     };
 
-    // Level row
-    const levelRow = document.createElement('div');
-    Object.assign(levelRow.style, { display: 'flex', alignItems: 'center', gap: '6px' });
     const levelLabel = document.createElement('span');
-    levelLabel.textContent = 'Level';
+    levelLabel.textContent = 'Lvl';
     Object.assign(levelLabel.style, DOM_LABEL_STYLE);
     this.debugLevelInput = makeInput('1', '100', '1');
-    levelRow.append(levelLabel, this.debugLevelInput);
 
-    // Time row
-    const timeRow = document.createElement('div');
-    Object.assign(timeRow.style, { display: 'flex', alignItems: 'center', gap: '6px' });
     const timeLabel = document.createElement('span');
-    timeLabel.textContent = 'Time (min)';
+    timeLabel.textContent = 'Min';
     Object.assign(timeLabel.style, DOM_LABEL_STYLE);
     this.debugTimeInput = makeInput('0', '35', '0');
-    timeRow.append(timeLabel, this.debugTimeInput);
 
-    this.debugContainer.append(levelRow, timeRow);
-    positionAtLayout(this.debugContainer, this.game.canvas, 0.5, this.layoutFracs.debugLevel, -70);
+    this.debugContainer.append(levelLabel, this.debugLevelInput, timeLabel, this.debugTimeInput);
+    positionAtLayout(this.debugContainer, this.game.canvas, 0.5, this.layoutFracs.debugLevel, -100);
   }
 
   /** Compute layout for the entire menu. Returns the title centre Y. */
@@ -233,10 +225,10 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Top group: game config inputs
     const topKeys: (keyof typeof this.layoutFracs)[] = this.isDebug
-      ? ['seed', 'play', 'endless', 'debugLevel', 'debugTime']
+      ? ['seed', 'play', 'endless', 'debugLevel']
       : ['seed', 'play', 'endless'];
     const topHeights = this.isDebug
-      ? [20, playH, 18, 18, 18]
+      ? [20, playH, 18, 20]
       : [20, playH, 18];
 
     // Bottom group: nav buttons + hint
@@ -260,34 +252,50 @@ export class MainMenuScene extends Phaser.Scene {
     const bottomBlockH = bottomItemH + bottomGap * (bottomKeys.length - 1);
 
     // Total height of everything: header + gap + top buttons + group gap + bottom buttons
-    const totalH = headerH + headerToButtons + topBlockH + groupGap + bottomBlockH;
+    let totalH = headerH + headerToButtons + topBlockH + groupGap + bottomBlockH;
 
     // Centre the whole thing vertically, with a small margin
     const margin = 6;
-    const startY = margin + Math.max(0, (height - 2 * margin - totalH) / 2);
+    const available = height - 2 * margin;
+
+    // If content overflows, shrink gaps proportionally to fit
+    let scale = 1;
+    if (totalH > available) {
+      const totalGapH = totalH - headerH - topItemH - bottomItemH;
+      const excess = totalH - available;
+      scale = Math.max(0, 1 - excess / totalGapH);
+      totalH = available;
+    }
+
+    const sHeaderToButtons = headerToButtons * scale;
+    const sInnerGap = innerGap * scale;
+    const sGroupGap = groupGap * scale;
+    const sBottomGap = bottomGap * scale;
+
+    const startY = margin + Math.max(0, (available - totalH) / 2);
 
     // Title centre Y (title is top of header)
     const titleY = startY + headerH / 2;
 
     // Buttons start after header
-    let y = startY + headerH + headerToButtons + topHeights[0] / 2;
+    let y = startY + headerH + sHeaderToButtons + topHeights[0] / 2;
 
     // Position top group
     for (let i = 0; i < topKeys.length; i++) {
       this.layoutFracs[topKeys[i]] = y / height;
       if (i < topKeys.length - 1) {
-        y += topHeights[i] / 2 + innerGap + topHeights[i + 1] / 2;
+        y += topHeights[i] / 2 + sInnerGap + topHeights[i + 1] / 2;
       }
     }
 
     // Bridge to bottom group
-    y += topHeights[topKeys.length - 1] / 2 + groupGap + bottomHeights[0] / 2;
+    y += topHeights[topKeys.length - 1] / 2 + sGroupGap + bottomHeights[0] / 2;
 
     // Position bottom group
     for (let i = 0; i < bottomKeys.length; i++) {
       this.layoutFracs[bottomKeys[i]] = y / height;
       if (i < bottomKeys.length - 1) {
-        y += bottomHeights[i] / 2 + bottomGap + bottomHeights[i + 1] / 2;
+        y += bottomHeights[i] / 2 + sBottomGap + bottomHeights[i + 1] / 2;
       }
     }
 
