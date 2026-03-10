@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { distSqXY } from '../utils/math';
 import { Colors } from '../colors';
 import { drawGlowCircle } from '../systems/weapons/GfxPool';
+import type { SerializedGem } from '../systems/snapshot';
 
 /** Time in seconds before a gem can be collected (scatter animation window) */
 const SPAWN_DELAY = 0.4;
@@ -330,6 +331,39 @@ export class XPGemPool {
       this.recycleGem(gem);
     }
     this._active.length = 0;
+  }
+
+  serializeGems(): SerializedGem[] {
+    return this._active.filter(g => g.alive).map(g => ({
+      x: g.x, y: g.y, value: g.value, kind: g.kind,
+    }));
+  }
+
+  restoreGems(gems: SerializedGem[]): void {
+    this.clearAll();
+
+    for (const g of gems) {
+      const texKey = TEX_MAP[g.kind];
+      let sprite: Phaser.GameObjects.Sprite;
+      if (this.pool.length > 0) {
+        sprite = this.pool.pop()!;
+        sprite.setTexture(texKey);
+      } else {
+        sprite = this.scene.add.sprite(-1000, -1000, texKey);
+        this.container.add(sprite);
+      }
+
+      sprite.setPosition(g.x, g.y);
+      sprite.setVisible(true);
+      sprite.setScale(this.getBaseScale(g.kind, g.value));
+
+      this._active.push({
+        sprite, x: g.x, y: g.y, value: g.value,
+        alive: true, magnetized: false, age: 1,
+        scatterDx: 0, scatterDy: 0,
+        kind: g.kind, vortexed: false, mergeBoost: 0,
+      });
+    }
   }
 
   get active(): GemData[] {

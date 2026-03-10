@@ -5,7 +5,8 @@ import { BackgroundGameOfLife } from '../ui/BackgroundGameOfLife';
 import { applyCRT } from '../ui/crtEffect';
 import { BloodDripEffect } from '../ui/BloodDripEffect';
 import { MenuNav, type MenuItemDef } from '../ui/MenuNav';
-import { loadSettings, saveSettings, getAchievements, loadStats } from '../ui/saveData';
+import { loadSettings, saveSettings, getAchievements, loadStats, loadSnapshot } from '../ui/saveData';
+import type { GameSnapshot } from '../systems/snapshot';
 import { onResizeRestart } from '../ui/resizeHandler';
 import { LofiMusicSystem } from '../systems/audio/LofiMusicSystem';
 import { SfxSystem } from '../systems/audio/SfxSystem';
@@ -85,8 +86,11 @@ export class MainMenuScene extends Phaser.Scene {
     const playH = compact ? 38 : 46;
     const btnFont = compact ? '13px' : '15px';
     const hasPerks = getAchievements().length > 0;
+    const savedGame = loadSnapshot();
+    const playLabel = savedGame ? 'CONTINUE' : 'PLAY';
+    const playAction = savedGame ? () => this.continueGame(savedGame) : () => this.startGame();
     const buttons: MenuItemDef[] = [
-      { x: width / 2, y: height * ly.play, width: 200, height: playH, label: 'PLAY', fontSize: compact ? '18px' : '22px', ...BTN_PRIMARY, action: () => this.startGame() },
+      { x: width / 2, y: height * ly.play, width: 200, height: playH, label: playLabel, fontSize: compact ? '18px' : '22px', ...BTN_PRIMARY, action: playAction },
     ];
     if (hasPerks) {
       buttons.push({ x: width / 2, y: height * ly.perks, width: 180, height: btnH, label: 'PERKS', fontSize: btnFont, ...BTN_SECONDARY, action: () => { this.removeInputs(); this.scene.start('Perks'); } });
@@ -321,6 +325,11 @@ export class MainMenuScene extends Phaser.Scene {
     const debugTimeMinutes = this.debugTimeInput ? parseInt(this.debugTimeInput.value, 10) || 0 : undefined;
     this.removeInputs();
     this.scene.start('Game', { seed, endless: settings.endlessMode, debugLevel, debugTimeMinutes });
+  }
+
+  private continueGame(snapshot: GameSnapshot): void {
+    this.removeInputs();
+    this.scene.start('Game', { seed: snapshot.seed, snapshot });
   }
 
   private removeInputs(): void {

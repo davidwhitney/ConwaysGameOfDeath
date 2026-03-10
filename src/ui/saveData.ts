@@ -1,4 +1,7 @@
+import type { GameSnapshot } from '../systems/snapshot';
+
 const STORAGE_KEY = 'cgod-save';
+const SNAPSHOT_KEY = 'cgod-snapshot';
 
 export interface Settings {
   crtEnabled: boolean;
@@ -88,6 +91,7 @@ export function saveSettings(s: Settings): void {
 
 export function clearAllData(): void {
   clearSave();
+  clearSnapshot();
 }
 
 /** Migrate legacy per-key storage into the unified blob. */
@@ -143,6 +147,36 @@ export function savePerks(perks: Record<string, number>): void {
 
 export function loadStats(): Stats {
   return loadSave().stats ?? { ...DEFAULT_STATS };
+}
+
+// ─── Game snapshot (pause/resume) ───
+
+export function saveSnapshot(snapshot: GameSnapshot): void {
+  try {
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch {
+    // localStorage full or unavailable — silently fail
+  }
+}
+
+export function loadSnapshot(): GameSnapshot | null {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== 1) return null;
+    return parsed as GameSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSnapshot(): void {
+  localStorage.removeItem(SNAPSHOT_KEY);
+}
+
+export function hasSnapshot(): boolean {
+  return localStorage.getItem(SNAPSHOT_KEY) !== null;
 }
 
 export function mergeStats(session: Stats): void {

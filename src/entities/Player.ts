@@ -84,6 +84,7 @@ export class Player {
   }
 
   get perkGoldMult(): number { return this._perkGoldMult; }
+  getBaseMaxHp(): number { return this.baseMaxHp; }
 
 
   getEffectValue(type: EffectType): number {
@@ -255,6 +256,14 @@ export class Player {
     // Vitality: multiply max HP
     const vitality = this.getEffectValue(EffectType.Vitality);
     this.state.maxHp = Math.floor(this.baseMaxHp * (1 + vitality));
+  }
+
+  /** Overwrite player state from a snapshot. Perk multipliers are already set by applyConfig. */
+  restoreState(saved: PlayerState, savedBaseMaxHp: number): void {
+    Object.assign(this.state, saved);
+    this.baseMaxHp = savedBaseMaxHp;
+    this.sprite.setPosition(this.state.x, this.state.y);
+    this.invalidateEffectCache();
   }
 
   /** Flip sprite based on facing direction + draw movement trail */

@@ -18,18 +18,20 @@ import { applyCRT } from '../ui/crtEffect';
 import type { GameSystem } from '../systems/GameSystem';
 import { GameEvents } from '../systems/GameEvents';
 import { LofiMusicSystem, STYLE_NAMES } from '../systems/audio/LofiMusicSystem';
-import { loadSettings, loadPerks } from '../ui/saveData';
+import { loadSettings, loadPerks, saveSnapshot, clearSnapshot } from '../ui/saveData';
 import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { applyDebugProgression } from '../systems/leveling';
 import { AchievementSystem } from '../systems/AchievementSystem';
 import { buildGameConfig, applyDebugConfig } from '../perks';
+import { type GameSnapshot, packMap, unpackMap } from '../systems/snapshot';
 
 interface GameInitData {
   seed: number;
   endless?: boolean;
   debugLevel?: number;
   debugTimeMinutes?: number;
+  snapshot?: GameSnapshot;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -53,14 +55,16 @@ export class GameScene extends Phaser.Scene {
   private debugLevel: number = 0;
   private debugTimeMinutes: number = 0;
   private deathDelayMs: number = 0;
+  private pendingSnapshot: GameSnapshot | null = null;
 
   public constructor() {
     super({ key: 'Game' });
   }
 
   public init(data: GameInitData): void {
-    this.seed = data.seed || Date.now();
-    this.endless = data.endless ?? false;
+    this.pendingSnapshot = data.snapshot ?? null;
+    this.seed = this.pendingSnapshot?.seed ?? data.seed ?? Date.now();
+    this.endless = this.pendingSnapshot?.endless ?? data.endless ?? false;
     this.debugLevel = data.debugLevel ?? 0;
     this.debugTimeMinutes = data.debugTimeMinutes ?? 0;
     this.gameOver = false;
@@ -70,6 +74,7 @@ export class GameScene extends Phaser.Scene {
 
   public create(): void {
     applyCRT(this);
+
     this.rng = new SeededRandom(this.seed);
     const map = generateMap(this.seed);
     const centerX = Math.floor(MAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
@@ -127,6 +132,12 @@ export class GameScene extends Phaser.Scene {
 
     if (this.debugLevel > 1) {
       this.state.deathMasksHeld = 1;
+    }
+
+    // Apply snapshot if resuming a saved game
+    if (this.pendingSnapshot) {
+      this.restoreSnapshot(this.pendingSnapshot);
+      this.pendingSnapshot = null;
     }
 
     // Events
@@ -194,6 +205,53 @@ export class GameScene extends Phaser.Scene {
     this.processDeath(delta);
   }
 
+  /** Overwrite freshly-created game state with a saved snapshot. */
+  private restoreSnapshot(snap: GameSnapshot): void {
+    this.reviveCount = snap.reviveCount;
+    this.rng.setState(snap.rngState);
+
+    this.state.map.set(unpackMap(snap.map));
+    this.state.time.elapsed = snap.elapsed;
+    this.state.kills = snap.kills;
+    this.state.deathMasksHeld = snap.deathMasksHeld;
+
+    this.state.player.restoreState(snap.player, snap.baseMaxHp);
+    this.state.enemyPool.restoreActive(snap.enemies);
+    this.lootSystem.restoreGems(snap.gems);
+
+    clearSnapshot();
+  }
+
+  /** Create a snapshot of the current game state for saving. */
+  createSnapshot(): GameSnapshot {
+    return {
+      version: 1,
+      timestamp: Date.now(),
+      seed: this.seed,
+      endless: this.endless,
+      elapsed: this.state.time.elapsed,
+      kills: this.state.kills,
+      deathMasksHeld: this.state.deathMasksHeld,
+      player: { ...this.state.player.state },
+      baseMaxHp: this.state.player.getBaseMaxHp(),
+      map: packMap(this.state.map),
+      enemies: this.state.enemyPool.serializeActive(),
+      gems: this.lootSystem.serializeGems(),
+      rngState: this.rng.getSeed(),
+      reviveCount: this.reviveCount,
+    };
+  }
+
+  /** Save current game state to localStorage. */
+  saveGame(): void {
+    if (this.gameOver) return;
+    try {
+      saveSnapshot(this.createSnapshot());
+    } catch {
+      // Serialization or storage failure — don't crash
+    }
+  }
+
   private processDeath(delta: number): void {
     if (!this.state.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
@@ -238,6 +296,7 @@ export class GameScene extends Phaser.Scene {
 
   private endGame(victory: boolean, extracted: boolean = false): void {
     this.gameOver = true;
+    clearSnapshot();
 
     // Final achievement evaluation
     this.achievementSystem.evaluate(this.state);

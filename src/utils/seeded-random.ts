@@ -56,4 +56,9 @@ export class SeededRandom {
   getSeed(): number {
     return this.state;
   }
+
+  /** Restore RNG to a previously captured state. */
+  setState(value: number): void {
+    this._state = value | 0;
+  }
 }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Enemy } from '../entities/Enemy';
-import { type TileMap, EnemyType } from '../types';
+import { type TileMap, type EnemyState, EnemyType } from '../types';
 import { ENEMY_POOL_INITIAL, ENEMY_MAX_ACTIVE } from '../constants';
 import { distanceSq } from '../utils/math';
 import { CameraManager } from './CameraManager';
@@ -113,6 +113,32 @@ export class EnemyPool {
     }
     this._active.length = 0;
     this.pool.length = 0;
+  }
+
+  serializeActive(): EnemyState[] {
+    return this._active.map(e => ({ ...e.state }));
+  }
+
+  restoreActive(enemies: EnemyState[]): void {
+    for (const e of this._active) {
+      e.deactivate();
+      this.pool.push(e);
+    }
+    this._active.length = 0;
+
+    let maxId = 0;
+    for (const saved of enemies) {
+      let enemy: Enemy;
+      if (this.pool.length > 0) {
+        enemy = this.pool.pop()!;
+      } else {
+        enemy = new Enemy(this.scene, this.map);
+      }
+      enemy.restoreState(saved);
+      this._active.push(enemy);
+      if (saved.id >= maxId) maxId = saved.id + 1;
+    }
+    this.nextId = maxId;
   }
 
   /** Deactivate all enemies except Death, return count cleared */

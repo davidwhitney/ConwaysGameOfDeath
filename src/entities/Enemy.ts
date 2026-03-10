@@ -120,6 +120,31 @@ export class Enemy {
     this.crossDir = { x: Math.cos(angle), y: Math.sin(angle) };
   }
 
+  /** Restore from a plain EnemyState (snapshot). Resets behavior timers to defaults. */
+  restoreState(saved: EnemyState): void {
+    this.def = ENEMY_DEFS[saved.type];
+    Object.assign(this.state, saved);
+    this.effectiveSize = this.def.size * (saved.boss ? BOSS_SIZE_MULTIPLIER : 1);
+
+    this.orbitAngle = Math.random() * Math.PI * 2;
+    this.teleportTimer = 2000 + Math.random() * 3000;
+    const angle = Math.random() * Math.PI * 2;
+    this.crossDir = { x: Math.cos(angle), y: Math.sin(angle) };
+    this.slowFactor = 1;
+    this.slowUntil = 0;
+    this.knockbackImmuneUntil = 0;
+    this.poisonDps = 0;
+    this.poisonUntil = 0;
+    this.poisonTickTimer = 0;
+
+    this.sprite.setTexture(ENEMY_TEXTURE_MAP[saved.type]);
+    this.sprite.setPosition(saved.x, saved.y);
+    this.sprite.setVisible(saved.alive);
+    this.sprite.setScale(saved.boss ? BOSS_SIZE_MULTIPLIER : 1);
+    this.sprite.setAlpha(1);
+    if (saved.alive) this.sprite.clearTint();
+  }
+
   deactivate(): void {
     this.state.alive = false;
     this.sprite.setVisible(false);

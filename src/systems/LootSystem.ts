@@ -8,6 +8,7 @@ import {
 import type { Enemy } from '../entities/Enemy';
 import { XPGemPool } from '../entities/XPGem';
 import type { GameState } from './GameState';
+import type { SerializedGem } from './snapshot';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { Colors } from '../colors';
@@ -105,6 +106,14 @@ export class LootSystem implements GameSystem {
       GameEvents.emit(this.scene.events, 'impact-occurred', 300, 0.015);
       this.state.deathMasksHeld += gemResult.deathMasks;
     }
+  }
+
+  serializeGems(): SerializedGem[] {
+    return this.xpGemPool.serializeGems();
+  }
+
+  restoreGems(gems: SerializedGem[]): void {
+    this.xpGemPool.restoreGems(gems);
   }
 
   consumeMask(): boolean {
