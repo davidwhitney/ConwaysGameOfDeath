@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import { WeaponType, type TileMap } from '../types';
-import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, GAME_DURATION_MS, ENEMY_MAX_ACTIVE, PLAYER_SIZE } from '../constants';
+import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, GAME_DURATION_MS, ENEMY_MAX_ACTIVE } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import { generateMap } from '../systems/map-generator';
 import { Player } from '../entities/Player';
@@ -12,7 +11,8 @@ import { LootSystem } from '../systems/LootSystem';
 import { LevelUpSystem } from '../systems/LevelUpSystem';
 import { PlayerPhysicsSystem } from '../systems/PlayerPhysicsSystem';
 import { GameWorldSystem } from '../systems/GameWorldSystem';
-import type { UpdateContext } from '../systems/UpdateContext';
+import { EnemyPool } from '../systems/EnemyPool';
+import { GameState } from '../systems/GameState';
 import type { HUDScene } from './HUD';
 import { applyCRT } from '../ui/crtEffect';
 import type { GameSystem } from '../systems/GameSystem';
@@ -23,7 +23,7 @@ import { DangerOverlaySystem } from '../systems/DangerOverlaySystem';
 import { ParallaxSystem } from '../systems/ParallaxSystem';
 import { applyDebugProgression } from '../systems/leveling';
 import { AchievementSystem } from '../systems/AchievementSystem';
-import { buildGameConfig, applyDebugConfig, type GameConfig } from '../perks';
+import { buildGameConfig, applyDebugConfig } from '../perks';
 
 interface GameInitData {
   seed: number;
@@ -33,7 +33,6 @@ interface GameInitData {
 }
 
 export class GameScene extends Phaser.Scene {
-  private player!: Player;
   private damageNumbersUi!: DamageNumbersUiComponent;
 
   private subsystems: GameSystem[] = [];
@@ -41,8 +40,7 @@ export class GameScene extends Phaser.Scene {
   private seed: number = 0;
   private endless: boolean = false;
   private rng!: SeededRandom;
-  private map!: TileMap;
-  private gameTimeMs: number = 0;
+  private state!: GameState;
   private gameOver: boolean = false;
   private hudScene!: HUDScene;
   private visibilityHandler: (() => void) | null = null;
@@ -55,10 +53,6 @@ export class GameScene extends Phaser.Scene {
   private debugLevel: number = 0;
   private debugTimeMinutes: number = 0;
   private deathDelayMs: number = 0;
-  private gameConfig!: GameConfig;
-  private exitGatePos: { x: number; y: number } | null = null;
-  private exitGateGfx: Phaser.GameObjects.Graphics | null = null;
-  private exitGateAngle: number = 0;
 
   public constructor() {
     super({ key: 'Game' });
@@ -69,51 +63,52 @@ export class GameScene extends Phaser.Scene {
     this.endless = data.endless ?? false;
     this.debugLevel = data.debugLevel ?? 0;
     this.debugTimeMinutes = data.debugTimeMinutes ?? 0;
-    this.gameTimeMs = 0;
     this.gameOver = false;
     this.reviveCount = 0;
     this.awaitingRevive = false;
-    this.exitGatePos = null;
   }
 
   public create(): void {
     applyCRT(this);
     this.rng = new SeededRandom(this.seed);
-    this.map = generateMap(this.seed);
+    const map = generateMap(this.seed);
     const centerX = Math.floor(MAP_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
     const centerY = Math.floor(MAP_HEIGHT / 2) * TILE_SIZE + TILE_SIZE / 2;
 
     // Build game config from perks
     const perks = loadPerks();
-    this.gameConfig = buildGameConfig(perks, () => this.rng.next());
+    const gameConfig = buildGameConfig(perks, () => this.rng.next());
     if (this.debugLevel > 0) {
-      applyDebugConfig(this.gameConfig, this.debugLevel);
+      applyDebugConfig(gameConfig, this.debugLevel);
     }
-    const cfg = this.gameConfig;
+    const cfg = gameConfig;
 
-    this.player = new Player(this, centerX, centerY);
-    this.player.applyConfig(cfg);
+    const player = new Player(this, centerX, centerY);
+    player.applyConfig(cfg);
 
     // Starting weapon from config
-    this.player.state.weapons.push({
+    player.state.weapons.push({
       type: cfg.startingWeapon,
       level: cfg.startingWeaponLevel,
       cooldownTimer: 0,
     });
 
+    const initialElapsed = this.debugLevel > 1 ? this.debugTimeMinutes * 60 * 1000 : 0;
     if (this.debugLevel > 1) {
-      applyDebugProgression(this.player.state, () => this.rng.next(), this.debugLevel);
-      this.gameTimeMs = this.debugTimeMinutes * 60 * 1000;
+      applyDebugProgression(player.state, () => this.rng.next(), this.debugLevel);
     }
 
-    this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.map, this.gameTimeMs);
-    const enemyPool = this.gameWorldSystem.activeEnemyPool;
+    const enemyPool = new EnemyPool(this, map);
     enemyPool.perkHpMult = cfg.enemyHpMult;
     enemyPool.perkDmgMult = cfg.enemyDmgMult;
     enemyPool.perkXpMult = cfg.enemyXpMult;
+
+    this.state = new GameState(player, enemyPool, map, cfg, initialElapsed);
+
+    this.gameWorldSystem = new GameWorldSystem(this, this.rng, this.state);
     const playerPhysics = new PlayerPhysicsSystem(this);
-    this.lootSystem = new LootSystem(this, this.player, enemyPool);
-    this.achievementSystem = new AchievementSystem(this, this.player);
+    this.lootSystem = new LootSystem(this, this.state);
+    this.achievementSystem = new AchievementSystem(this, this.state);
 
     this.subsystems = [
       new ParallaxSystem(this),
@@ -121,9 +116,9 @@ export class GameScene extends Phaser.Scene {
       this.gameWorldSystem,
       new BossSpawnSystem(this, this.rng),
       new EndgameSystem(this, this.rng, !this.endless),
-      new WeaponSystem(this, enemyPool, this.lootSystem),
+      new WeaponSystem(this),
       this.lootSystem,
-      new LevelUpSystem(this, this.rng, this.player),
+      new LevelUpSystem(this, this.rng, this.state),
       new DangerOverlaySystem(this),
       this.achievementSystem,
     ];
@@ -131,19 +126,17 @@ export class GameScene extends Phaser.Scene {
     playerPhysics.setDeathMaskConsumer(() => this.lootSystem.consumeMask());
 
     if (this.debugLevel > 1) {
-      this.lootSystem.addDeathMasks(1);
+      this.state.deathMasksHeld = 1;
     }
 
     // Events
-    GameEvents.on(this.events, 'show-damage', (x, y, amount, color, crit) => this.damageNumbersUi.show(x, y, amount, color, crit));
-    GameEvents.on(this.events, 'screen-shake', (duration, intensity) => this.gameWorldSystem.cameraShake(duration, intensity));
-    GameEvents.on(this.events, 'blood-aura-heal', (heal) => {
-      this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + heal);
+    GameEvents.on(this.events, 'damage-dealt', (x, y, amount, color, crit) => this.damageNumbersUi.show(x, y, amount, color, crit));
+    GameEvents.on(this.events, 'player-healed', (heal) => {
+      this.state.player.state.hp = Math.min(this.state.player.state.maxHp, this.state.player.state.hp + heal);
     });
-    GameEvents.on(this.events, 'revive-accept', () => this.handleReviveAccept());
-    GameEvents.on(this.events, 'revive-decline', () => this.handleReviveDecline());
-    GameEvents.on(this.events, 'exit-gate-spawned', (pos) => this.spawnExitGate(pos));
-    GameEvents.on(this.events, 'extracted', () => this.handleExtraction());
+    GameEvents.on(this.events, 'revive-accepted', () => this.handleReviveAccept());
+    GameEvents.on(this.events, 'revive-declined', () => this.handleReviveDecline());
+    GameEvents.on(this.events, 'player-extracted', () => this.handleExtraction());
 
     // UI Events
     this.visibilityHandler = () => {
@@ -176,43 +169,33 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Apply game speed multiplier to delta
-    const speedDelta = delta * this.gameConfig.gameSpeedMult;
-    this.gameTimeMs += speedDelta;
-
-    const ctx: UpdateContext = {
-      time: { delta: speedDelta / 1000, deltaMs: speedDelta, now: time, elapsed: this.gameTimeMs },
-      player: this.player,
-      enemyPool: this.gameWorldSystem.activeEnemyPool,
-      map: this.map,
-      config: this.gameConfig,
-    };
+    const speedDelta = delta * this.state.config.gameSpeedMult;
+    this.state.tick(time, speedDelta);
 
     for (const system of this.subsystems) {
-      system.update(ctx);
+      system.update(this.state);
     }
 
-    this.damageNumbersUi.update(ctx);
-    this.updateExitGate(speedDelta / 1000);
+    this.damageNumbersUi.update(this.state);
 
     this.hudScene.updateHUD?.(
-      this.player.state,
-      this.gameTimeMs,
-      this.lootSystem.kills,
-      this.gameWorldSystem.activeEnemyPool.activeCount,
-      this.lootSystem.deathMasksHeld,
-      this.exitGatePos,
+      this.state.player.state,
+      this.state.time.elapsed,
+      this.state.kills,
+      this.state.enemyPool.activeCount,
+      this.state.deathMasksHeld,
+      this.gameWorldSystem.exitGatePos,
     );
 
     GameEvents.intensity(
-      Math.min(1, 0.35 + 0.65 * this.gameWorldSystem.activeEnemyPool.activeCount / ENEMY_MAX_ACTIVE),
+      Math.min(1, 0.35 + 0.65 * this.state.enemyPool.activeCount / ENEMY_MAX_ACTIVE),
     );
 
     this.processDeath(delta);
   }
 
   private processDeath(delta: number): void {
-    if (!this.player.state.alive && !this.awaitingRevive) {
+    if (!this.state.player.state.alive && !this.awaitingRevive) {
       this.awaitingRevive = true;
       this.deathDelayMs = 1000;
     }
@@ -222,7 +205,7 @@ export class GameScene extends Phaser.Scene {
       if (this.deathDelayMs <= 0) {
         this.scene.pause();
         this.scene.launch('Revive', {
-          gold: this.player.state.gold,
+          gold: this.state.player.state.gold,
           cost: this.reviveCost,
         });
       }
@@ -235,10 +218,11 @@ export class GameScene extends Phaser.Scene {
 
   private handleReviveAccept(): void {
     GameEvents.sfx('revive');
-    this.player.state.gold -= this.reviveCost;
-    this.player.state.hp = Math.ceil(this.player.state.maxHp * 0.75);
-    this.player.state.alive = true;
-    this.player.state.invincibleUntil = performance.now() + 4000;
+    const ps = this.state.player.state;
+    ps.gold -= this.reviveCost;
+    ps.hp = Math.ceil(ps.maxHp * 0.75);
+    ps.alive = true;
+    ps.invincibleUntil = performance.now() + 4000;
     this.reviveCount++;
     this.awaitingRevive = false;
     this.scene.stop('Revive');
@@ -249,22 +233,15 @@ export class GameScene extends Phaser.Scene {
     GameEvents.sfx('revive-decline');
     this.awaitingRevive = false;
     this.scene.stop('Revive');
-    this.endGame(this.gameTimeMs >= GAME_DURATION_MS);
+    this.endGame(this.state.time.elapsed >= GAME_DURATION_MS);
   }
 
   private endGame(victory: boolean, extracted: boolean = false): void {
     this.gameOver = true;
 
-    // Final achievement evaluation before leaving
-    const ctx: UpdateContext = {
-      time: { delta: 0, deltaMs: 0, now: performance.now(), elapsed: this.gameTimeMs },
-      player: this.player,
-      enemyPool: this.gameWorldSystem.activeEnemyPool,
-      map: this.map,
-      config: this.gameConfig,
-    };
-    this.achievementSystem.evaluate(ctx);
-    this.achievementSystem.flushStats(this.gameTimeMs, victory, extracted);
+    // Final achievement evaluation
+    this.achievementSystem.evaluate(this.state);
+    this.achievementSystem.flushStats(this.state.time.elapsed, victory, extracted);
 
     this.scene.stop('HUD');
     this.scene.stop('LevelUp');
@@ -273,65 +250,16 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('GameOver', {
       victory,
       extracted,
-      kills: this.lootSystem.kills,
-      level: this.player.state.level,
-      time: this.gameTimeMs,
+      kills: this.state.kills,
+      level: this.state.player.state.level,
+      time: this.state.time.elapsed,
       seed: this.seed,
     });
   }
 
-  private spawnExitGate(pos: { x: number; y: number }): void {
-    this.exitGatePos = pos;
-    this.exitGateGfx = this.add.graphics().setDepth(20);
-    GameEvents.emit(this.events, 'screen-shake', 600, 0.02);
-  }
-
-  private updateExitGate(dt: number): void {
-    if (!this.exitGatePos || !this.exitGateGfx) return;
-
-    this.exitGateAngle += dt * 2;
-    const { x, y } = this.exitGatePos;
-    const gfx = this.exitGateGfx;
-    gfx.clear();
-
-    // Pulsing golden portal
-    const pulse = 0.85 + 0.15 * Math.sin(this.exitGateAngle * 3);
-    const radius = 40 * pulse;
-
-    // Outer glow
-    gfx.fillStyle(0xffcc00, 0.15);
-    gfx.fillCircle(x, y, radius * 2.5);
-    // Mid ring
-    gfx.fillStyle(0xffdd44, 0.25);
-    gfx.fillCircle(x, y, radius * 1.5);
-    // Core
-    gfx.fillStyle(0xffee88, 0.6);
-    gfx.fillCircle(x, y, radius);
-    // Bright center
-    gfx.fillStyle(0xffffff, 0.7);
-    gfx.fillCircle(x, y, radius * 0.4);
-
-    // Rotating ring particles
-    for (let i = 0; i < 8; i++) {
-      const a = this.exitGateAngle + (Math.PI * 2 * i) / 8;
-      const px = x + Math.cos(a) * radius * 1.8;
-      const py = y + Math.sin(a) * radius * 1.8;
-      gfx.fillStyle(0xffcc00, 0.5);
-      gfx.fillCircle(px, py, 4);
-    }
-
-    // Check player collision
-    const dx = this.player.state.x - x;
-    const dy = this.player.state.y - y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < radius + PLAYER_SIZE / 2) {
-      GameEvents.emit(this.events, 'extracted');
-    }
-  }
-
   private handleExtraction(): void {
     if (this.gameOver) return;
-    GameEvents.emit(this.events, 'achievement', 'extracted');
+    GameEvents.emit(this.events, 'achievement-unlocked', 'extracted');
     GameEvents.sfx('game-start'); // reuse a triumphant sound
     this.endGame(true, true);
   }
@@ -349,13 +277,10 @@ export class GameScene extends Phaser.Scene {
       system.destroy?.();
     }
     this.damageNumbersUi?.destroy();
-    this.events.off('show-damage');
-    this.events.off('screen-shake');
-    this.events.off('blood-aura-heal');
-    this.events.off('revive-accept');
-    this.events.off('revive-decline');
-    this.events.off('exit-gate-spawned');
-    this.events.off('extracted');
-    this.exitGateGfx?.destroy();
+    this.events.off('damage-dealt');
+    this.events.off('player-healed');
+    this.events.off('revive-accepted');
+    this.events.off('revive-declined');
+    this.events.off('player-extracted');
   }
 }

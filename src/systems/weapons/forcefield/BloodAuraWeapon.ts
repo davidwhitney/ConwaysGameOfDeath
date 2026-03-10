@@ -9,7 +9,7 @@ export class BloodAuraWeapon extends BaseForceFieldWeapon {
     const deathPenalty = enemy.state.type === EnemyType.Death ? DEATH_EFFECTIVENESS_MULT : 1;
     const heal = Math.floor(stats.damage * 0.2 * deathPenalty);
     if (heal > 0) {
-      GameEvents.emit(this.ctx.scene.events, 'blood-aura-heal', heal);
+      GameEvents.emit(this.ctx.scene.events, 'player-healed', heal);
     }
   }
 }

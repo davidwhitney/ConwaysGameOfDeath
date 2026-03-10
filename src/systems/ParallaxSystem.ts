@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { Colors } from '../colors';
 
@@ -73,7 +73,7 @@ export class ParallaxSystem implements GameSystem {
     return dots;
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     const cam = ctx.player.sprite.scene.cameras.main;
     // Skip redraw when camera hasn't moved
     if (cam.scrollX === this.lastScrollX && cam.scrollY === this.lastScrollY) return;

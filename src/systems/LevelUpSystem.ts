@@ -6,48 +6,48 @@ import {
 } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import { xpForLevel, generateLevelUpOptions, generatePostMaxOptions, applyLevelUpChoice } from './leveling';
-import type { Player } from '../entities/Player';
-import type { UpdateContext } from '../systems/UpdateContext';
-import type { GameSystem } from '../systems/GameSystem';
-import { GameEvents } from '../systems/GameEvents';
+import type { GameState } from './GameState';
+import type { GameSystem } from './GameSystem';
+import { GameEvents } from './GameEvents';
 
 export class LevelUpSystem implements GameSystem {
   private scene: Phaser.Scene;
-  private player: Player;
+  private state: GameState;
   private rng: SeededRandom;
 
   private pendingLevelUps: number = 0;
   private rerollCount: number = 0;
   private currentLevelUpOptions: LevelUpOption[] = [];
 
-  constructor(scene: Phaser.Scene, rng: SeededRandom, player: Player) {
+  constructor(scene: Phaser.Scene, rng: SeededRandom, state: GameState) {
     this.scene = scene;
-    this.player = player;
+    this.state = state;
     this.rng = rng;
 
-    GameEvents.on(this.scene.events, 'levelup-choice', (index) => this.handleLevelUpChoice(index));
-    GameEvents.on(this.scene.events, 'levelup-reroll', () => this.handleReroll());
-    GameEvents.on(this.scene.events, 'levelup-skip', () => this.handleLevelUpSkip());
+    GameEvents.on(this.scene.events, 'levelup-option-selected', (index) => this.handleLevelUpChoice(index));
+    GameEvents.on(this.scene.events, 'levelup-rerolled', () => this.handleReroll());
+    GameEvents.on(this.scene.events, 'levelup-skipped', () => this.handleLevelUpSkip());
   }
 
-  public update(_ctx: UpdateContext): void {
+  public update(_state: GameState): void {
+    const player = this.state.player;
     const hadPending = this.pendingLevelUps > 0;
 
-    while (this.player.state.xp >= this.player.state.xpToNext) {
+    while (player.state.xp >= player.state.xpToNext) {
       this.pendingLevelUps++;
-      this.player.state.xp -= this.player.state.xpToNext;
-      this.player.state.level++;
-      this.player.state.xpToNext = xpForLevel(this.player.state.level + 1);
+      player.state.xp -= player.state.xpToNext;
+      player.state.level++;
+      player.state.xpToNext = xpForLevel(player.state.level + 1);
       GameEvents.sfx('level-up');
       GameEvents.highlight('level-up');
 
       // Luck-based heal on level up
-      const luckVal = this.player.getEffectValue(EffectType.Luck);
+      const luckVal = player.getEffectValue(EffectType.Luck);
       if (luckVal > 0 && Math.random() < luckVal) {
         const healPct = LEVELUP_LUCK_BASE_HEAL_PCT + luckVal * LEVELUP_LUCK_HEAL_SCALING;
-        const healAmt = Math.floor(this.player.state.maxHp * healPct);
-        this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmt);
-        GameEvents.emit(this.scene.events, 'show-damage', this.player.state.x, this.player.state.y - 30, healAmt, '#ff4444');
+        const healAmt = Math.floor(player.state.maxHp * healPct);
+        player.state.hp = Math.min(player.state.maxHp, player.state.hp + healAmt);
+        GameEvents.emit(this.scene.events, 'damage-dealt', player.state.x, player.state.y - 30, healAmt, '#ff4444');
       }
     }
 
@@ -71,7 +71,7 @@ export class LevelUpSystem implements GameSystem {
     this.scene.scene.pause();
     const data = {
       options,
-      gold: this.player.state.gold,
+      gold: this.state.player.state.gold,
       rerollCost: this.rerollCost,
     };
     if (this.scene.scene.isActive('LevelUp')) {
@@ -93,18 +93,19 @@ export class LevelUpSystem implements GameSystem {
   }
 
   destroy(): void {
-    GameEvents.off(this.scene.events, 'levelup-choice');
-    GameEvents.off(this.scene.events, 'levelup-reroll');
-    GameEvents.off(this.scene.events, 'levelup-skip');
+    GameEvents.off(this.scene.events, 'levelup-option-selected');
+    GameEvents.off(this.scene.events, 'levelup-rerolled');
+    GameEvents.off(this.scene.events, 'levelup-skipped');
   }
 
   private handleLevelUpChoice(index: number): void {
+    const player = this.state.player;
     const options = this.currentLevelUpOptions;
     if (!options || index >= options.length) return;
 
     const choice = options[index];
-    applyLevelUpChoice(this.player.state, choice);
-    this.player.invalidateEffectCache();
+    applyLevelUpChoice(player.state, choice);
+    player.invalidateEffectCache();
     GameEvents.sfx('ability-select');
 
 
@@ -129,9 +130,10 @@ export class LevelUpSystem implements GameSystem {
   }
 
   private handleReroll(): void {
+    const player = this.state.player;
     const cost = this.rerollCost;
-    if (this.player.state.gold < cost) return;
-    this.player.state.gold -= cost;
+    if (player.state.gold < cost) return;
+    player.state.gold -= cost;
     this.rerollCount++;
     GameEvents.sfx('reroll');
 
@@ -142,18 +144,19 @@ export class LevelUpSystem implements GameSystem {
     const levelUp = this.scene.scene.get('LevelUp');
     levelUp.scene.restart({
       options,
-      gold: this.player.state.gold,
+      gold: player.state.gold,
       rerollCost: this.rerollCost,
     });
   }
 
   private generateOptions(): LevelUpOption[] {
-    if (this.player.state.level > MAX_LEVEL) {
-      return generatePostMaxOptions(this.player.state.level);
+    const player = this.state.player;
+    if (player.state.level > MAX_LEVEL) {
+      return generatePostMaxOptions(player.state.level);
     }
     return generateLevelUpOptions(
-      this.player.state.weapons,
-      this.player.state.effects,
+      player.state.weapons,
+      player.state.effects,
       () => this.rng.next(),
     );
   }

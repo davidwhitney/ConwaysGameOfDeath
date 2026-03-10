@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { UpdateContext } from '../systems/UpdateContext';
+import type { GameState } from '../systems/GameState';
 
 const POOL_SIZE = 30;
 const DISPLAY_DEPTH = 20;
@@ -55,7 +55,7 @@ export class DamageNumbersUiComponent {
     });
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     const dt = ctx.time.delta;
     for (let i = this.active.length - 1; i >= 0; i--) {
       const d = this.active[i];

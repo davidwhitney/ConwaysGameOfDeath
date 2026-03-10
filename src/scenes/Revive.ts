@@ -60,11 +60,11 @@ export class ReviveScene extends Phaser.Scene {
 
   private accept(): void {
     const gameScene = this.scene.get('Game');
-    GameEvents.emit(gameScene.events, 'revive-accept');
+    GameEvents.emit(gameScene.events, 'revive-accepted');
   }
 
   private decline(): void {
     const gameScene = this.scene.get('Game');
-    GameEvents.emit(gameScene.events, 'revive-decline');
+    GameEvents.emit(gameScene.events, 'revive-declined');
   }
 }

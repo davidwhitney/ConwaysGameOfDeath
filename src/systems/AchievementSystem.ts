@@ -1,16 +1,16 @@
 import type Phaser from 'phaser';
 import type { GameSystem } from './GameSystem';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import { GameEvents } from './GameEvents';
 import { ACHIEVEMENTS, ACHIEVEMENTS_BY_ID } from '../achievements';
 import { getAchievements, unlockAchievement, loadStats, mergeStats, type Stats } from '../ui/saveData';
 import { showAchievementBanner } from '../ui/AchievementBanner';
 import { EnemyType } from '../types';
 import { WEAPON_DEFS } from '../entities/weapons';
-import type { Player } from '../entities/Player';
 
 export class AchievementSystem implements GameSystem {
   private scene: Phaser.Scene;
+  private state: GameState;
   private unlocked: Set<string>;
   private lastLevel = 0;
   private wasAlive = true;
@@ -20,15 +20,14 @@ export class AchievementSystem implements GameSystem {
   private sessionTotalKills = 0;
   private sessionKillsByType: Record<number, number> = {};
   private sessionDeathKills = 0;
-  private player: Player;
 
-  constructor(scene: Phaser.Scene, player: Player) {
+  constructor(scene: Phaser.Scene, state: GameState) {
     this.scene = scene;
-    this.player = player;
+    this.state = state;
     this.unlocked = new Set(getAchievements());
     this.persistedStats = loadStats();
 
-    GameEvents.on(scene.events, 'achievement', (id) => this.grant(id));
+    GameEvents.on(scene.events, 'achievement-unlocked', (id) => this.grant(id));
     GameEvents.on(scene.events, 'enemy-killed', (enemy) => {
       this.sessionTotalKills++;
       this.sessionKillsByType[enemy.state.type] = (this.sessionKillsByType[enemy.state.type] ?? 0) + 1;
@@ -39,7 +38,7 @@ export class AchievementSystem implements GameSystem {
     });
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     // Detect level-up
     const currentLevel = ctx.player.state.level;
     if (currentLevel !== this.lastLevel) {
@@ -64,7 +63,7 @@ export class AchievementSystem implements GameSystem {
   }
 
   /** Run all state-based achievement checks. */
-  evaluate(ctx: UpdateContext): void {
+  evaluate(ctx: GameState): void {
     const cumulativeStats = this.buildCumulativeStats();
     for (const def of ACHIEVEMENTS) {
       if (this.unlocked.has(def.id)) continue;
@@ -101,7 +100,7 @@ export class AchievementSystem implements GameSystem {
   }
 
   private checkDeathConditionals(): void {
-    const weapons = this.player.state.weapons;
+    const weapons = this.state.player.state.weapons;
 
     // Minimalist: kill Death with fewer than 4 weapons
     if (!this.unlocked.has('death-undergeared') && weapons.length < 4) {
@@ -130,7 +129,7 @@ export class AchievementSystem implements GameSystem {
   }
 
   destroy(): void {
-    GameEvents.off(this.scene.events, 'achievement');
+    GameEvents.off(this.scene.events, 'achievement-unlocked');
     GameEvents.off(this.scene.events, 'enemy-killed');
   }
 }

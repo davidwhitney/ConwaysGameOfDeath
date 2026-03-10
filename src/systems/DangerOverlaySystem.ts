@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { Colors } from '../colors';
 
@@ -19,7 +19,7 @@ export class DangerOverlaySystem implements GameSystem {
     this.overlay.setScrollFactor(0);
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     const hpPct = ctx.player.state.hp / ctx.player.state.maxHp;
     if (hpPct >= 0.4) {
       if (this.wasActive) { this.overlay.clear(); this.wasActive = false; }

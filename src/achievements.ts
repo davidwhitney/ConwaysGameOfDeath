@@ -1,4 +1,4 @@
-import type { UpdateContext } from './systems/UpdateContext';
+import type { GameState } from './systems/GameState';
 import type { Stats } from './ui/saveData';
 import { EFFECT_DEFS } from './entities/effects';
 import { ENEMY_DEFS } from './entities/enemies';
@@ -11,8 +11,8 @@ export interface AchievementDef {
   name: string;
   description: string;
   silent?: boolean;
-  evaluate?: (ctx: UpdateContext) => boolean;
-  evaluateWithStats?: (ctx: UpdateContext, stats: Stats) => boolean;
+  evaluate?: (ctx: GameState) => boolean;
+  evaluateWithStats?: (ctx: GameState, stats: Stats) => boolean;
 }
 
 function buildAchievements(): AchievementDef[] {

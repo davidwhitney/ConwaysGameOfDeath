@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
 import { WeaponType } from '../types';
 import { WEAPON_DEFS } from '../entities/weapons';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { WeaponContext } from './weapons/WeaponContext';
 import type { BaseWeapon } from './weapons/BaseWeapon';
-import type { EnemyPool } from './EnemyPool';
 import { BoomerangWeapon } from './weapons/projectile/BoomerangWeapon';
 import { ScytheWeapon } from './weapons/projectile/ScytheWeapon';
 import { HolyShieldWeapon } from './weapons/forcefield/HolyShieldWeapon';
@@ -22,7 +21,6 @@ import { PlagueWeapon } from './weapons/aoe/PlagueWeapon';
 import { BloodAuraWeapon } from './weapons/forcefield/BloodAuraWeapon';
 import { GravityWellWeapon } from './weapons/forcefield/GravityWellWeapon';
 import { GameSystem } from './GameSystem';
-import type { LootSystem } from './LootSystem';
 
 type WeaponConstructor = new (ctx: WeaponContext, def: typeof WEAPON_DEFS[number]) => BaseWeapon;
 
@@ -82,7 +80,9 @@ export class WeaponSystem implements GameSystem {
     [WeaponType.GravityWell]: GravityWellWeapon,
   };
 
-  constructor(scene: Phaser.Scene, enemyPool: EnemyPool, lootSystem: LootSystem) {
+  private gameState: GameState | null = null;
+
+  constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
     for (let i = 0; i < 50; i++) {
@@ -92,19 +92,21 @@ export class WeaponSystem implements GameSystem {
       this.projectilePool.push(s);
     }
 
+    const self = this;
     this.ctx = {
       scene,
-      enemyPool,
+      get enemyPool() { return self.gameState!.enemyPool; },
       getProjectileSprite: (texture: string) => this.getProjectileSprite(texture),
       returnProjectileSprite: (sprite: Phaser.GameObjects.Sprite) => this.returnProjectileSprite(sprite),
-      get activeGems() { return lootSystem.activeGems; },
+      get activeGems() { return self.gameState?.activeGems ?? []; },
     };
   }
 
-  update(ctx: UpdateContext): void {
-    for (const weapon of ctx.player.state.weapons) {
+  update(state: GameState): void {
+    this.gameState = state;
+    for (const weapon of state.player.state.weapons) {
       const weaponSystem = this.getOrCreate(weapon.type);
-      weaponSystem.update(ctx.time.delta, ctx.player, weapon);
+      weaponSystem.update(state.time.delta, state.player, weapon);
     }
   }
 

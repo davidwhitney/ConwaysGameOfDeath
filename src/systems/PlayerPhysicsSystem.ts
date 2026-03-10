@@ -3,7 +3,7 @@ import { EffectType, EnemyType } from '../types';
 import { PLAYER_SIZE } from '../constants';
 import { circlesOverlap } from '../utils/math';
 import { InputSystem } from './InputSystem';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { drawEffectCircle } from './weapons/GfxPool';
@@ -35,7 +35,7 @@ export class PlayerPhysicsSystem implements GameSystem {
     this.consumeDeathMask = fn;
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     const { delta: dt, now } = ctx.time;
     const { player, enemyPool } = ctx;
     const input = InputSystem.current;
@@ -74,14 +74,14 @@ export class PlayerPhysicsSystem implements GameSystem {
           enemy.state.hp = 0;
           GameEvents.emit(this.scene.events, 'enemy-killed', enemy);
           GameEvents.sfx('death-mask-collect');
-          GameEvents.emit(this.scene.events, 'screen-shake', 400, 0.02);
+          GameEvents.emit(this.scene.events, 'impact-occurred', 400, 0.02);
           continue;
         }
 
         const dmg = player.takeDamage(enemy.state.damage, now);
         if (dmg > 0) {
-          GameEvents.emit(this.scene.events, 'show-damage', px, py - 20, dmg, '#ff4444');
-          GameEvents.emit(this.scene.events, 'screen-shake', 80, 0.003);
+          GameEvents.emit(this.scene.events, 'damage-dealt', px, py - 20, dmg, '#ff4444');
+          GameEvents.emit(this.scene.events, 'impact-occurred', 80, 0.003);
 
           // Death is immune to reflected damage
           if (enemy.state.type !== EnemyType.Death) {
@@ -90,7 +90,7 @@ export class PlayerPhysicsSystem implements GameSystem {
               const reflected = Math.floor(dmg * thorns);
               if (reflected > 0) {
                 enemy.takeDamage(reflected);
-                GameEvents.emit(this.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
+                GameEvents.emit(this.scene.events, 'damage-dealt', enemy.state.x, enemy.state.y - 15, reflected, '#66aa44');
               }
             }
           }

@@ -1,17 +1,17 @@
-import { EffectType, type TileMap } from '../types';
+import { EffectType } from '../types';
 import {
   TILE_SIZE, MAP_EVOLUTION_INTERVAL_MS,
   SCATTER_BASE_COUNT, SCATTER_LUCK_BONUS, SCATTER_MAX_COUNT,
+  PLAYER_SIZE,
 } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
 import { isWalkable, iterateMap, ensureWalkable } from './map-generator';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import type { Player } from '../entities/Player';
 import Phaser from 'phaser';
 import { MapRenderer } from './MapRenderer';
 import { SpawnController } from './SpawnController';
-import { EnemyPool } from './EnemyPool';
 import { CameraManager } from './CameraManager';
 import { GameEvents } from './GameEvents';
 
@@ -22,9 +22,7 @@ export class GameWorldSystem implements GameSystem {
   private rng: SeededRandom;
   private mapRenderer: MapRenderer;
   private spawnController: SpawnController;
-  private enemyPool: EnemyPool;
   private cameraManager: CameraManager;
-  private map: TileMap;
   private evolutionTimer: number = 0;
   private scatterTimer: number = SCATTER_INTERVAL_MS;
   private followInitialised: boolean = false;
@@ -32,28 +30,32 @@ export class GameWorldSystem implements GameSystem {
   private static readonly SHAKE_DEBOUNCE_MS = 5000;
   private prevPlayerX: number = 0;
   private prevPlayerY: number = 0;
+  private _exitGatePos: { x: number; y: number } | null = null;
+  private exitGateGfx: Phaser.GameObjects.Graphics | null = null;
+  private exitGateAngle: number = 0;
 
-  constructor(scene: Phaser.Scene, rng: SeededRandom, map: TileMap, initialTimeMs: number = 0) {
+  constructor(scene: Phaser.Scene, rng: SeededRandom, state: GameState) {
     this.scene = scene;
     this.rng = rng;
-    this.mapRenderer = new MapRenderer(scene, map);
+    this.mapRenderer = new MapRenderer(scene, state.map);
     this.cameraManager = new CameraManager(scene);
-    this.map = map;
-    this.enemyPool = new EnemyPool(scene, map);
 
     const spawnSeed = this.rng.state + 1;
-    this.spawnController = new SpawnController(scene, spawnSeed, this.enemyPool, map, initialTimeMs);
+    this.spawnController = new SpawnController(scene, spawnSeed, state.time.elapsed);
+
+    GameEvents.on(scene.events, 'impact-occurred', (duration, intensity) => this.cameraShake(duration, intensity));
+    GameEvents.on(scene.events, 'exit-gate-spawned', (pos) => this.spawnExitGate(pos));
   }
 
-  update(ctx: UpdateContext): void {
-    const { player } = ctx;
+  update(state: GameState): void {
+    const { player, enemyPool, map } = state;
 
     if (!this.followInitialised) {
       this.cameraManager.follow(player.sprite);
       this.followInitialised = true;
     }
 
-    const deltaMs = ctx.time.deltaMs;
+    const deltaMs = state.time.deltaMs;
     this.mapRenderer.update(this.cameraManager.camera);
     const dx = player.state.x - this.prevPlayerX;
     const dy = player.state.y - this.prevPlayerY;
@@ -61,18 +63,15 @@ export class GameWorldSystem implements GameSystem {
     this.prevPlayerX = player.state.x;
     this.prevPlayerY = player.state.y;
     this.cameraManager.updateTilt(player.facingX, player.facingY, isMoving);
-    this.spawnController.update(deltaMs, player.state.x, player.state.y);
-    this.enemyPool.update(ctx.time.delta, player.state.x, player.state.y);
-    this.updateEvolution(ctx);
-    this.updateScatter(ctx);
+    this.spawnController.update(deltaMs, player.state.x, player.state.y, enemyPool, map);
+    enemyPool.update(state.time.delta, player.state.x, player.state.y);
+    this.updateEvolution(state);
+    this.updateScatter(state);
+    this.updateExitGate(state.time.delta, player);
   }
 
-  get activeEnemyPool(): EnemyPool {
-    return this.enemyPool;
-  }
-
-  get activeEnemyCount(): number {
-    return this.enemyPool.activeCount;
+  get exitGatePos(): { x: number; y: number } | null {
+    return this._exitGatePos;
   }
 
   cameraShake(duration: number, intensity: number): void {
@@ -88,23 +87,76 @@ export class GameWorldSystem implements GameSystem {
   }
 
   destroy(): void {
-    this.enemyPool.destroy();
+    GameEvents.off(this.scene.events, 'impact-occurred');
+    GameEvents.off(this.scene.events, 'exit-gate-spawned');
+    this.exitGateGfx?.destroy();
     this.mapRenderer.destroy();
   }
 
-  private updateEvolution(ctx: UpdateContext): void {
-    const evoSpeed = 1 + ctx.player.getEffectValue(EffectType.Evolution);
-    this.evolutionTimer += ctx.time.deltaMs * evoSpeed;
-    if (this.evolutionTimer >= MAP_EVOLUTION_INTERVAL_MS) {
-      this.evolutionTimer -= MAP_EVOLUTION_INTERVAL_MS;
-      this.evolve(ctx.player, evoSpeed);
+  private spawnExitGate(pos: { x: number; y: number }): void {
+    this._exitGatePos = pos;
+    this.exitGateGfx = this.scene.add.graphics().setDepth(20);
+    GameEvents.emit(this.scene.events, 'impact-occurred', 600, 0.02);
+  }
+
+  private updateExitGate(dt: number, player: Player): void {
+    if (!this._exitGatePos || !this.exitGateGfx) return;
+
+    this.exitGateAngle += dt * 2;
+    const { x, y } = this._exitGatePos;
+    const gfx = this.exitGateGfx;
+    gfx.clear();
+
+    // Pulsing golden portal
+    const pulse = 0.85 + 0.15 * Math.sin(this.exitGateAngle * 3);
+    const radius = 40 * pulse;
+
+    // Outer glow
+    gfx.fillStyle(0xffcc00, 0.15);
+    gfx.fillCircle(x, y, radius * 2.5);
+    // Mid ring
+    gfx.fillStyle(0xffdd44, 0.25);
+    gfx.fillCircle(x, y, radius * 1.5);
+    // Core
+    gfx.fillStyle(0xffee88, 0.6);
+    gfx.fillCircle(x, y, radius);
+    // Bright center
+    gfx.fillStyle(0xffffff, 0.7);
+    gfx.fillCircle(x, y, radius * 0.4);
+
+    // Rotating ring particles
+    for (let i = 0; i < 8; i++) {
+      const a = this.exitGateAngle + (Math.PI * 2 * i) / 8;
+      const px = x + Math.cos(a) * radius * 1.8;
+      const py = y + Math.sin(a) * radius * 1.8;
+      gfx.fillStyle(0xffcc00, 0.5);
+      gfx.fillCircle(px, py, 4);
+    }
+
+    // Check player collision
+    const dx = player.state.x - x;
+    const dy = player.state.y - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < radius + PLAYER_SIZE / 2) {
+      GameEvents.emit(this.scene.events, 'player-extracted');
     }
   }
 
-  private evolve(player: Player, evoSpeed: number): void {
-    iterateMap(this.map, player.state.x, player.state.y);
+  private updateEvolution(state: GameState): void {
+    const { player, map } = state;
+    const evoSpeed = 1 + player.getEffectValue(EffectType.Evolution);
+    this.evolutionTimer += state.time.deltaMs * evoSpeed;
+    if (this.evolutionTimer >= MAP_EVOLUTION_INTERVAL_MS) {
+      this.evolutionTimer -= MAP_EVOLUTION_INTERVAL_MS;
+      this.evolve(state, evoSpeed);
+    }
+  }
 
-    const safe = ensureWalkable(this.map, player.state.x, player.state.y);
+  private evolve(state: GameState, evoSpeed: number): void {
+    const { player, enemyPool, map } = state;
+    iterateMap(map, player.state.x, player.state.y);
+
+    const safe = ensureWalkable(map, player.state.x, player.state.y);
     player.state.x = safe.x;
     player.state.y = safe.y;
     player.sprite.setPosition(safe.x, safe.y);
@@ -114,7 +166,7 @@ export class GameWorldSystem implements GameSystem {
     // Skip screen shake when evolution is fast enough to be routine
     if (evoSpeed <= 3) {
       const intensity = evoSpeed <= 1.5 ? 0.01 : 0.01 * (3 - evoSpeed) / 1.5;
-      GameEvents.emit(this.scene.events, 'screen-shake', 300, intensity);
+      GameEvents.emit(this.scene.events, 'impact-occurred', 300, intensity);
     }
 
     GameEvents.highlight('map-evolve');
@@ -122,7 +174,7 @@ export class GameWorldSystem implements GameSystem {
     // Housekeeping: chance to clear enemies on map evolution
     const hkValue = player.getEffectValue(EffectType.Housekeeping);
     if (hkValue > 0 && Math.random() < hkValue) {
-      this.enemyPool.clearNonDeath();
+      enemyPool.clearNonDeath();
 
       // Determine gem clearing based on Housekeeping level
       const hkEffect = player.state.effects.find(e => e.type === EffectType.Housekeeping);
@@ -132,20 +184,20 @@ export class GameWorldSystem implements GameSystem {
       else if (hkLevel >= 4) clearGems = Math.random() < 0.75;
 
       if (clearGems) {
-        GameEvents.emit(this.scene.events, 'clear-gems');
+        GameEvents.emit(this.scene.events, 'gems-cleared');
       }
     }
   }
 
-  private updateScatter(ctx: UpdateContext): void {
-    this.scatterTimer -= ctx.time.deltaMs;
+  private updateScatter(state: GameState): void {
+    this.scatterTimer -= state.time.deltaMs;
     if (this.scatterTimer <= 0) {
       this.scatterTimer += SCATTER_INTERVAL_MS;
-      this.scatterHealthGems(ctx.player);
+      this.scatterHealthGems(state);
 
       // 10% chance to scatter a vortex gem
       if (this.rng.next() < 0.1) {
-        this.scatterVortexGem(ctx.player);
+        this.scatterVortexGem(state);
       }
     }
   }
@@ -153,6 +205,7 @@ export class GameWorldSystem implements GameSystem {
   private findScatterPosition(
     px: number, py: number, maxDist: number,
     viewHalfW: number, viewHalfH: number,
+    map: GameState['map'],
   ): { x: number; y: number } | null {
     for (let attempt = 0; attempt < 20; attempt++) {
       const angle = this.rng.next() * Math.PI * 2;
@@ -164,25 +217,28 @@ export class GameWorldSystem implements GameSystem {
 
       const tx = Math.floor(gx / TILE_SIZE);
       const ty = Math.floor(gy / TILE_SIZE);
-      if (!isWalkable(this.map, tx, ty)) continue;
+      if (!isWalkable(map, tx, ty)) continue;
 
       return { x: gx, y: gy };
     }
     return null;
   }
 
-  private scatterVortexGem(player: Player): void {
+  private scatterVortexGem(state: GameState): void {
+    const { player, map } = state;
     const cam = this.scene.cameras.main;
     const pos = this.findScatterPosition(
       player.state.x, player.state.y, 2000,
       cam.worldView.width / 2, cam.worldView.height / 2,
+      map,
     );
     if (pos) {
-      GameEvents.emit(this.scene.events, 'scatter-vortex-gem', pos);
+      GameEvents.emit(this.scene.events, 'vortex-gem-dropped', pos);
     }
   }
 
-  private scatterHealthGems(player: Player): void {
+  private scatterHealthGems(state: GameState): void {
+    const { player, map } = state;
     const luckValue = player.getEffectValue(EffectType.Luck);
     const count = Math.min(
       SCATTER_MAX_COUNT,
@@ -196,12 +252,12 @@ export class GameWorldSystem implements GameSystem {
 
     const positions: { x: number; y: number }[] = [];
     for (let i = 0; i < count; i++) {
-      const pos = this.findScatterPosition(player.state.x, player.state.y, maxDist, viewHalfW, viewHalfH);
+      const pos = this.findScatterPosition(player.state.x, player.state.y, maxDist, viewHalfW, viewHalfH, map);
       if (pos) positions.push(pos);
     }
 
     if (positions.length > 0) {
-      GameEvents.emit(this.scene.events, 'scatter-health-gems', positions);
+      GameEvents.emit(this.scene.events, 'health-gems-dropped', positions);
     }
   }
 }

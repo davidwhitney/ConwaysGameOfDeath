@@ -4,22 +4,22 @@ import type { Enemy } from '../entities/Enemy';
 import type { SfxName } from './audio/SfxSystem';
 
 export interface GameEventMap {
-  'show-damage': [x: number, y: number, amount: number, color?: string, crit?: boolean];
-  'screen-shake': [duration: number, intensity: number];
-  'blood-aura-heal': [heal: number];
-  'levelup-choice': [index: number];
-  'levelup-reroll': [];
-  'levelup-skip': [];
+  'damage-dealt': [x: number, y: number, amount: number, color?: string, crit?: boolean];
+  'impact-occurred': [duration: number, intensity: number];
+  'player-healed': [heal: number];
+  'levelup-option-selected': [index: number];
+  'levelup-rerolled': [];
+  'levelup-skipped': [];
   'enemy-killed': [enemy: Enemy, weaponType?: WeaponType];
-  'scatter-health-gems': [positions: { x: number; y: number }[]];
-  'scatter-vortex-gem': [pos: { x: number; y: number }];
-  'scatter-death-mask': [pos: { x: number; y: number }];
-  'clear-gems': [];
-  'revive-accept': [];
-  'revive-decline': [];
-  'achievement': [id: string];
+  'health-gems-dropped': [positions: { x: number; y: number }[]];
+  'vortex-gem-dropped': [pos: { x: number; y: number }];
+  'death-mask-dropped': [pos: { x: number; y: number }];
+  'gems-cleared': [];
+  'revive-accepted': [];
+  'revive-declined': [];
+  'achievement-unlocked': [id: string];
   'exit-gate-spawned': [pos: { x: number; y: number }];
-  'extracted': [];
+  'player-extracted': [];
 }
 
 type GameEventName = keyof GameEventMap;

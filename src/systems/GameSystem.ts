@@ -1,6 +1,6 @@
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 
 export interface GameSystem {
-  update(ctx: UpdateContext): void;
+  update(state: GameState): void;
   destroy?(): void;
 }

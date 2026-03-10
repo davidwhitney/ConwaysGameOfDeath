@@ -5,11 +5,9 @@ import {
   GOLD_DROP_BASE_CHANCE, GOLD_DROP_LUCK_BONUS,
   BOSS_KILL_HEAL_PCT, HEAL_GEM_PCT, ENEMY_MAX_ACTIVE,
 } from '../constants';
-import type { Player } from '../entities/Player';
 import type { Enemy } from '../entities/Enemy';
 import { XPGemPool } from '../entities/XPGem';
-import type { EnemyPool } from './EnemyPool';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { Colors } from '../colors';
@@ -32,60 +30,60 @@ interface ActiveBurst {
 
 export class LootSystem implements GameSystem {
   private scene: Phaser.Scene;
-  private player: Player;
+  private state: GameState;
   private xpGemPool: XPGemPool;
-  private _kills: number = 0;
-  private _deathMasksHeld: number = 0;
-  private enemyPool: EnemyPool;
   private burstGfx: Phaser.GameObjects.Graphics;
   private activeBursts: ActiveBurst[] = [];
 
-  constructor(scene: Phaser.Scene, player: Player, enemyPool: EnemyPool) {
+  constructor(scene: Phaser.Scene, state: GameState) {
     this.scene = scene;
-    this.player = player;
-    this.enemyPool = enemyPool;
+    this.state = state;
     this.xpGemPool = new XPGemPool(scene);
     this.burstGfx = scene.add.graphics().setDepth(15);
 
     GameEvents.on(this.scene.events, 'enemy-killed', (e, w) => this.handleEnemyKilled(e, w));
 
-    GameEvents.on(this.scene.events, 'scatter-health-gems', (positions) => {
+    GameEvents.on(this.scene.events, 'health-gems-dropped', (positions) => {
       for (const p of positions) {
         this.xpGemPool.spawnHealth(p.x, p.y);
       }
     });
 
-    GameEvents.on(this.scene.events, 'scatter-vortex-gem', (pos) => {
+    GameEvents.on(this.scene.events, 'vortex-gem-dropped', (pos) => {
       this.xpGemPool.spawnVortex(pos.x, pos.y);
     });
 
-    GameEvents.on(this.scene.events, 'scatter-death-mask', (pos) => {
+    GameEvents.on(this.scene.events, 'death-mask-dropped', (pos) => {
       this.xpGemPool.spawnDeathMask(pos.x, pos.y);
     });
 
-    GameEvents.on(this.scene.events, 'clear-gems', () => {
+    GameEvents.on(this.scene.events, 'gems-cleared', () => {
       this.xpGemPool.clearAll();
     });
   }
 
-  update(ctx: UpdateContext): void {
-    const dt = ctx.time.delta;
-    const enemyPressure = ctx.enemyPool.activeCount / ENEMY_MAX_ACTIVE;
+  update(_state: GameState): void {
+    const { player, enemyPool } = this.state;
+    const dt = this.state.time.delta;
+    const enemyPressure = enemyPool.activeCount / ENEMY_MAX_ACTIVE;
     this.updateBursts(dt, enemyPressure);
     const gemResult = this.xpGemPool.update(
-      dt, this.player.state.x, this.player.state.y, this.player.pickupRange, enemyPressure,
+      dt, player.state.x, player.state.y, player.pickupRange, enemyPressure,
     );
 
+    // Publish active gems to shared state
+    this.state.activeGems = this.xpGemPool.active;
+
     if (gemResult.xp > 0) {
-      this.player.addXp(gemResult.xp);
+      player.addXp(gemResult.xp);
       GameEvents.sfx('gem-collect');
     }
 
     if (gemResult.heals > 0) {
-      const healTotal = this.player.state.maxHp * HEAL_GEM_PCT * gemResult.heals;
-      this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healTotal);
-      GameEvents.emit(this.scene.events, 'show-damage',
-        this.player.state.x, this.player.state.y - 30,
+      const healTotal = player.state.maxHp * HEAL_GEM_PCT * gemResult.heals;
+      player.state.hp = Math.min(player.state.maxHp, player.state.hp + healTotal);
+      GameEvents.emit(this.scene.events, 'damage-dealt',
+        player.state.x, player.state.y - 30,
         Math.floor(healTotal), '#ff4444',
       );
       GameEvents.highlight('heal-gem');
@@ -98,67 +96,47 @@ export class LootSystem implements GameSystem {
     }
 
     if (gemResult.gold > 0) {
-      this.player.state.gold += gemResult.gold;
+      player.state.gold += gemResult.gold;
       GameEvents.sfx('gold-collect');
     }
 
     if (gemResult.deathMasks > 0) {
       GameEvents.sfx('death-mask-collect');
-      GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.015);
-      this._deathMasksHeld += gemResult.deathMasks;
+      GameEvents.emit(this.scene.events, 'impact-occurred', 300, 0.015);
+      this.state.deathMasksHeld += gemResult.deathMasks;
     }
   }
 
-  get kills(): number {
-    return this._kills;
-  }
-
-  get deathMasksHeld(): number {
-    return this._deathMasksHeld;
-  }
-
   consumeMask(): boolean {
-    if (this._deathMasksHeld <= 0) return false;
-    this._deathMasksHeld--;
+    if (this.state.deathMasksHeld <= 0) return false;
+    this.state.deathMasksHeld--;
     return true;
-  }
-
-  get activeGems() {
-    return this.xpGemPool.active;
-  }
-
-  addDeathMasks(count: number): void {
-    this._deathMasksHeld += count;
-  }
-
-  reset(): void {
-    this._kills = 0;
-    this._deathMasksHeld = 0;
   }
 
   destroy(): void {
     GameEvents.off(this.scene.events, 'enemy-killed');
-    GameEvents.off(this.scene.events, 'scatter-health-gems');
-    GameEvents.off(this.scene.events, 'scatter-vortex-gem');
-    GameEvents.off(this.scene.events, 'scatter-death-mask');
-    GameEvents.off(this.scene.events, 'clear-gems');
+    GameEvents.off(this.scene.events, 'health-gems-dropped');
+    GameEvents.off(this.scene.events, 'vortex-gem-dropped');
+    GameEvents.off(this.scene.events, 'death-mask-dropped');
+    GameEvents.off(this.scene.events, 'gems-cleared');
     this.xpGemPool.destroy();
     this.burstGfx.destroy();
     this.activeBursts.length = 0;
   }
 
   private handleEnemyKilled(enemy: Enemy, weaponType?: WeaponType): void {
-    this._kills++;
+    const { player, enemyPool } = this.state;
+    this.state.kills++;
     this.spawnDeathBurst(enemy.state.x, enemy.state.y, enemy.def.color, enemy.state.boss);
 
     // Death killed — wipe all non-Death enemies
     if (enemy.state.type === EnemyType.Death) {
-      this.enemyPool.clearNonDeath();
-      GameEvents.emit(this.scene.events, 'screen-shake', 600, 0.03);
-      GameEvents.emit(this.scene.events, 'achievement', 'killed-death');
+      enemyPool.clearNonDeath();
+      GameEvents.emit(this.scene.events, 'impact-occurred', 600, 0.03);
+      GameEvents.emit(this.scene.events, 'achievement-unlocked', 'killed-death');
     }
 
-    const luckValue = this.player.getEffectValue(EffectType.Luck);
+    const luckValue = player.getEffectValue(EffectType.Luck);
     const dropChance = Math.min(1, XP_DROP_BASE_CHANCE + luckValue * (XP_DROP_LUCK_BONUS / 0.15));
     if (Math.random() < dropChance) {
       this.xpGemPool.spawn(enemy.state.x, enemy.state.y, enemy.state.xpValue);
@@ -167,29 +145,29 @@ export class LootSystem implements GameSystem {
     // Gold drop (scaled with luck + GoldFind)
     const goldChance = Math.min(1, GOLD_DROP_BASE_CHANCE + luckValue * (GOLD_DROP_LUCK_BONUS / 0.15));
     if (Math.random() < goldChance) {
-      const goldAmount = Math.floor((1 + Math.floor(this.player.getEffectValue(EffectType.GoldFind))) * this.player.perkGoldMult);
+      const goldAmount = Math.floor((1 + Math.floor(player.getEffectValue(EffectType.GoldFind))) * player.perkGoldMult);
       this.xpGemPool.spawnGold(enemy.state.x, enemy.state.y, goldAmount);
     }
 
     // Boss kill: level up the weapon that killed it, or heal 50%
     if (enemy.state.boss && weaponType !== undefined) {
-      const weapon = this.player.state.weapons.find(w => w.type === weaponType);
+      const weapon = player.state.weapons.find(w => w.type === weaponType);
       if (weapon && weapon.level < MAX_WEAPON_LEVEL) {
         weapon.level++;
         GameEvents.sfx('weapon-upgrade');
-        GameEvents.emit(this.scene.events, 'show-damage',
-          this.player.state.x, this.player.state.y - 40,
+        GameEvents.emit(this.scene.events, 'damage-dealt',
+          player.state.x, player.state.y - 40,
           weapon.level, '#ffcc00',
         );
       } else {
-        const healAmount = Math.floor(this.player.state.maxHp * BOSS_KILL_HEAL_PCT);
-        this.player.state.hp = Math.min(this.player.state.maxHp, this.player.state.hp + healAmount);
-        GameEvents.emit(this.scene.events, 'show-damage',
-          this.player.state.x, this.player.state.y - 40,
+        const healAmount = Math.floor(player.state.maxHp * BOSS_KILL_HEAL_PCT);
+        player.state.hp = Math.min(player.state.maxHp, player.state.hp + healAmount);
+        GameEvents.emit(this.scene.events, 'damage-dealt',
+          player.state.x, player.state.y - 40,
           healAmount, '#ff4444',
         );
       }
-      GameEvents.emit(this.scene.events, 'screen-shake', 300, 0.015);
+      GameEvents.emit(this.scene.events, 'impact-occurred', 300, 0.015);
     }
   }
 

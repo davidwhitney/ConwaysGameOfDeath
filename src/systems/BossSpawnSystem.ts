@@ -7,7 +7,7 @@ import {
   BOSS_SPAWN_MIN_PROGRESS, BOSS_SPAWN_DISTANCE,
   BOSS_SPAWN_INTERVAL_START, BOSS_SPAWN_INTERVAL_END,
 } from '../constants';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { randomPositionAtDistance } from './spawnUtils';
@@ -24,7 +24,7 @@ export class BossSpawnSystem implements GameSystem {
     this.rng = rng;
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     const { deltaMs, elapsed: gameTimeMs } = ctx.time;
     const progress = gameTimeMs / GAME_DURATION_MS;
     if (progress < BOSS_SPAWN_MIN_PROGRESS) return;
@@ -39,7 +39,7 @@ export class BossSpawnSystem implements GameSystem {
     }
   }
 
-  private spawnBoss(ctx: UpdateContext, luckValue: number, gameTimeMs: number): void {
+  private spawnBoss(ctx: GameState, luckValue: number, gameTimeMs: number): void {
     const { player, enemyPool } = ctx;
     const progress = gameTimeMs / GAME_DURATION_MS;
 
@@ -59,7 +59,7 @@ export class BossSpawnSystem implements GameSystem {
       boss.state.hp = Math.max(1, Math.floor(boss.state.hp * hpReduction));
       boss.state.maxHp = boss.state.hp;
     }
-    GameEvents.emit(this.scene.events, 'screen-shake', 200, 0.008);
+    GameEvents.emit(this.scene.events, 'impact-occurred', 200, 0.008);
     GameEvents.sfx('boss-spawn');
   }
 

@@ -6,7 +6,7 @@ import {
   DEATH_MASK_START_MS, DEATH_MASK_INTERVAL_MS, DEATH_MASK_BASE_DIST,
 } from '../constants';
 import { SeededRandom } from '../utils/seeded-random';
-import type { UpdateContext } from './UpdateContext';
+import type { GameState } from './GameState';
 import type { GameSystem } from './GameSystem';
 import { GameEvents } from './GameEvents';
 import { randomPositionAtDistance } from './spawnUtils';
@@ -40,7 +40,7 @@ export class EndgameSystem implements GameSystem {
     this.enabled = val;
   }
 
-  update(ctx: UpdateContext): void {
+  update(ctx: GameState): void {
     if (!this.enabled) return;
 
     // Keep all Death enemies at 80% of the player's current speed
@@ -79,18 +79,18 @@ export class EndgameSystem implements GameSystem {
     }
   }
 
-  private spawnMask(ctx: UpdateContext): void {
+  private spawnMask(ctx: GameState): void {
     const { player } = ctx;
     const luckValue = player.getEffectValue(EffectType.Luck);
     const angle = this.rng.next() * Math.PI * 2;
     const dist = 200 + this.rng.next() * DEATH_MASK_BASE_DIST * (1 - luckValue * 0.6);
     const mx = player.state.x + Math.cos(angle) * dist;
     const my = player.state.y + Math.sin(angle) * dist;
-    GameEvents.emit(this.scene.events, 'scatter-death-mask', { x: mx, y: my });
+    GameEvents.emit(this.scene.events, 'death-mask-dropped', { x: mx, y: my });
     GameEvents.sfx('death-mask-spawn');
   }
 
-  private spawnDeath(ctx: UpdateContext): void {
+  private spawnDeath(ctx: GameState): void {
     const { player, enemyPool } = ctx;
     const { x: bx, y: by } = randomPositionAtDistance(this.rng, player.state.x, player.state.y, BOSS_SPAWN_DISTANCE);
 
@@ -109,7 +109,7 @@ export class EndgameSystem implements GameSystem {
         ease: 'Linear',
       });
     }
-    GameEvents.emit(this.scene.events, 'screen-shake', 400, 0.02);
+    GameEvents.emit(this.scene.events, 'impact-occurred', 400, 0.02);
   }
 
   reset(): void {

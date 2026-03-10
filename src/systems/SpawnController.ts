@@ -3,7 +3,7 @@ import type { TileMap } from '../types';
 import { TILE_SIZE } from '../constants';
 import { SpawnManager } from './spawn-manager';
 import { isWalkable } from './map-generator';
-import { EnemyPool } from './EnemyPool';
+import type { EnemyPool } from './EnemyPool';
 import { CameraManager } from './CameraManager';
 
 /**
@@ -13,18 +13,14 @@ import { CameraManager } from './CameraManager';
  */
 export class SpawnController {
   private spawnManager: SpawnManager;
-  private enemyPool: EnemyPool;
-  private map: TileMap;
   private scene: Phaser.Scene;
 
-  constructor(scene: Phaser.Scene, seed: number, enemyPool: EnemyPool, map: TileMap, initialTimeMs: number = 0) {
+  constructor(scene: Phaser.Scene, seed: number, initialTimeMs: number = 0) {
     this.scene = scene;
     this.spawnManager = new SpawnManager(seed, initialTimeMs);
-    this.enemyPool = enemyPool;
-    this.map = map;
   }
 
-  update(deltaMs: number, playerX: number, playerY: number): void {
+  update(deltaMs: number, playerX: number, playerY: number, enemyPool: EnemyPool, map: TileMap): void {
     const viewRadius = CameraManager.viewDiagonalRadius(this.scene.cameras.main);
     const spawnMin = viewRadius + 32;  // just outside screen edge
     const spawnMax = viewRadius + 300; // spread zone beyond edge
@@ -35,9 +31,9 @@ export class SpawnController {
       // Check that spawn position is walkable
       const tx = Math.floor(event.worldX / TILE_SIZE);
       const ty = Math.floor(event.worldY / TILE_SIZE);
-      if (!isWalkable(this.map, tx, ty)) continue;
+      if (!isWalkable(map, tx, ty)) continue;
 
-      this.enemyPool.spawn(event.enemyType, event.worldX, event.worldY, this.spawnManager.gameTimeMs);
+      enemyPool.spawn(event.enemyType, event.worldX, event.worldY, this.spawnManager.gameTimeMs);
     }
   }
 

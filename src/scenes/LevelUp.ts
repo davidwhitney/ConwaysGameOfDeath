@@ -270,16 +270,16 @@ export class LevelUpScene extends Phaser.Scene {
 
   private skip(): void {
     const gameScene = this.scene.get('Game');
-    GameEvents.emit(gameScene.events, 'levelup-skip');
+    GameEvents.emit(gameScene.events, 'levelup-skipped');
   }
 
   private reroll(): void {
     const gameScene = this.scene.get('Game');
-    GameEvents.emit(gameScene.events, 'levelup-reroll');
+    GameEvents.emit(gameScene.events, 'levelup-rerolled');
   }
 
   private selectOption(index: number): void {
     const gameScene = this.scene.get('Game');
-    GameEvents.emit(gameScene.events, 'levelup-choice', index);
+    GameEvents.emit(gameScene.events, 'levelup-option-selected', index);
   }
 }

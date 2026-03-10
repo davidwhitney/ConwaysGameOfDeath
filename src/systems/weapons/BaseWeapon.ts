@@ -50,7 +50,7 @@ export abstract class BaseWeapon {
       finalDamage = Math.floor(damage * (CRIT_DAMAGE_MULTIPLIER + critChance));
     }
     const killed = enemy.takeDamage(finalDamage, player.state.x, player.state.y);
-    GameEvents.emit(this.ctx.scene.events, 'show-damage', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
+    GameEvents.emit(this.ctx.scene.events, 'damage-dealt', enemy.state.x, enemy.state.y - 15, finalDamage, isCrit ? '#ff2222' : '#ffffff', isCrit);
     GameEvents.sfx('enemy-hit');
 
     // Lifesteal: heal player for % of damage dealt (10% effectiveness vs Death)
